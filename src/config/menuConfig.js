@@ -14,6 +14,7 @@ import {
   DollarSign,
   ClipboardList,
   PackageCheck,
+  QrCode,
 } from 'lucide-react'
 
 export function getMenuConfig() {
@@ -72,6 +73,12 @@ export function getMenuConfig() {
           path: '/sectors',
           icon: MapPin,
           requiredPermission: ['view_sectors', 'view_logistics_tab', 'manage_logistics'],
+        },
+        {
+          label: 'Vehicles',
+          path: '/vehicles',
+          icon: QrCode,
+          requiredPermission: 'manage_logistics',
         },
       ],
     },

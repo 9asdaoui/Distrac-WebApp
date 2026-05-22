@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Warehouse, Plus, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DashboardLayout } from '../../components/DashboardLayout'
@@ -33,6 +34,7 @@ function DepotsSkeleton() {
 }
 
 export function DepotsPage() {
+  const navigate = useNavigate()
   const [depots, setDepots] = useState([])
   const [sectorsForAssign, setSectorsForAssign] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -149,7 +151,11 @@ export function DepotsPage() {
                     {depots.map((depot) => {
                       const used = Math.min(depot.capacity_usage?.used_percentage || 0, 100)
                       return (
-                        <tr key={depot.id} className="border-b border-gray-200 dark:border-zinc-800">
+                        <tr
+                          key={depot.id}
+                          onClick={() => navigate('/depots/' + depot.id)}
+                          className="cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                        >
                           <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{depot.depot_name}</td>
                           <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{depot.address || '-'}</td>
                           <td className="px-6 py-4">

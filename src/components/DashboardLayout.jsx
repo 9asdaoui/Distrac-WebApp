@@ -1,4 +1,5 @@
 import React from 'react'
+import { Outlet } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 
@@ -36,7 +37,7 @@ export function DashboardLayout({ children }) {
           </button>
         </div>
 
-        <main className="min-h-0 flex-1 overflow-auto bg-zinc-50 p-4 md:p-8 dark:bg-zinc-900">{children}</main>
+        <main className="min-h-0 flex-1 overflow-auto bg-zinc-50 p-4 md:p-8 dark:bg-zinc-900">{children ?? <Outlet />}</main>
       </div>
     </div>
   )
