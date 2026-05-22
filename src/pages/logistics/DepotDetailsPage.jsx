@@ -1,0 +1,428 @@
+import React, { useEffect, useRef, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  MapPin,
+  Banknote,
+  Box,
+  Package,
+  PackageOpen,
+  Users,
+  Route,
+} from 'lucide-react'
+import { AnimatedPage } from '../../components/AnimatedPage'
+import { LocationMap, hasGpsCoordinates } from '../../components/LocationMap'
+import { LocationMapEmpty } from '../../components/LocationMapEmpty'
+import apiInstance from '../../api/axiosInstance'
+
+const TABS = [
+  { id: 'stock', label: 'Stock' },
+  { id: 'livreurs', label: 'Assigned Livreurs' },
+  { id: 'missions', label: 'Missions' },
+]
+
+function formatDa(value) {
+  return `${Number(value || 0).toLocaleString()} DA`
+}
+
+function formatVolume(value) {
+  const n = Number(value || 0)
+  return n % 1 === 0 ? `${n.toLocaleString()} L` : `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })} L`
+}
+
+function CapacityCard({ icon: Icon, label, used, total, usedPercentage, formatValue }) {
+  const pct = Math.min(Math.max(usedPercentage || 0, 0), 100)
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+          <Icon className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
+          <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            {formatValue(used)}
+            <span className="text-sm font-normal text-zinc-400 dark:text-zinc-500"> / {formatValue(total)}</span>
+          </p>
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-700">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-zinc-600 to-zinc-800 dark:from-zinc-400 dark:to-zinc-200"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">{pct}% utilized</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DetailsSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="h-8 w-48 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" />
+      <div className="h-10 w-72 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-28 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+        ))}
+      </div>
+      <div className="h-64 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+    </div>
+  )
+}
+
+function StockTable({ stock }) {
+  if (!stock?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-6 py-16 dark:border-zinc-700 dark:bg-zinc-900/50">
+        <PackageOpen className="mb-3 h-10 w-10 text-zinc-400 dark:text-zinc-500" />
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No stock in this depot</p>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Products will appear here once inventory is assigned.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-gray-50 dark:bg-zinc-800/50">
+            <tr>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Product</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Quantity</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Min Capacity</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Unit Price</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Total Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stock.map((row) => {
+              const product = row.product || {}
+              const quantity = Number(row.quantity || 0)
+              const minQty = Number(row.min_quantity || 0)
+              const unitPrice = Number(product.base_price || 0)
+              const totalValue = quantity * unitPrice
+              const isLow = quantity <= minQty
+
+              return (
+                <tr key={row.id} className="border-b border-gray-200 last:border-0 dark:border-zinc-800">
+                  <td className="px-6 py-4">
+                    <p className="font-medium text-zinc-900 dark:text-zinc-100">{product.name || '—'}</p>
+                    <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{product.sku || '—'}</p>
+                  </td>
+                  <td className="px-6 py-4">
+                    {isLow ? (
+                      <span className="inline-flex rounded-md bg-red-50 px-2 py-0.5 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-300">
+                        {quantity.toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-zinc-900 dark:text-zinc-100">{quantity.toLocaleString()}</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{minQty.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{formatDa(unitPrice)}</td>
+                  <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{formatDa(totalValue)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+const MISSION_TYPE_LABELS = {
+  INDUSTRY_PICKUP: 'Industry Pickup',
+  DELIVERY_ROUTE: 'Delivery Route',
+}
+
+function StatusBadge({ children, tone = 'default' }) {
+  const toneClass = {
+    default: 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300',
+    success: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+    warning: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+  }[tone] || 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'
+
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${toneClass}`}>
+      {children}
+    </span>
+  )
+}
+
+function LivreursTable({ livreurs }) {
+  if (!livreurs?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-6 py-16 dark:border-zinc-700 dark:bg-zinc-900/50">
+        <Users className="mb-3 h-10 w-10 text-zinc-400 dark:text-zinc-500" />
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No livreurs assigned</p>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Assign livreurs to this depot via user assignments.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-gray-50 dark:bg-zinc-800/50">
+            <tr>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Livreur</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Contact</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Vehicle</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {livreurs.map((livreur) => (
+              <tr key={livreur.id} className="border-b border-gray-200 last:border-0 dark:border-zinc-800">
+                <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{livreur.full_name || '—'}</td>
+                <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">
+                  <p>{livreur.email || '—'}</p>
+                  {livreur.phone && <p className="mt-0.5 text-xs">{livreur.phone}</p>}
+                </td>
+                <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">
+                  {livreur.vehicle
+                    ? `${livreur.vehicle.plate_number || '—'}${livreur.vehicle.model ? ` · ${livreur.vehicle.model}` : ''}`
+                    : '—'}
+                </td>
+                <td className="px-6 py-4">
+                  <StatusBadge tone={livreur.status === 'active' ? 'success' : 'default'}>
+                    {livreur.status || 'unknown'}
+                  </StatusBadge>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function MissionsTable({ missions }) {
+  if (!missions?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-6 py-16 dark:border-zinc-700 dark:bg-zinc-900/50">
+        <Route className="mb-3 h-10 w-10 text-zinc-400 dark:text-zinc-500" />
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No missions for this depot</p>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Run the mission dispatcher or seed missions to populate this tab.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-gray-50 dark:bg-zinc-800/50">
+            <tr>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Type</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Livreur</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Date</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Stops</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {missions.map((mission) => (
+              <tr key={mission.id} className="border-b border-gray-200 last:border-0 dark:border-zinc-800">
+                <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">
+                  {MISSION_TYPE_LABELS[mission.mission_type] || mission.mission_type || '—'}
+                </td>
+                <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">
+                  {mission.livreur?.full_name || '—'}
+                </td>
+                <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{mission.date || '—'}</td>
+                <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{mission.stops_count ?? 0}</td>
+                <td className="px-6 py-4">
+                  <StatusBadge
+                    tone={
+                      mission.status === 'COMPLETED'
+                        ? 'success'
+                        : mission.status === 'IN_PROGRESS'
+                          ? 'warning'
+                          : 'default'
+                    }
+                  >
+                    {mission.status || '—'}
+                  </StatusBadge>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+export function DepotDetailsPage() {
+  const { id } = useParams()
+  const [depot, setDepot] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState('stock')
+  const controllerRef = useRef(null)
+
+  useEffect(() => {
+    if (!id) return undefined
+
+    if (controllerRef.current) controllerRef.current.abort()
+    const controller = new AbortController()
+    controllerRef.current = controller
+
+    const load = async () => {
+      setIsLoading(true)
+      setError('')
+      try {
+        const res = await apiInstance.get(`/depots/${id}`, { signal: controller.signal })
+        if (!controller.signal.aborted) {
+          setDepot(res.data?.data?.depot || null)
+        }
+      } catch (err) {
+        if (err.name !== 'CanceledError' && !controller.signal.aborted) {
+          setDepot(null)
+          setError(err?.response?.data?.message || 'Failed to load depot details.')
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false)
+      }
+    }
+
+    load()
+    return () => controllerRef.current?.abort()
+  }, [id])
+
+  const capacity = depot?.capacity_usage || {}
+  const stockCount = depot?.stock?.length ?? 0
+
+  return (
+    <AnimatedPage>
+      <div className="mx-auto max-w-7xl space-y-8 p-8">
+        {isLoading ? (
+          <DetailsSkeleton />
+        ) : error || !depot ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-500/30 dark:bg-red-500/10">
+            <p className="text-sm font-medium text-red-700 dark:text-red-300">{error || 'Depot not found.'}</p>
+            <Link
+              to="/depots"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Depots
+            </Link>
+          </div>
+        ) : (
+          <>
+            <header className="space-y-4">
+              <Link
+                to="/depots"
+                className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Depots
+              </Link>
+              <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {depot.depot_name}
+              </h1>
+            </header>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                    <MapPin className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Location</p>
+                    <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                      {depot.address || '—'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <CapacityCard
+                icon={Banknote}
+                label="Price Capacity"
+                used={capacity.used_price_capacity}
+                total={capacity.total_price_capacity}
+                usedPercentage={capacity.price_used_percentage}
+                formatValue={formatDa}
+              />
+
+              <CapacityCard
+                icon={Box}
+                label="Volume Capacity"
+                used={capacity.used_volume_capacity}
+                total={capacity.total_volume_capacity}
+                usedPercentage={capacity.volume_used_percentage}
+                formatValue={formatVolume}
+              />
+
+              <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                    <Package className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Unique Products</p>
+                    <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                      {stockCount.toLocaleString()}
+                    </p>
+                    <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">SKUs in stock</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <section>
+              <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Location Map</h2>
+              {hasGpsCoordinates(depot.gps_latitude, depot.gps_longitude) ? (
+                <LocationMap
+                  lat={depot.gps_latitude}
+                  lng={depot.gps_longitude}
+                  name={depot.depot_name}
+                  className="h-80"
+                />
+              ) : (
+                <LocationMapEmpty />
+              )}
+            </section>
+
+            <div>
+              <nav className="flex gap-8 border-b border-gray-200 dark:border-zinc-800">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`relative pb-3 text-sm font-medium transition-colors ${
+                      activeTab === tab.id
+                        ? 'text-zinc-900 dark:text-zinc-100'
+                        : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
+                    }`}
+                  >
+                    {tab.label}
+                    {activeTab === tab.id && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-zinc-900 dark:bg-zinc-100" />
+                    )}
+                  </button>
+                ))}
+              </nav>
+
+              <div className="mt-6">
+                {activeTab === 'stock' && <StockTable stock={depot.stock} />}
+                {activeTab === 'livreurs' && <LivreursTable livreurs={depot.livreurs} />}
+                {activeTab === 'missions' && <MissionsTable missions={depot.missions} />}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </AnimatedPage>
+  )
+}

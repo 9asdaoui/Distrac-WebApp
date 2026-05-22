@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Factory, Plus, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DashboardLayout } from '../../components/DashboardLayout'
@@ -33,6 +34,7 @@ function IndustriesSkeleton() {
 }
 
 export function IndustriesPage() {
+  const navigate = useNavigate()
   const [industries, setIndustries] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -120,7 +122,11 @@ export function IndustriesPage() {
                   </thead>
                   <tbody>
                     {industries.map((industry) => (
-                      <tr key={industry.id} className="border-b border-gray-200 dark:border-zinc-800">
+                      <tr
+                        key={industry.id}
+                        onClick={() => navigate('/industries/' + industry.id)}
+                        className="cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                      >
                         <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{industry.industry_name}</td>
                         <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{industry.is_internal ? 'Internal' : 'External'}</td>
                         <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{industry.description || '-'}</td>

@@ -11,9 +11,13 @@ import { UsersPage } from './pages/UsersPage'
 import { RolesPage } from './pages/RolesPage'
 import { MissionsPage } from './pages/operations/MissionsPage'
 import { IndustriesPage } from './pages/logistics/IndustriesPage'
+import { IndustryDetailsPage } from './pages/logistics/IndustryDetailsPage'
 import { DepotsPage } from './pages/logistics/DepotsPage'
+import { DepotDetailsPage } from './pages/logistics/DepotDetailsPage'
+import { DashboardLayout } from './components/DashboardLayout'
 import { RegionsPage } from './pages/logistics/RegionsPage'
 import { SectorsPage } from './pages/logistics/SectorsPage'
+import { VehiclesPage } from './pages/logistics/VehiclesPage'
 import { ProductsPage } from './pages/catalog/ProductsPage'
 import { BrandsPage } from './pages/catalog/BrandsPage'
 import { CategoriesPage } from './pages/catalog/CategoriesPage'
@@ -100,6 +104,25 @@ function AppRoutes() {
         }
       />
 
+      <Route element={<DashboardLayout />}>
+        <Route
+          path="/industries/:id"
+          element={
+            <ProtectedRoute requiredPermission={['view_industries', 'view_logistics_tab', 'manage_logistics']}>
+              <IndustryDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/depots/:id"
+          element={
+            <ProtectedRoute requiredPermission={['view_depots', 'view_logistics_tab', 'manage_logistics']}>
+              <DepotDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
+
       <Route
         path="/regions"
         element={
@@ -114,6 +137,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute requiredPermission={['view_sectors', 'view_logistics_tab', 'manage_logistics']}>
             <SectorsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/vehicles"
+        element={
+          <ProtectedRoute requiredPermission="manage_logistics">
+            <VehiclesPage />
           </ProtectedRoute>
         }
       />
