@@ -22,6 +22,8 @@ import { ProductsPage } from './pages/catalog/ProductsPage'
 import { BrandsPage } from './pages/catalog/BrandsPage'
 import { CategoriesPage } from './pages/catalog/CategoriesPage'
 import { OrdersPage } from './pages/operations/OrdersPage'
+import { OrderDetailsPage } from './pages/operations/OrderDetailsPage'
+import { MissionDetailsPage } from './pages/operations/MissionDetailsPage'
 import { ExceptionsPage } from './pages/operations/ExceptionsPage'
 import { DebtPage } from './pages/finance/DebtPage'
 import { ProposalsPage } from './pages/inventory/ProposalsPage'
@@ -80,7 +82,7 @@ function AppRoutes() {
       <Route
         path="/missions"
         element={
-          <ProtectedRoute requiredPermission="view_missions">
+          <ProtectedRoute requiredPermission={['view_missions', 'approve_missions', 'manage_logistics']}>
             <MissionsPage />
           </ProtectedRoute>
         }
@@ -118,6 +120,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute requiredPermission={['view_depots', 'view_logistics_tab', 'manage_logistics']}>
               <DepotDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders/:id"
+          element={
+            <ProtectedRoute requiredPermission="view_orders_tab">
+              <OrderDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/missions/:id"
+          element={
+            <ProtectedRoute requiredPermission={['view_missions', 'approve_missions', 'manage_logistics']}>
+              <MissionDetailsPage />
             </ProtectedRoute>
           }
         />

@@ -213,10 +213,14 @@ export function ProposalsPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Proposal Inbox</h1>
-                <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">Review system-generated replenishment proposals before conversion to stock requests.</p>
+                <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+                  Review system-generated replenishment proposals before conversion to stock requests.
+                </p>
               </div>
             </div>
-            {!isLoading && <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{visibleProposals.length} pending</span>}
+            {!isLoading && (
+              <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{visibleProposals.length} pending</span>
+            )}
           </div>
 
           {error && (

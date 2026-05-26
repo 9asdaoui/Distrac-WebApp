@@ -122,7 +122,7 @@ export function getMenuConfig() {
           labelKey: 'sidebar.missions',
           path: '/missions',
           icon: Truck,
-          requiredPermission: 'view_missions',
+          requiredPermission: ['view_missions', 'approve_missions', 'manage_logistics'],
         },
         {
           label: 'Exceptions',

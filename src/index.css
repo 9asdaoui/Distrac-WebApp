@@ -24,6 +24,68 @@ body {
   font-family: inherit;
 }
 
+.route-stop-marker {
+  background: transparent;
+  border: none;
+}
+
+.route-stop-marker__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: #18181b;
+  border: 2px solid #60a5fa;
+  color: #f4f4f5;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.route-depot-marker {
+  background: transparent;
+  border: none;
+}
+
+.route-depot-marker__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f59e0b;
+  border: 2px solid #fef3c7;
+  color: #1c1917;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45);
+}
+
+.route-depot-marker {
+  background: transparent;
+  border: none;
+}
+
+.route-depot-marker__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f59e0b;
+  border: 2px solid #fef3c7;
+  color: #1c1917;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
 /* Compact sidebar scrollbar: visually hide track but keep scrollable */
 .sidebar-scroll {
   scrollbar-width: thin;

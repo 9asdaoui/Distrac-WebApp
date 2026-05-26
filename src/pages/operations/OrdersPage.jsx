@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ShoppingCart, Search, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DashboardLayout } from '../../components/DashboardLayout'
@@ -62,6 +63,7 @@ function OrdersSkeleton() {
 const ALL_STATUSES = ['PENDING', 'CONFIRMED', 'READY', 'IN_TRANSIT', 'DELIVERED', 'REFUSED', 'CANCELLED']
 
 export function OrdersPage() {
+  const navigate = useNavigate()
   const [orders, setOrders] = useState([])
   const [sectors, setSectors] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -199,13 +201,16 @@ export function OrdersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map((order, i) => (
+                    {orders.map((order, i) => {
+                      const orderRef = order.order_number || order.order_id || order.id
+                      return (
                       <motion.tr
-                        key={order.id}
+                        key={order.id || orderRef}
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.03 }}
-                        className="border-b border-gray-200 dark:border-zinc-800"
+                        onClick={() => navigate('/orders/' + encodeURIComponent(orderRef))}
+                        className="cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                       >
                         <td className="px-6 py-4 font-mono font-medium text-zinc-900 dark:text-zinc-100">
                           {order.order_number || order.order_id || order.id?.slice(0, 8)}
@@ -214,7 +219,7 @@ export function OrdersPage() {
                           {order.client?.name || order.client_name || '—'}
                         </td>
                         <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">
-                          {order.client?.sector_id || '—'}
+                          {order.client?.sector_name || order.client?.sector_id || '—'}
                         </td>
                         <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">
                           {order.total_amount != null
@@ -235,7 +240,8 @@ export function OrdersPage() {
                             : '—'}
                         </td>
                       </motion.tr>
-                    ))}
+                      )
+                    })}
                     {orders.length === 0 && (
                       <tr>
                         <td className="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400" colSpan={7}>
