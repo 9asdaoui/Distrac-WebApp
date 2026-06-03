@@ -23,6 +23,10 @@ import { SectorsPage } from './pages/logistics/SectorsPage'
 import { SectorDetailsPage } from './pages/logistics/SectorDetailsPage'
 import { GlobalMapPage } from './pages/logistics/GlobalMapPage'
 import { ClientDetailsPage } from './pages/logistics/ClientDetailsPage'
+<<<<<<< HEAD
+=======
+import { ClientsPage } from './pages/ClientsPage'
+>>>>>>> 29f6049 (feat: add OrdersPage and PlanMissionsModal components, implement order creation and mission planning functionality)
 import { VehiclesPage } from './pages/logistics/VehiclesPage'
 import { ProductsPage } from './pages/catalog/ProductsPage'
 import { BrandsPage } from './pages/catalog/BrandsPage'
@@ -187,6 +191,17 @@ function AppRoutes() {
           }
         />
         <Route
+<<<<<<< HEAD
+=======
+          path="/clients"
+          element={
+            <ProtectedRoute requiredPermission={['view_clients_tab', 'manage_logistics']}>
+              <ClientsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+>>>>>>> 29f6049 (feat: add OrdersPage and PlanMissionsModal components, implement order creation and mission planning functionality)
           path="/clients/:id"
           element={
             <ProtectedRoute requiredPermission={['view_logistics_tab', 'manage_logistics']}>

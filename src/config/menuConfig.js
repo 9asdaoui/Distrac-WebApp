@@ -16,6 +16,10 @@ import {
   ClipboardList,
   PackageCheck,
   QrCode,
+<<<<<<< HEAD
+=======
+  Store,
+>>>>>>> 29f6049 (feat: add OrdersPage and PlanMissionsModal components, implement order creation and mission planning functionality)
 } from 'lucide-react'
 
 export function getMenuConfig() {
@@ -82,6 +86,15 @@ export function getMenuConfig() {
           requiredPermission: ['view_sectors', 'view_logistics_tab', 'manage_logistics'],
         },
         {
+<<<<<<< HEAD
+=======
+          label: 'Clients',
+          path: '/clients',
+          icon: Store,
+          requiredPermission: ['view_clients_tab', 'manage_logistics'],
+        },
+        {
+>>>>>>> 29f6049 (feat: add OrdersPage and PlanMissionsModal components, implement order creation and mission planning functionality)
           label: 'Vehicles',
           path: '/vehicles',
           icon: QrCode,

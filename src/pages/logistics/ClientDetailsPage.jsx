@@ -1,15 +1,186 @@
+<<<<<<< HEAD
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, MapPin, Phone, User } from 'lucide-react'
+=======
+import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  Phone,
+  Mail,
+  MapPin,
+  CreditCard,
+  BadgeCheck,
+  Clock,
+  Store,
+  QrCode,
+  DollarSign,
+  Calendar,
+  Check,
+  X,
+} from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+>>>>>>> 29f6049 (feat: add OrdersPage and PlanMissionsModal components, implement order creation and mission planning functionality)
 import { AnimatedPage } from '../../components/AnimatedPage'
 import { LocationMapCard } from '../../components/LocationMap'
 import apiInstance from '../../api/axiosInstance'
 
+<<<<<<< HEAD
+=======
+const DAY_LABELS = {
+  monday: 'Monday',
+  tuesday: 'Tuesday',
+  wednesday: 'Wednesday',
+  thursday: 'Thursday',
+  friday: 'Friday',
+  saturday: 'Saturday',
+  sunday: 'Sunday',
+}
+
+const ORDER_STATUS_META = {
+  PENDING: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+  APPROVED: 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-200',
+  DELIVERED: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+  CANCELLED: 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400',
+}
+
+function StatusBadge({ status }) {
+  const cls = ORDER_STATUS_META[status] || 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${cls}`}>
+      {status || '—'}
+    </span>
+  )
+}
+
+>>>>>>> 29f6049 (feat: add OrdersPage and PlanMissionsModal components, implement order creation and mission planning functionality)
 function DetailsSkeleton() {
   return (
     <div className="space-y-6">
       <div className="h-8 w-48 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" />
+<<<<<<< HEAD
       <div className="h-64 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+=======
+      <div className="h-10 w-72 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" />
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <div className="h-64 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+          <div className="h-48 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+          <div className="h-40 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+        </div>
+        <div className="space-y-6">
+          <div className="h-40 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+          <div className="h-56 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function OpeningHoursCard({ openingHours }) {
+  if (!openingHours || Object.keys(openingHours).length === 0) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="border-b border-gray-200 px-5 py-4 dark:border-zinc-800">
+          <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+            <Clock className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+            Opening Hours
+          </h3>
+        </div>
+        <div className="flex flex-col items-center justify-center px-6 py-10">
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No opening hours configured.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="border-b border-gray-200 px-5 py-4 dark:border-zinc-800">
+        <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          <Clock className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+          Opening Hours
+        </h3>
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">Weekly schedule with split shifts</p>
+      </div>
+      <div className="divide-y divide-gray-100 px-5 py-3 dark:divide-zinc-800">
+        {days.map((day) => {
+          const shifts = openingHours[day]
+          const isOpen = shifts && shifts.length > 0
+          return (
+            <div key={day} className="flex items-center justify-between py-2.5">
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 capitalize">
+                {DAY_LABELS[day]}
+              </span>
+              {isOpen ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {shifts.map((shift, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
+                    >
+                      {shift.open} – {shift.close}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-xs text-zinc-400 dark:text-zinc-500">Closed</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function OrdersTable({ orders }) {
+  if (!orders?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-6 py-14 dark:border-zinc-700 dark:bg-zinc-900/50">
+        <Calendar className="mb-3 h-10 w-10 text-zinc-400 dark:text-zinc-500" />
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No orders yet</p>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Orders will appear here once this client places one.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-gray-50 dark:bg-zinc-800/50">
+            <tr>
+              <th className="px-5 py-3 font-medium text-zinc-600 dark:text-zinc-300">Order #</th>
+              <th className="px-5 py-3 font-medium text-zinc-600 dark:text-zinc-300">Date</th>
+              <th className="px-5 py-3 font-medium text-zinc-600 dark:text-zinc-300">Total</th>
+              <th className="px-5 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.slice(0, 10).map((order) => (
+              <tr key={order.id} className="border-b border-gray-200 last:border-0 dark:border-zinc-800">
+                <td className="px-5 py-3.5 font-mono text-xs text-zinc-700 dark:text-zinc-300">
+                  {order.order_number || `${order.id.slice(0, 8)}…`}
+                </td>
+                <td className="px-5 py-3.5 text-zinc-500 dark:text-zinc-400">
+                  {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString() : '—'}
+                </td>
+                <td className="px-5 py-3.5 font-medium text-zinc-900 dark:text-zinc-100">
+                  {order.total_amount ? `${Number(order.total_amount).toLocaleString()} DA` : '—'}
+                </td>
+                <td className="px-5 py-3.5">
+                  <StatusBadge status={order.status} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+>>>>>>> 29f6049 (feat: add OrdersPage and PlanMissionsModal components, implement order creation and mission planning functionality)
     </div>
   )
 }
@@ -18,10 +189,33 @@ export function ClientDetailsPage() {
   const { id } = useParams()
   const controllerRef = useRef(null)
   const [client, setClient] = useState(null)
+<<<<<<< HEAD
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
+=======
+  const [orders, setOrders] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [showCreditSlideover, setShowCreditSlideover] = useState(false)
+  const [creditForm, setCreditForm] = useState({ autoApproveCredit: false, maxCreditLimit: '', maxCreditDays: '' })
+  const [isUpdatingCredit, setIsUpdatingCredit] = useState(false)
+  const [creditError, setCreditError] = useState('')
+
+  // Lock outer scroll for credit slide-over
+  useEffect(() => {
+    if (showCreditSlideover) {
+      document.documentElement.style.overflow = 'hidden'
+    } else {
+      document.documentElement.style.overflow = ''
+    }
+    return () => { document.documentElement.style.overflow = '' }
+  }, [showCreditSlideover])
+
+  useEffect(() => {
+    if (!id) return
+>>>>>>> 29f6049 (feat: add OrdersPage and PlanMissionsModal components, implement order creation and mission planning functionality)
     if (controllerRef.current) controllerRef.current.abort()
     const controller = new AbortController()
     controllerRef.current = controller
@@ -30,6 +224,7 @@ export function ClientDetailsPage() {
       setIsLoading(true)
       setError('')
       try {
+<<<<<<< HEAD
         const res = await apiInstance.get(`/clients/${id}`, { signal: controller.signal })
         if (!controller.signal.aborted) {
           setClient(res.data?.data?.client || null)
@@ -37,6 +232,19 @@ export function ClientDetailsPage() {
       } catch (err) {
         if (err.name === 'CanceledError' || controller.signal.aborted) return
         setError(err.response?.data?.message || 'Client not found')
+=======
+        const [clientRes, ordersRes] = await Promise.all([
+          apiInstance.get(`/clients/${id}`, { signal: controller.signal }),
+          apiInstance.get(`/clients/${id}/orders`, { signal: controller.signal }).catch(() => ({ data: { data: { orders: [] } } })),
+        ])
+        if (!controller.signal.aborted) {
+          setClient(clientRes.data?.data?.client || null)
+          setOrders(ordersRes.data?.data?.orders || [])
+        }
+      } catch (err) {
+        if (err.name === 'CanceledError' || controller.signal.aborted) return
+        setError(err.response?.data?.message || 'Failed to load client details.')
+>>>>>>> 29f6049 (feat: add OrdersPage and PlanMissionsModal components, implement order creation and mission planning functionality)
         setClient(null)
       } finally {
         if (!controller.signal.aborted) setIsLoading(false)
@@ -47,6 +255,7 @@ export function ClientDetailsPage() {
     return () => controller.abort()
   }, [id])
 
+<<<<<<< HEAD
   return (
     <AnimatedPage>
       <div className="space-y-6">
@@ -126,3 +335,314 @@ export function ClientDetailsPage() {
     </AnimatedPage>
   )
 }
+=======
+  const openCreditSlideover = () => {
+    if (!client) return
+    setCreditForm({
+      autoApproveCredit: client.auto_approve_credit || false,
+      maxCreditLimit: client.max_credit_limit?.toString() || '',
+      maxCreditDays: client.max_credit_days?.toString() || '',
+    })
+    setCreditError('')
+    setShowCreditSlideover(true)
+  }
+
+  const handleCreditUpdate = async (e) => {
+    e.preventDefault()
+    setIsUpdatingCredit(true)
+    setCreditError('')
+    try {
+      const res = await apiInstance.put(`/clients/${id}/credit-settings`, {
+        autoApproveCredit: creditForm.autoApproveCredit,
+        maxCreditLimit: Number(creditForm.maxCreditLimit) || 0,
+        maxCreditDays: Number(creditForm.maxCreditDays) || 0,
+      })
+      setClient((prev) => ({ ...prev, ...res.data?.data?.client }))
+      setShowCreditSlideover(false)
+    } catch (err) {
+      setCreditError(err?.response?.data?.message || 'Failed to update credit settings.')
+    } finally {
+      setIsUpdatingCredit(false)
+    }
+  }
+
+  return (
+    <AnimatedPage>
+      <div className="mx-auto max-w-7xl space-y-8">
+        {isLoading ? (
+          <DetailsSkeleton />
+        ) : error || !client ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-500/30 dark:bg-red-500/10">
+            <p className="text-sm font-medium text-red-700 dark:text-red-300">{error || 'Client not found.'}</p>
+            <Link
+              to="/clients"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Clients
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <header className="space-y-4">
+              <Link
+                to="/clients"
+                className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Clients
+              </Link>
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                  <Store className="h-7 w-7 text-zinc-600 dark:text-zinc-300" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+                    {client.store_name || client.client_name}
+                  </h1>
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    Legal Name: {client.client_name}
+                    {client.qr_code && <> | QR: <span className="font-mono text-xs">{client.qr_code}</span></>}
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            {/* 2-Column Grid Layout */}
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+              {/* Left Column (2/3) — Map, Hours, Orders */}
+              <div className="space-y-6 lg:col-span-2">
+                {/* Map */}
+                <LocationMapCard
+                  lat={client.gps_latitude}
+                  lng={client.gps_longitude}
+                  name={client.client_name}
+                  emptyMessage="No GPS coordinates set for this client."
+                />
+
+                {/* Opening Hours */}
+                <OpeningHoursCard openingHours={client.opening_hours} />
+
+                {/* Order History */}
+                <div>
+                  <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Order History</h2>
+                  <OrdersTable orders={orders} />
+                </div>
+              </div>
+
+              {/* Right Column (1/3) — Contact & Finance */}
+              <div className="space-y-6">
+                {/* Contact Card */}
+                <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="border-b border-gray-200 px-5 py-4 dark:border-zinc-800">
+                    <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Contact</h3>
+                  </div>
+                  <div className="space-y-4 px-5 py-4">
+                    {client.phone && (
+                      <a
+                        href={`tel:${client.phone}`}
+                        className="flex items-center gap-3 text-sm text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                          <Phone className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+                        </div>
+                        <span>{client.phone}</span>
+                      </a>
+                    )}
+                    {client.email && (
+                      <div className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                          <Mail className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+                        </div>
+                        <span className="truncate">{client.email}</span>
+                      </div>
+                    )}
+                    {(client.client_address || client.city) && (
+                      <div className="flex items-start gap-3 text-sm text-zinc-700 dark:text-zinc-300">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                          <MapPin className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+                        </div>
+                        <span>{[client.client_address, client.city].filter(Boolean).join(', ')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Credit & Financials Card */}
+                <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="border-b border-gray-200 px-5 py-4 dark:border-zinc-800">
+                    <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      <CreditCard className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+                      Credit & Financials
+                    </h3>
+                  </div>
+                  <div className="space-y-5 px-5 py-4">
+                    {/* Auto-approve badge */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-zinc-500 dark:text-zinc-400">Auto-approve Credit</span>
+                      {client.auto_approve_credit ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                          <BadgeCheck className="h-3.5 w-3.5" />
+                          Enabled
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                          Disabled
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Metrics */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Credit Limit</p>
+                        <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                          {client.max_credit_limit ? `${Number(client.max_credit_limit).toLocaleString()} DA` : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Credit Days</p>
+                        <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                          {client.max_credit_days ? `${client.max_credit_days} days` : '—'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Current Balance</p>
+                      <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                        {client.current_balance ? `${Number(client.current_balance).toLocaleString()} DA` : '0 DA'}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={openCreditSlideover}
+                      className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    >
+                      Update Credit Settings
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Update Credit Settings Slide-Over */}
+      <AnimatePresence>
+        {showCreditSlideover && (
+          <div className="fixed inset-0 z-[60]">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setShowCreditSlideover(false)}
+              aria-hidden="true"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col border-l border-gray-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              {/* Header */}
+              <div className="flex-shrink-0 border-b border-gray-200 px-6 py-5 dark:border-zinc-800">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Update Credit Settings</h2>
+                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                      Configure {client?.client_name}'s credit parameters.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreditSlideover(false)}
+                    className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto px-6 py-6">
+                <form id="credit-settings-form" onSubmit={handleCreditUpdate} className="space-y-6">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Auto-approve Credit</label>
+                    <div className="flex gap-3">
+                      {[{ value: true, label: 'Enabled' }, { value: false, label: 'Disabled' }].map((opt) => (
+                        <button
+                          key={String(opt.value)}
+                          type="button"
+                          onClick={() => setCreditForm({ ...creditForm, autoApproveCredit: opt.value })}
+                          className={`flex-1 rounded-xl border-2 py-2.5 text-sm font-semibold transition ${
+                            creditForm.autoApproveCredit === opt.value
+                              ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                              : 'border-gray-200 text-zinc-500 hover:border-gray-400 dark:border-zinc-700 dark:hover:border-zinc-500'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Max Credit Limit (DA)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={creditForm.maxCreditLimit}
+                      onChange={(e) => setCreditForm({ ...creditForm, maxCreditLimit: e.target.value })}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Max Credit Days</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={creditForm.maxCreditDays}
+                      onChange={(e) => setCreditForm({ ...creditForm, maxCreditDays: e.target.value })}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    />
+                  </div>
+                  {creditError && <p className="text-sm text-red-500">{creditError}</p>}
+                </form>
+              </div>
+
+              {/* Footer */}
+              <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4 dark:border-zinc-800">
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    form="credit-settings-form"
+                    disabled={isUpdatingCredit}
+                    className="flex-1 rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
+                  >
+                    {isUpdatingCredit ? 'Saving…' : 'Save Changes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreditSlideover(false)}
+                    className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </AnimatedPage>
+  )
+}
+>>>>>>> 29f6049 (feat: add OrdersPage and PlanMissionsModal components, implement order creation and mission planning functionality)
