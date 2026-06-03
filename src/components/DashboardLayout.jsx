@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 
-export function DashboardLayout({ children }) {
+export function DashboardLayout({ children, flush = false }) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
 
   return (
@@ -37,7 +37,15 @@ export function DashboardLayout({ children }) {
           </button>
         </div>
 
-        <main className="min-h-0 flex-1 overflow-auto bg-zinc-50 p-4 md:p-8 dark:bg-zinc-900">{children ?? <Outlet />}</main>
+        <main
+          className={
+            flush
+              ? 'relative min-h-0 flex-1 overflow-hidden bg-zinc-950'
+              : 'min-h-0 flex-1 overflow-auto bg-zinc-50 p-4 md:p-8 dark:bg-zinc-900'
+          }
+        >
+          {children ?? <Outlet />}
+        </main>
       </div>
     </div>
   )

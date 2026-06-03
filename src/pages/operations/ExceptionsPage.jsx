@@ -182,7 +182,7 @@ function ResolvePanel({ exception, onClose, onResolved }) {
         type="button"
         onClick={handleSubmit}
         disabled={isSubmitting}
-        className="w-full rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="btn-primary btn-primary-block rounded-xl py-3 disabled:opacity-40"
       >
         {isSubmitting ? 'Submitting…' : `${approved ? 'Approve' : 'Reject'} Exception`}
       </button>

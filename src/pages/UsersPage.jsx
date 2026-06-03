@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Loader2, Plus, UserPlus, Users, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DashboardLayout } from '../components/DashboardLayout'
@@ -186,6 +187,7 @@ function UsersTableSkeleton() {
 }
 
 export function UsersPage() {
+  const navigate = useNavigate()
   const [users, setUsers] = useState([])
   const [roles, setRoles] = useState([])
   const [sectors, setSectors] = useState([])
@@ -379,7 +381,7 @@ export function UsersPage() {
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="btn-primary"
           >
             <Plus className="h-4 w-4" />
             Create user
@@ -423,7 +425,11 @@ export function UsersPage() {
                     const isActive = String(user.status || '').toLowerCase() === 'active'
 
                     return (
-                      <tr key={user.id} className="border-b border-gray-200 align-top dark:border-zinc-800">
+                      <tr
+                        key={user.id}
+                        onClick={() => navigate(`/users/${user.id}`)}
+                        className="cursor-pointer border-b border-gray-200 align-top transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/40"
+                      >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
@@ -660,7 +666,7 @@ export function UsersPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                  className="btn-primary disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Create user

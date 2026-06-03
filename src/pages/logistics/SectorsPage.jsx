@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { MapPin, Plus, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
+import { SectorBoundaryDrawer, isValidSectorPolygon } from '../../components/SectorBoundaryDrawer'
 import apiInstance from '../../api/axiosInstance'
 
 function SectorsSkeleton() {
@@ -15,6 +17,7 @@ function SectorsSkeleton() {
               <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Sector</th>
               <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Region</th>
               <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Depot</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -23,6 +26,7 @@ function SectorsSkeleton() {
                 <td className="px-6 py-4"><div className="h-5 w-40 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
                 <td className="px-6 py-4"><div className="h-5 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
                 <td className="px-6 py-4"><div className="h-5 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
+                <td className="px-6 py-4"><div className="h-5 w-16 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
               </tr>
             ))}
           </tbody>
@@ -33,6 +37,7 @@ function SectorsSkeleton() {
 }
 
 export function SectorsPage() {
+  const navigate = useNavigate()
   const [sectors, setSectors] = useState([])
   const [regions, setRegions] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -40,12 +45,13 @@ export function SectorsPage() {
   const [form, setForm] = useState({
     sectorName: '',
     regionId: '',
-    boundary: '',
+    boundary: null,
     assignedProfileId: '',
     isActive: true,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
+  const [mapDrawerKey, setMapDrawerKey] = useState(0)
   const controllerRef = useRef(null)
 
   const load = async () => {
@@ -72,8 +78,9 @@ export function SectorsPage() {
   }, [])
 
   const openCreate = () => {
-    setForm({ sectorName: '', regionId: '', boundary: '', assignedProfileId: '', isActive: true })
+    setForm({ sectorName: '', regionId: '', boundary: null, assignedProfileId: '', isActive: true })
     setFormError('')
+    setMapDrawerKey((key) => key + 1)
     setIsCreateOpen(true)
   }
 
@@ -83,13 +90,17 @@ export function SectorsPage() {
       setFormError('Sector name is required.')
       return
     }
+    if (!isValidSectorPolygon(form.boundary)) {
+      setFormError('Draw the sector boundary: Start drawing → click corners → Done.')
+      return
+    }
     setIsSubmitting(true)
     setFormError('')
     try {
       await apiInstance.post('/sectors', {
-        sectorName: form.sectorName,
+        sectorName: form.sectorName.trim(),
         regionId: form.regionId || undefined,
-        boundary: form.boundary || undefined,
+        boundary: form.boundary,
         assignedProfileId: form.assignedProfileId || null,
         isActive: form.isActive,
       })
@@ -132,19 +143,35 @@ export function SectorsPage() {
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Sector</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Region</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Depot</th>
+                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sectors.map((sector) => (
-                      <tr key={sector.id} className="border-b border-gray-200 dark:border-zinc-800">
+                      <tr
+                        key={sector.id}
+                        onClick={() => navigate(`/sectors/${sector.id}`)}
+                        className="cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                      >
                         <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{sector.sector_name}</td>
                         <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{sector.regions?.region_name || '-'}</td>
                         <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{sector.depots?.depot_name || '-'}</td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              sector.is_active !== false
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+                                : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                            }`}
+                          >
+                            {sector.is_active !== false ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                     {sectors.length === 0 && (
                       <tr>
-                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={3}>
+                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={4}>
                           No sectors available.
                         </td>
                       </tr>
@@ -162,7 +189,7 @@ export function SectorsPage() {
           <motion.div className="fixed inset-0 z-[60]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
             <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsCreateOpen(false)} aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
             <motion.div
-              className="absolute right-0 top-0 h-full w-full max-w-lg overflow-y-auto border-l border-gray-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+              className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-gray-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
@@ -205,13 +232,13 @@ export function SectorsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Boundary (GeoJSON/Text)</label>
-                  <textarea
-                    rows={3}
+                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Sector boundary <span className="text-red-500">*</span>
+                  </label>
+                  <SectorBoundaryDrawer
+                    key={mapDrawerKey}
                     value={form.boundary}
-                    onChange={(e) => setForm({ ...form, boundary: e.target.value })}
-                    placeholder="Optional boundary payload"
-                    className="w-full resize-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    onChange={(boundary) => setForm((prev) => ({ ...prev, boundary }))}
                   />
                 </div>
 

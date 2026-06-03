@@ -8,6 +8,9 @@ import { Login } from './pages/Login'
 import { DashboardHome } from './pages/DashboardHome'
 import { Unauthorized } from './pages/Unauthorized'
 import { UsersPage } from './pages/UsersPage'
+import { UserProfilePage } from './pages/UserProfilePage'
+import { ProfilePage } from './pages/ProfilePage'
+import { SettingsPage } from './pages/SettingsPage'
 import { RolesPage } from './pages/RolesPage'
 import { MissionsPage } from './pages/operations/MissionsPage'
 import { IndustriesPage } from './pages/logistics/IndustriesPage'
@@ -17,6 +20,9 @@ import { DepotDetailsPage } from './pages/logistics/DepotDetailsPage'
 import { DashboardLayout } from './components/DashboardLayout'
 import { RegionsPage } from './pages/logistics/RegionsPage'
 import { SectorsPage } from './pages/logistics/SectorsPage'
+import { SectorDetailsPage } from './pages/logistics/SectorDetailsPage'
+import { GlobalMapPage } from './pages/logistics/GlobalMapPage'
+import { ClientDetailsPage } from './pages/logistics/ClientDetailsPage'
 import { VehiclesPage } from './pages/logistics/VehiclesPage'
 import { ProductsPage } from './pages/catalog/ProductsPage'
 import { BrandsPage } from './pages/catalog/BrandsPage'
@@ -106,7 +112,32 @@ function AppRoutes() {
         }
       />
 
+      <Route
+        path="/global-map"
+        element={
+          <ProtectedRoute requiredPermission={['view_logistics_tab', 'manage_logistics']}>
+            <GlobalMapPage />
+          </ProtectedRoute>
+        }
+      />
+
       <Route element={<DashboardLayout />}>
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/industries/:id"
           element={
@@ -136,6 +167,30 @@ function AppRoutes() {
           element={
             <ProtectedRoute requiredPermission={['view_missions', 'approve_missions', 'manage_logistics']}>
               <MissionDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sectors/:id"
+          element={
+            <ProtectedRoute requiredPermission={['view_sectors', 'view_logistics_tab', 'manage_logistics']}>
+              <SectorDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users/:id"
+          element={
+            <ProtectedRoute requiredPermission="manage_users">
+              <UserProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clients/:id"
+          element={
+            <ProtectedRoute requiredPermission={['view_logistics_tab', 'manage_logistics']}>
+              <ClientDetailsPage />
             </ProtectedRoute>
           }
         />

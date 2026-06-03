@@ -5,6 +5,7 @@ import {
   Factory,
   Warehouse,
   Map,
+  Globe,
   MapPin,
   Package,
   Tags,
@@ -50,6 +51,12 @@ export function getMenuConfig() {
       type: 'group',
       title: 'LOGISTICS',
       items: [
+        {
+          label: 'Global Map',
+          path: '/global-map',
+          icon: Globe,
+          requiredPermission: ['view_logistics_tab', 'manage_logistics'],
+        },
         {
           label: 'Industries',
           path: '/industries',

@@ -24,6 +24,18 @@ body {
   font-family: inherit;
 }
 
+.sector-boundary-map--drawing .leaflet-container {
+  cursor: crosshair;
+}
+
+.sector-boundary-map--drawing .leaflet-grab {
+  cursor: crosshair;
+}
+
+.sector-boundary-map .leaflet-control-container {
+  z-index: 400;
+}
+
 .route-stop-marker {
   background: transparent;
   border: none;
@@ -107,4 +119,38 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+.global-map-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.global-map-sector-tooltip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.global-map-canvas .leaflet-top.leaflet-right {
+  top: 0.75rem;
+  right: 0.75rem;
+}
+
+.global-map-canvas .leaflet-control-zoom {
+  border: 1px solid #27272a !important;
+  border-radius: 0.5rem !important;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.global-map-canvas .leaflet-control-zoom a {
+  background: rgba(24, 24, 27, 0.85) !important;
+  color: #e4e4e7 !important;
+  border-bottom-color: #27272a !important;
+}
+
+.global-map-canvas .leaflet-control-zoom a:hover {
+  background: rgba(39, 39, 42, 0.95) !important;
 }

@@ -402,7 +402,7 @@ export function CatalogPage() {
               <button type="button" onClick={closePanel} className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
                 Cancel
               </button>
-              <button type="submit" disabled={isSubmitting} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
+              <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 disabled:opacity-60">
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Create
               </button>
@@ -443,7 +443,7 @@ export function CatalogPage() {
               <button type="button" onClick={closePanel} className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
                 Cancel
               </button>
-              <button type="submit" disabled={isSubmitting} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
+              <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 disabled:opacity-60">
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Create
               </button>
@@ -570,7 +570,7 @@ export function CatalogPage() {
               <button type="button" onClick={closePanel} className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
                 Cancel
               </button>
-              <button type="submit" disabled={isSubmitting} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
+              <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 disabled:opacity-60">
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Create
               </button>
@@ -603,7 +603,7 @@ export function CatalogPage() {
                 setCreateFormData({})
                 setIsCreateOpen(true)
               }}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              className="btn-primary"
             >
               <Plus className="h-4 w-4" />
               Add item

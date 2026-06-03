@@ -54,7 +54,7 @@ export function Sidebar({ onNavigate }) {
 
   const supportAndSettingsItems = [
     { key: 'support', icon: HelpCircle, label: t('sidebar.support') },
-    { key: 'settings', icon: Settings, label: t('sidebar.settings') },
+    { key: 'settings', icon: Settings, label: t('sidebar.settings'), path: '/settings' },
   ]
 
   return (
@@ -111,6 +111,20 @@ export function Sidebar({ onNavigate }) {
       <div className="space-y-2 border-t border-zinc-200 p-2 dark:border-zinc-800">
         {supportAndSettingsItems.map((item) => {
           const Icon = item.icon
+          if (item.path) {
+            return (
+              <Link
+                key={item.key}
+                to={item.path}
+                onClick={onNavigate}
+                className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-200"
+              >
+                <Icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </Link>
+            )
+          }
+
           return (
             <button
               key={item.key}
@@ -211,15 +225,15 @@ export function Sidebar({ onNavigate }) {
 
               <Menu.Item>
                 {({ active }) => (
-                  <button
-                    type="button"
+                  <Link
+                    to="/profile"
                     className={`flex w-full items-center justify-between rounded-lg px-2 py-2 text-left ${
                       active ? 'bg-gray-50 dark:bg-zinc-800' : ''
                     }`}
                   >
                     <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{t('profile.accountSettings')}</span>
                     <Settings className="h-4 w-4 text-zinc-500" />
-                  </button>
+                  </Link>
                 )}
               </Menu.Item>
 

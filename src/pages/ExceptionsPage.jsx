@@ -13,7 +13,7 @@ export function ExceptionsPage() {
               <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Exceptions</h1>
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Monitor and resolve operational exceptions.</p>
             </div>
-            <button type="button" className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
+            <button type="button" className="btn-primary">
               <Plus className="h-4 w-4" />
               Add Exception
             </button>

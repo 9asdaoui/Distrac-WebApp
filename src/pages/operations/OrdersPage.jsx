@@ -1,13 +1,38 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, Search, ChevronDown } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { ShoppingCart, Search, ChevronDown, Plus, X, CheckCircle2 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
+import { SlideOverPanel } from '../../components/SlideOverPanel'
+import { CreateOrderForm } from '../../components/operations/CreateOrderForm'
+import { useAuth } from '../../context/AuthContext'
 import apiInstance from '../../api/axiosInstance'
+
+function Toast({ message, type = 'success', onClose }) {
+  if (!message) return null
+  return (
+    <div className="fixed right-4 top-4 z-[70] max-w-sm">
+      <div
+        className={`flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg ${
+          type === 'success'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+            : 'border-red-200 bg-red-50 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200'
+        }`}
+      >
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+        <p className="flex-1 text-sm font-medium">{message}</p>
+        <button type="button" onClick={onClose} className="rounded-md p-1 hover:bg-black/5 dark:hover:bg-white/5" aria-label="Close">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 const STATUS_META = {
   PENDING:   { label: 'Pending',   cls: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
+  ESCALATED: { label: 'Escalated', cls: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' },
   CONFIRMED: { label: 'Confirmed', cls: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
   READY:     { label: 'Ready',     cls: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300' },
   IN_TRANSIT:{ label: 'In Transit',cls: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
@@ -60,17 +85,25 @@ function OrdersSkeleton() {
   )
 }
 
-const ALL_STATUSES = ['PENDING', 'CONFIRMED', 'READY', 'IN_TRANSIT', 'DELIVERED', 'REFUSED', 'CANCELLED']
+const ALL_STATUSES = ['PENDING', 'ESCALATED', 'CONFIRMED', 'READY', 'IN_TRANSIT', 'DELIVERED', 'REFUSED', 'CANCELLED']
 
 export function OrdersPage() {
   const navigate = useNavigate()
+  const { hasPermission } = useAuth()
+  const canCreateOrder = hasPermission('create_order')
+
   const [orders, setOrders] = useState([])
   const [sectors, setSectors] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [sectorFilter, setSectorFilter] = useState('')
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [toast, setToast] = useState({ message: '', type: 'success' })
   const controllerRef = useRef(null)
+  const createFormRef = useRef(null)
 
   const load = async (params = {}) => {
     if (controllerRef.current) controllerRef.current.abort()
@@ -112,8 +145,41 @@ export function OrdersPage() {
 
   const handleKeyDown = (e) => { if (e.key === 'Enter') applyFilters() }
 
+  const openCreate = () => {
+    setFormError('')
+    createFormRef.current?.reset?.()
+    setIsCreateOpen(true)
+  }
+
+  const handleCreateOrder = async () => {
+    if (!createFormRef.current?.submit) return
+    setIsSubmitting(true)
+    setFormError('')
+    try {
+      const order = await createFormRef.current.submit()
+      setIsCreateOpen(false)
+      createFormRef.current.reset?.()
+      setToast({ message: 'Order created successfully.', type: 'success' })
+      load({ search, status: statusFilter, sector: sectorFilter })
+      const orderRef = order?.order_number || order?.order_id || order?.id
+      if (orderRef) {
+        navigate(`/orders/${encodeURIComponent(orderRef)}`)
+      }
+    } catch (err) {
+      setFormError(err?.response?.data?.message || err?.message || 'Failed to create order.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <DashboardLayout>
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: '', type: 'success' })}
+      />
+
       <AnimatedPage>
         <div className="space-y-6">
           {/* Header */}
@@ -127,8 +193,20 @@ export function OrdersPage() {
                 <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">Track client order lifecycle and delivery status.</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {!isLoading && <span>{orders.length} orders</span>}
+            <div className="flex flex-wrap items-center gap-3">
+              {!isLoading && (
+                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{orders.length} orders</span>
+              )}
+              {canCreateOrder && (
+                <button
+                  type="button"
+                  onClick={openCreate}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Order
+                </button>
+              )}
             </div>
           </div>
 
@@ -256,6 +334,40 @@ export function OrdersPage() {
           )}
         </div>
       </AnimatedPage>
+
+      <SlideOverPanel
+        isOpen={isCreateOpen}
+        onClose={() => !isSubmitting && setIsCreateOpen(false)}
+        disableClose={isSubmitting}
+        title="Create Order"
+        description="Place a new client order with line items and cash payment on delivery."
+        maxWidthClass="max-w-3xl"
+        footer={
+          <div className="space-y-3">
+            {formError ? <p className="text-sm text-red-500">{formError}</p> : null}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleCreateOrder}
+                className="flex-1 rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
+              >
+                {isSubmitting ? 'Creating…' : 'Create Order'}
+              </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setIsCreateOpen(false)}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        }
+      >
+        {isCreateOpen ? <CreateOrderForm ref={createFormRef} /> : null}
+      </SlideOverPanel>
     </DashboardLayout>
   )
 }

@@ -97,7 +97,7 @@ export function RegionsPage() {
             <button
               type="button"
               onClick={openCreate}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
+              className="btn-primary">
               <Plus className="h-4 w-4" />
               Add Region
             </button>
@@ -188,7 +188,7 @@ export function RegionsPage() {
                 {formError && <p className="text-sm text-red-500">{formError}</p>}
                 <div className="flex gap-3 pt-2">
                   <button type="submit" disabled={isSubmitting}
-                    className="flex-1 rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">
+                    className="btn-primary-flex disabled:opacity-40">
                     {isSubmitting ? 'Creating…' : 'Create Region'}
                   </button>
                   <button type="button" onClick={() => setIsCreateOpen(false)}
