@@ -116,6 +116,17 @@ body {
   background-clip: padding-box;
 }
 
+/* Hide scrollbar completely but keep scrolling (used by split-screen detail panel) */
+.no-scrollbar {
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE 10+ */
+}
+.no-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  display: none;                  /* Chromium / Safari */
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

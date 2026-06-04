@@ -259,9 +259,10 @@ export function ClientsPage() {
   }
 
   return (
-    <AnimatedPage>
-      {/* Toast notification */}
-      <AnimatePresence>
+    <>
+      <AnimatedPage>
+        {/* Toast notification */}
+        <AnimatePresence>
         {toast && (
           <motion.div
             initial={{ opacity: 0, y: -16 }}
@@ -385,7 +386,9 @@ export function ClientsPage() {
       </div>
 
       {/* Add Client Slide-Over — fixed h-screen flex layout */}
-      <AnimatePresence>
+    </AnimatedPage>
+
+    <AnimatePresence>
         {isCreateOpen && (
           <div className="fixed inset-0 z-[60]">
             <motion.div
@@ -595,6 +598,6 @@ export function ClientsPage() {
           </div>
         )}
       </AnimatePresence>
-    </AnimatedPage>
+    </>
   )
 }

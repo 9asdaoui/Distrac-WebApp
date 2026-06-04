@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   MapContainer,
@@ -11,9 +11,17 @@ import {
   useMap,
 } from 'react-leaflet'
 import L from 'leaflet'
-import { Globe, Loader2 } from 'lucide-react'
-import { AnimatedPage } from '../../components/AnimatedPage'
-import { DashboardLayout } from '../../components/DashboardLayout'
+import {
+  Globe,
+  Loader2,
+  X,
+  Building2,
+  Warehouse,
+  Factory,
+  User2,
+  MapPin,
+  ExternalLink,
+} from 'lucide-react'
 import { hasGpsCoordinates } from '../../components/LocationMap'
 import { parseSectorBoundary } from '../../components/SectorBoundaryPreview'
 import { latLngPairsFromGeometry } from '../../components/SectorBoundaryDrawer'
@@ -89,6 +97,10 @@ const centralDepotIcon = L.divIcon({
   popupAnchor: [0, -18],
 })
 
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
 function polygonRingsFromBoundary(boundary) {
   const geometry = parseSectorBoundary(boundary)
   if (!geometry) return []
@@ -113,6 +125,10 @@ function polygonRingsFromBoundary(boundary) {
   return []
 }
 
+/* ------------------------------------------------------------------ */
+/*  Map helpers (capture instance + fit-bounds)                        */
+/* ------------------------------------------------------------------ */
+
 function FitGlobalBounds({ positions }) {
   const map = useMap()
 
@@ -128,44 +144,24 @@ function FitGlobalBounds({ positions }) {
   return null
 }
 
-function MapEntityPopup({ name, typeLabel, onViewDetails }) {
-  return (
-    <div className="min-w-[160px]">
-      <p className="text-sm font-semibold text-zinc-900">{name}</p>
-      <p className="mt-0.5 text-xs text-zinc-500">{typeLabel}</p>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.preventDefault()
-          onViewDetails()
-        }}
-        className="mt-3 w-full rounded-lg bg-zinc-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-zinc-700"
-      >
-        View Details
-      </button>
-    </div>
-  )
+/**
+ * Captures the live Leaflet map instance and bubbles it up to the parent
+ * via `onMapReady`. This is the only way to access the map instance from
+ * outside <MapContainer> in react-leaflet, and it powers the
+ * `invalidateSize()` resize fix when the right-hand panel opens/closes.
+ */
+function MapInstanceBridge({ onMapReady }) {
+  const map = useMap()
+  useEffect(() => {
+    onMapReady(map)
+    return () => onMapReady(null)
+  }, [map, onMapReady])
+  return null
 }
 
-async function fetchAllClients(signal) {
-  const pageSize = 100
-  let page = 1
-  let totalPages = 1
-  const all = []
-
-  while (page <= totalPages) {
-    const res = await apiInstance.get('/clients', {
-      params: { page, limit: pageSize },
-      signal,
-    })
-    const batch = res.data?.data?.clients || []
-    all.push(...batch)
-    totalPages = res.data?.data?.pagination?.pages || 1
-    page += 1
-  }
-
-  return all
-}
+/* ------------------------------------------------------------------ */
+/*  Floating UI overlays (header + legend)                             */
+/* ------------------------------------------------------------------ */
 
 function FloatingHeader({ sectors, depots, industries, clients }) {
   return (
@@ -240,7 +236,11 @@ function FloatingLegend({ depotColorEntries = [] }) {
   )
 }
 
-function GlobalMapCanvas({ sectors, industries, depots, clients, navigate }) {
+/* ------------------------------------------------------------------ */
+/*  Map Canvas — extracted so it can be re-mounted cleanly              */
+/* ------------------------------------------------------------------ */
+
+function GlobalMapCanvas({ sectors, industries, depots, clients, onSelect, onMapReady }) {
   const depotColorMap = useMemo(() => {
     const ids = [
       ...(depots || []).map((row) => row.id),
@@ -330,6 +330,7 @@ function GlobalMapCanvas({ sectors, industries, depots, clients, navigate }) {
         <ZoomControl position="topright" />
         <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
         {fitPositions.length > 0 && <FitGlobalBounds positions={fitPositions} />}
+        <MapInstanceBridge onMapReady={onMapReady} />
 
         {sectorLayers.map(({ sector, rings, style }) =>
           rings.map((positions, ringIndex) => (
@@ -343,7 +344,7 @@ function GlobalMapCanvas({ sectors, industries, depots, clients, navigate }) {
                 fillOpacity: 0.1,
               }}
               eventHandlers={{
-                click: () => navigate(`/sectors/${sector.id}`),
+                click: () => onSelect({ type: 'sector', id: sector.id, name: sector.sector_name }),
               }}
             >
               <Tooltip sticky direction="top" className="global-map-sector-tooltip">
@@ -354,13 +355,19 @@ function GlobalMapCanvas({ sectors, industries, depots, clients, navigate }) {
         )}
 
         {industryMarkers.map((marker) => (
-          <Marker key={`industry-${marker.id}`} position={marker.position} icon={industryIcon}>
+          <Marker
+            key={`industry-${marker.id}`}
+            position={marker.position}
+            icon={industryIcon}
+            eventHandlers={{
+              click: () => onSelect({ type: 'industry', id: marker.id, name: marker.name }),
+            }}
+          >
             <Popup>
-              <MapEntityPopup
-                name={marker.name}
-                typeLabel="Industry"
-                onViewDetails={() => navigate(`/industries/${marker.id}`)}
-              />
+              <div className="min-w-[160px]">
+                <p className="text-sm font-semibold text-zinc-900">{marker.name}</p>
+                <p className="mt-0.5 text-xs text-zinc-500">Industry</p>
+              </div>
             </Popup>
           </Marker>
         ))}
@@ -370,25 +377,41 @@ function GlobalMapCanvas({ sectors, industries, depots, clients, navigate }) {
             key={`depot-${marker.id}`}
             position={marker.position}
             icon={marker.isCentral ? centralDepotIcon : normalDepotIcon}
+            eventHandlers={{
+              click: () =>
+                onSelect({
+                  type: 'depot',
+                  id: marker.id,
+                  name: marker.name,
+                  isCentral: marker.isCentral,
+                }),
+            }}
           >
             <Popup>
-              <MapEntityPopup
-                name={marker.name}
-                typeLabel={marker.isCentral ? 'Central Depot' : 'Depot'}
-                onViewDetails={() => navigate(`/depots/${marker.id}`)}
-              />
+              <div className="min-w-[160px]">
+                <p className="text-sm font-semibold text-zinc-900">{marker.name}</p>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  {marker.isCentral ? 'Central Depot' : 'Depot'}
+                </p>
+              </div>
             </Popup>
           </Marker>
         ))}
 
         {clientMarkers.map((marker) => (
-          <Marker key={`client-${marker.id}`} position={marker.position} icon={clientIcon}>
+          <Marker
+            key={`client-${marker.id}`}
+            position={marker.position}
+            icon={clientIcon}
+            eventHandlers={{
+              click: () => onSelect({ type: 'client', id: marker.id, name: marker.name }),
+            }}
+          >
             <Popup>
-              <MapEntityPopup
-                name={marker.name}
-                typeLabel="Client"
-                onViewDetails={() => navigate(`/clients/${marker.id}`)}
-              />
+              <div className="min-w-[160px]">
+                <p className="text-sm font-semibold text-zinc-900">{marker.name}</p>
+                <p className="mt-0.5 text-xs text-zinc-500">Client</p>
+              </div>
             </Popup>
           </Marker>
         ))}
@@ -405,6 +428,134 @@ function GlobalMapCanvas({ sectors, industries, depots, clients, navigate }) {
   )
 }
 
+/* ------------------------------------------------------------------ */
+/*  Detail Panel (right-hand sliding sidebar)                          */
+/* ------------------------------------------------------------------ */
+
+const ENTITY_META = {
+  sector: {
+    label: 'Sector',
+    icon: Building2,
+    accent: 'text-amber-400 bg-amber-500/10 ring-amber-500/30',
+    detailPath: (id) => `/sectors/${id}`,
+  },
+  depot: {
+    label: 'Depot',
+    icon: Warehouse,
+    accent: 'text-blue-400 bg-blue-500/10 ring-blue-500/30',
+    detailPath: (id) => `/depots/${id}`,
+  },
+  industry: {
+    label: 'Industry',
+    icon: Factory,
+    accent: 'text-rose-400 bg-rose-500/10 ring-rose-500/30',
+    detailPath: (id) => `/industries/${id}`,
+  },
+  client: {
+    label: 'Client',
+    icon: User2,
+    accent: 'text-zinc-200 bg-zinc-100/10 ring-zinc-400/30',
+    detailPath: (id) => `/clients/${id}`,
+  },
+}
+
+function DetailPanel({ selectedElement, onClose, onNavigate }) {
+  if (!selectedElement) return null
+  const { type, id, name } = selectedElement
+  const meta = ENTITY_META[type]
+  if (!meta) return null
+  const Icon = meta.icon
+
+  return (
+    <div className="flex h-full w-full flex-col">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 border-b border-zinc-800 px-5 py-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 ${meta.accent}`}
+          >
+            <Icon className="h-4.5 w-4.5" />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-zinc-100">
+              {name || meta.label}
+            </p>
+            <p className="mt-0.5 text-[11px] uppercase tracking-wider text-zinc-500">
+              {meta.label} Details
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close details"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 transition hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-100"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-5 py-5 no-scrollbar">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+            {meta.label} ID
+          </p>
+          <p className="mt-1 break-all font-mono text-xs text-zinc-300">{id}</p>
+
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+            <p className="text-xs leading-relaxed text-zinc-400">
+              Detailed information for this {meta.label.toLowerCase()} will appear here. The
+              map on the left stays fully interactive while you explore.
+            </p>
+          </div>
+
+          <p className="mt-4 text-[11px] text-zinc-500">
+            {meta.label} Details for ID: <span className="font-mono text-zinc-300">{id}</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Footer action */}
+      <div className="border-t border-zinc-800 p-4">
+        <button
+          type="button"
+          onClick={() => onNavigate(meta.detailPath(id))}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 active:bg-blue-700"
+        >
+          <ExternalLink className="h-4 w-4" />
+          Go to Detailed Page
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  Page                                                               */
+/* ------------------------------------------------------------------ */
+
+async function fetchAllClients(signal) {
+  const pageSize = 100
+  let page = 1
+  let totalPages = 1
+  const all = []
+
+  while (page <= totalPages) {
+    const res = await apiInstance.get('/clients', {
+      params: { page, limit: pageSize },
+      signal,
+    })
+    const batch = res.data?.data?.clients || []
+    all.push(...batch)
+    totalPages = res.data?.data?.pagination?.pages || 1
+    page += 1
+  }
+
+  return all
+}
+
 export function GlobalMapPage() {
   const navigate = useNavigate()
   const controllerRef = useRef(null)
@@ -416,6 +567,11 @@ export function GlobalMapPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
 
+  // Explorer state
+  const [selectedElement, setSelectedElement] = useState(null)
+  const [mapInstance, setMapInstance] = useState(null)
+
+  /* Data fetching */
   useEffect(() => {
     if (controllerRef.current) controllerRef.current.abort()
     const controller = new AbortController()
@@ -454,9 +610,53 @@ export function GlobalMapPage() {
     return () => controller.abort()
   }, [])
 
+  /* CRITICAL: Leaflet resize fix.
+     When the right-hand panel opens or closes, the map's container width
+     changes. We wait for the 300ms CSS transition to finish, then tell
+     Leaflet to recalculate its tile size so the canvas does not distort. */
+  useEffect(() => {
+    if (!mapInstance) return
+    const timer = setTimeout(() => {
+      try {
+        mapInstance.invalidateSize()
+      } catch (err) {
+        // map may have been torn down between scheduling and execution
+        console.warn('[GlobalMapPage] invalidateSize failed:', err)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [selectedElement, mapInstance])
+
+  const handleSelect = useCallback((payload) => {
+    setSelectedElement(payload)
+  }, [])
+
+  const handleClose = useCallback(() => {
+    setSelectedElement(null)
+  }, [])
+
+  const handleNavigate = useCallback(
+    (path) => {
+      navigate(path)
+    },
+    [navigate],
+  )
+
+  // Stable callback for MapInstanceBridge so we don't churn the effect above
+  const handleMapReady = useCallback((map) => {
+    setMapInstance(map)
+  }, [])
+
+  const isOpen = Boolean(selectedElement)
+
   return (
-    <DashboardLayout flush>
-      <AnimatedPage className="relative h-full min-h-0 w-full">
+    <div className="flex h-[calc(100vh-100px)] w-full overflow-hidden relative rounded-xl">
+      {/* MAP — left, shrinks to 2/3 when panel is open */}
+      <div
+        className={`relative h-full overflow-hidden ${
+          isOpen ? 'w-2/3' : 'w-full'
+        } transition-all duration-300 ease-in-out`}
+      >
         {loadError && (
           <div className="absolute left-1/2 top-4 z-[1001] w-full max-w-md -translate-x-1/2 px-4">
             <div className="rounded-xl border border-red-900/50 bg-red-950/80 px-4 py-3 text-sm text-red-200 shadow-lg backdrop-blur-md">
@@ -477,10 +677,27 @@ export function GlobalMapPage() {
             industries={industries}
             depots={depots}
             clients={clients}
-            navigate={navigate}
+            onSelect={handleSelect}
+            onMapReady={handleMapReady}
           />
         )}
-      </AnimatedPage>
-    </DashboardLayout>
+      </div>
+
+      {/* DETAIL PANEL — right, slides in as 1/3 */}
+      <div
+        className={`h-full overflow-hidden bg-[#1c1c1e] border-l border-zinc-800 flex flex-col shadow-[inset_1px_0_0_rgba(255,255,255,0.05)] z-[1001] ${
+          isOpen ? 'w-1/3' : 'w-0'
+        } transition-all duration-300 ease-in-out`}
+        aria-hidden={!isOpen}
+      >
+        <DetailPanel
+          selectedElement={selectedElement}
+          onClose={handleClose}
+          onNavigate={handleNavigate}
+        />
+      </div>
+    </div>
   )
 }
+
+export default GlobalMapPage
