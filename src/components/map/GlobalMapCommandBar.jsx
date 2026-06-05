@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useLayoutEffect, useRef, useState } from 'react'
 import {
   Building2,
   Factory,
@@ -37,12 +37,7 @@ function useNarrowCommandBar() {
 }
 
 export function GlobalMapCommandBar({
-  sectors,
-  depots,
-  industries,
-  clients,
-  regions,
-  vehicles,
+  hudOffsetClass = '',
   filter,
   onFilterChange,
   searchQuery = '',
@@ -54,19 +49,6 @@ export function GlobalMapCommandBar({
   const tabRefs = useRef({})
   const [indicator, setIndicator] = useState({ left: 0, width: 0 })
 
-  const statsLine = useMemo(
-    () =>
-      [
-        `${sectors} sectors`,
-        `${depots} depots`,
-        `${industries} industries`,
-        `${clients} clients`,
-        `${regions} regions`,
-        `${vehicles} vehicles`,
-      ].join(' • '),
-    [sectors, depots, industries, clients, regions, vehicles],
-  )
-
   const updateIndicator = () => {
     const activeEl = tabRefs.current[filter]
     if (!activeEl) return
@@ -76,16 +58,20 @@ export function GlobalMapCommandBar({
     })
   }
 
+  const showSearch = filter !== MAP_FILTER_ALL && !searchDisabled
+
   useLayoutEffect(() => {
     updateIndicator()
     const onResize = () => updateIndicator()
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [filter, narrow])
+  }, [filter, narrow, showSearch])
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-col items-center overflow-visible px-3">
-      <div className="global-map-command-bar pointer-events-auto">
+    <div
+      className={`pointer-events-none absolute left-4 top-4 z-[1000] flex max-w-[calc(100%-2rem)] flex-col items-start overflow-visible ${hudOffsetClass}`}
+    >
+      <div className="global-map-command-bar pointer-events-auto max-w-full">
         <div className="flex shrink-0 items-center gap-2 pl-1">
           <Globe className="h-3.5 w-3.5 shrink-0 text-zinc-400" strokeWidth={2} />
           <span className="whitespace-nowrap text-[13px] font-semibold text-white">Global Map</span>
@@ -138,26 +124,27 @@ export function GlobalMapCommandBar({
           })}
         </div>
 
-        <div className="global-map-command-divider mx-2" aria-hidden />
-
-        <label
-          className={`global-map-command-search ${searchDisabled ? 'global-map-command-search--disabled' : ''}`}
+        <div
+          className={`global-map-command-search-slot ${showSearch ? 'global-map-command-search-slot--open' : ''}`}
+          aria-hidden={!showSearch}
         >
-          <Search className="global-map-command-search-icon h-3 w-3 shrink-0" strokeWidth={2} />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => onSearchChange?.(e.target.value)}
-            placeholder="Search…"
-            disabled={searchDisabled}
-            aria-label="Filter active layer list"
-          />
-        </label>
+          <div className="global-map-command-search-slot-inner">
+            <div className="global-map-command-divider mx-2" aria-hidden />
+            <label className="global-map-command-search">
+              <Search className="global-map-command-search-icon h-3 w-3 shrink-0" strokeWidth={2} />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => onSearchChange?.(e.target.value)}
+                placeholder="Search…"
+                disabled={!showSearch}
+                tabIndex={showSearch ? 0 : -1}
+                aria-label="Filter active layer list"
+              />
+            </label>
+          </div>
+        </div>
       </div>
-
-      <p className="global-map-command-stats pointer-events-auto" title={statsLine}>
-        {statsLine}
-      </p>
     </div>
   )
 }

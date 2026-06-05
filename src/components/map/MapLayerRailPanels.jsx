@@ -16,12 +16,22 @@ import { MAP_FILTER_ALL } from './MapLayerFilterBar'
 import {
   MapRailCell,
   MapRailCreateOverlay,
+  MapRailKpiLoading,
+  MapRailKpiStrip,
   MapRailLoading,
   MapRailRow,
   MapRailShell,
   MapRailTable,
   railInputClass,
 } from './MapRailShell'
+import {
+  clientRailKpis,
+  depotRailKpis,
+  industryRailKpis,
+  regionRailKpis,
+  sectorRailKpis,
+  vehicleRailKpis,
+} from './mapRailKpis'
 import {
   filterClientsForSearch,
   filterDepotsForSearch,
@@ -85,7 +95,14 @@ function RailFormFooter({ onCancel, submitLabel, isSubmitting }) {
   )
 }
 
-function RegionsMapRail({ regions, isLoading, onSelectItem, searchQuery = '', onStartRegionCreate }) {
+function RegionsMapRail({
+  regions,
+  sectors = [],
+  isLoading,
+  onSelectItem,
+  searchQuery = '',
+  onStartRegionCreate,
+}) {
   const filteredRegions = filterRegionsForSearch(regions, searchQuery)
 
   return (
@@ -98,9 +115,14 @@ function RegionsMapRail({ regions, isLoading, onSelectItem, searchQuery = '', on
       addLabel="Add Region"
     >
       {isLoading ? (
-        <MapRailLoading />
+        <>
+          <MapRailKpiLoading />
+          <MapRailLoading />
+        </>
       ) : (
-        <MapRailTable
+        <>
+          <MapRailKpiStrip items={regionRailKpis(filteredRegions, { sectors })} />
+          <MapRailTable
           columns={['Region', 'Code', 'Boundary', 'Status']}
           isEmpty={filteredRegions.length === 0}
         >
@@ -128,6 +150,7 @@ function RegionsMapRail({ regions, isLoading, onSelectItem, searchQuery = '', on
             </MapRailRow>
           ))}
         </MapRailTable>
+        </>
       )}
     </MapRailShell>
   )
@@ -196,9 +219,14 @@ function IndustriesMapRail({ industries, isLoading, onRefresh, onSelectItem, sea
       }
     >
       {isLoading ? (
-        <MapRailLoading />
+        <>
+          <MapRailKpiLoading />
+          <MapRailLoading />
+        </>
       ) : (
-        <MapRailTable
+        <>
+          <MapRailKpiStrip items={industryRailKpis(filteredIndustries)} />
+          <MapRailTable
           columns={['Name', 'Type', 'Location', 'Status']}
           isEmpty={filteredIndustries.length === 0}
         >
@@ -222,6 +250,7 @@ function IndustriesMapRail({ industries, isLoading, onRefresh, onSelectItem, sea
             </MapRailRow>
           ))}
         </MapRailTable>
+        </>
       )}
     </MapRailShell>
   )
@@ -343,9 +372,14 @@ function DepotsMapRail({ depots, isLoading, onRefresh, onSelectItem, searchQuery
       }
     >
       {isLoading ? (
-        <MapRailLoading />
+        <>
+          <MapRailKpiLoading />
+          <MapRailLoading />
+        </>
       ) : (
-        <MapRailTable columns={['Name', 'Location', 'Capacity', 'Status']} isEmpty={filteredDepots.length === 0}>
+        <>
+          <MapRailKpiStrip items={depotRailKpis(filteredDepots)} />
+          <MapRailTable columns={['Name', 'Location', 'Capacity', 'Status']} isEmpty={filteredDepots.length === 0}>
           {filteredDepots.map((depot) => {
             const used = Math.min(depot.capacity_usage?.used_percentage || 0, 100)
             return (
@@ -372,6 +406,7 @@ function DepotsMapRail({ depots, isLoading, onRefresh, onSelectItem, searchQuery
             )
           })}
         </MapRailTable>
+        </>
       )}
     </MapRailShell>
   )
@@ -479,9 +514,14 @@ function SectorsMapRail({ sectors, regions, isLoading, onRefresh, onSelectItem, 
       }
     >
       {isLoading ? (
-        <MapRailLoading />
+        <>
+          <MapRailKpiLoading />
+          <MapRailLoading />
+        </>
       ) : (
-        <MapRailTable columns={['Sector', 'Region', 'Depot', 'Status']} isEmpty={filteredSectors.length === 0}>
+        <>
+          <MapRailKpiStrip items={sectorRailKpis(filteredSectors)} />
+          <MapRailTable columns={['Sector', 'Region', 'Depot', 'Status']} isEmpty={filteredSectors.length === 0}>
           {filteredSectors.map((sector) => (
             <MapRailRow
               key={sector.id}
@@ -498,6 +538,7 @@ function SectorsMapRail({ sectors, regions, isLoading, onRefresh, onSelectItem, 
             </MapRailRow>
           ))}
         </MapRailTable>
+        </>
       )}
     </MapRailShell>
   )
@@ -643,9 +684,14 @@ function ClientsMapRail({ clients, isLoading, onRefresh, onSelectItem, searchQue
       }
     >
       {isLoading ? (
-        <MapRailLoading />
+        <>
+          <MapRailKpiLoading />
+          <MapRailLoading />
+        </>
       ) : (
-        <MapRailTable columns={['Name', 'City', 'Status']} isEmpty={filteredClients.length === 0}>
+        <>
+          <MapRailKpiStrip items={clientRailKpis(filteredClients)} />
+          <MapRailTable columns={['Name', 'City', 'Status']} isEmpty={filteredClients.length === 0}>
           {filteredClients.map((client) => (
               <MapRailRow
                 key={client.id}
@@ -667,15 +713,16 @@ function ClientsMapRail({ clients, isLoading, onRefresh, onSelectItem, searchQue
               </MapRailRow>
           ))}
         </MapRailTable>
+        </>
       )}
     </MapRailShell>
   )
 }
 
-function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, searchQuery = '' }) {
+function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, onSelectItem, searchQuery = '' }) {
   const filteredVehicles = filterVehiclesForSearch(vehicles, searchQuery)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [form, setForm] = useState({ plate_number: '', model: '', depot_id: '' })
+  const [form, setForm] = useState({ plate_number: '', model: '', depot_id: '', tonnage: '', volume_capacity: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
 
@@ -685,6 +732,19 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, searchQuery =
       setFormError('Plate, model, and depot are required.')
       return
     }
+
+    const tonnage = Number(form.tonnage)
+    if (!Number.isFinite(tonnage) || tonnage <= 0) {
+      setFormError('Tonnage is required and must be greater than zero.')
+      return
+    }
+
+    const volumeCapacity = form.volume_capacity === '' ? null : Number(form.volume_capacity)
+    if (volumeCapacity !== null && (!Number.isFinite(volumeCapacity) || volumeCapacity < 0)) {
+      setFormError('Volume must be a valid non-negative number.')
+      return
+    }
+
     setIsSubmitting(true)
     setFormError('')
     try {
@@ -692,6 +752,8 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, searchQuery =
         plate_number: form.plate_number.trim(),
         model: form.model.trim(),
         depot_id: form.depot_id,
+        tonnage,
+        volume_capacity: volumeCapacity,
       })
       setIsCreateOpen(false)
       onRefresh?.()
@@ -712,6 +774,8 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, searchQuery =
           plate_number: '',
           model: '',
           depot_id: depots[0]?.id || '',
+          tonnage: '',
+          volume_capacity: '',
         })
         setFormError('')
         setIsCreateOpen(true)
@@ -735,6 +799,29 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, searchQuery =
                   className={railInputClass}
                   value={form.model}
                   onChange={(e) => setForm({ ...form, model: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">Tonnage (t) *</label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  className={railInputClass}
+                  value={form.tonnage}
+                  onChange={(e) => setForm({ ...form, tonnage: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">Volume (L)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className={railInputClass}
+                  value={form.volume_capacity}
+                  onChange={(e) => setForm({ ...form, volume_capacity: e.target.value })}
+                  placeholder="Optional"
                 />
               </div>
               <div>
@@ -764,9 +851,14 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, searchQuery =
       }
     >
       {isLoading ? (
-        <MapRailLoading />
+        <>
+          <MapRailKpiLoading />
+          <MapRailLoading />
+        </>
       ) : (
-        <MapRailTable columns={['Plate', 'Model', 'Depot', 'Status']} isEmpty={filteredVehicles.length === 0}>
+        <>
+          <MapRailKpiStrip items={vehicleRailKpis(filteredVehicles, { depots })} />
+          <MapRailTable columns={['Plate', 'Model', 'Depot', 'Status']} isEmpty={filteredVehicles.length === 0}>
           {filteredVehicles.map((v) => (
             <MapRailRow
               key={v.id}
@@ -785,6 +877,7 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, searchQuery =
             </MapRailRow>
           ))}
         </MapRailTable>
+        </>
       )}
     </MapRailShell>
   )
@@ -812,7 +905,14 @@ export function MapLayerRailRouter({
 
   switch (filter) {
     case 'regions':
-      return <RegionsMapRail regions={regions} {...shared} onStartRegionCreate={onStartRegionCreate} />
+      return (
+        <RegionsMapRail
+          regions={regions}
+          sectors={sectors}
+          {...shared}
+          onStartRegionCreate={onStartRegionCreate}
+        />
+      )
     case 'industries':
       return <IndustriesMapRail industries={industries} {...shared} />
     case 'depots':

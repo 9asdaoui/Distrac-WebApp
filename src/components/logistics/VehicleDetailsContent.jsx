@@ -13,6 +13,9 @@ import {
 
 const VEHICLE_MODULE = LOGISTICS_MODULES.vehicle
 
+const formatTonnage = (value) => (value != null && value !== '' && Number(value) > 0 ? `${Number(value)} t` : '—')
+const formatVolume = (value) => (value != null && value !== '' ? `${Number(value)} L` : '—')
+
 function VehicleDetailsSkeleton({ compact = false }) {
   return (
     <div className={compact ? 'space-y-4' : 'space-y-6'}>
@@ -119,6 +122,14 @@ export function VehicleDetailsContent({
               <span className="text-zinc-300">{vehicle.model || '—'}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
+              <span className="text-zinc-500">Tonnage</span>
+              <span className="text-zinc-300">{formatTonnage(vehicle.tonnage)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-zinc-500">Volume</span>
+              <span className="text-zinc-300">{formatVolume(vehicle.volume_capacity)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
               <span className="text-zinc-500">Depot</span>
               <span className="text-zinc-300">{vehicle.depot?.depot_name || '—'}</span>
             </div>
@@ -172,6 +183,16 @@ export function VehicleDetailsContent({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <InfoCard title="Assignment" icon={Truck} compact={compact}>
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-950">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Tonnage</p>
+                <p className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">{formatTonnage(vehicle.tonnage)}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-950">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Volume</p>
+                <p className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">{formatVolume(vehicle.volume_capacity)}</p>
+              </div>
+            </div>
             <div className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
                 <Warehouse className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />

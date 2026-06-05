@@ -6,6 +6,32 @@ export const PICK_BOUNDARY_MAX_DEG = 0.012
 /** While tracing, stick cursor to ring within this distance. */
 export const STICK_TO_RING_MAX_DEG = 0.01
 
+/** ~900 m — max distance to insert a corner by clicking an existing boundary edge. */
+export const INSERT_EDGE_MAX_DEG = 0.008
+
+function latLngPairsToClosedRing(pairs) {
+  const ring = (pairs || []).map(([lat, lng]) => [Number(lng), Number(lat)])
+  if (ring.length < 3) return ring
+  const first = ring[0]
+  const last = ring[ring.length - 1]
+  if (first[0] !== last[0] || first[1] !== last[1]) {
+    ring.push([first[0], first[1]])
+  }
+  return ring
+}
+
+/** Insert a new vertex on the closest segment of an open lat/lng ring. */
+export function insertVertexOnBoundary(lat, lng, pairs, maxDistanceDeg = INSERT_EDGE_MAX_DEG) {
+  if (!pairs || pairs.length < 3) return null
+  const ring = latLngPairsToClosedRing(pairs)
+  const detailed = closestPointOnRingDetailed(lat, lng, ring)
+  if (detailed.distance > maxDistanceDeg) return null
+  return {
+    point: [detailed.lat, detailed.lng],
+    insertIndex: detailed.segmentIndex + 1,
+  }
+}
+
 function closestPointOnSegment(px, py, x1, y1, x2, y2) {
   const dx = x2 - x1
   const dy = y2 - y1

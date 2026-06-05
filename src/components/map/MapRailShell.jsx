@@ -141,3 +141,5 @@ export function MapRailLoading() {
     </div>
   )
 }
+
+export { MapRailKpiLoading, MapRailKpiStrip } from './MapRailKpiStrip'

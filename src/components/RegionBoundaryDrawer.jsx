@@ -16,6 +16,7 @@ import {
   appendPointsDeduped,
   closestPointOnRingDetailed,
   findNearestRegionBoundary,
+  insertVertexOnBoundary,
   isNearRing,
   ringArcPoints,
 } from '../utils/regionBoundaryTrace'
@@ -108,11 +109,23 @@ function toLatLngs(points) {
 }
 
 /** Leaflet click/mouse handlers — mount inside the Global Map MapContainer. */
-export function RegionBoundaryMapInteraction({ isActive, onPointAdd, onCursorMove, onCursorLeave }) {
+export function RegionBoundaryMapInteraction({
+  isActive,
+  onPointAdd,
+  onCursorMove,
+  onCursorLeave,
+  enableVertexEdit = false,
+  onVertexEditClick,
+}) {
   useMapEvents({
     click(event) {
+      const pair = [event.latlng.lat, event.latlng.lng]
       if (isActive) {
-        onPointAdd([event.latlng.lat, event.latlng.lng])
+        onPointAdd(pair)
+        return
+      }
+      if (enableVertexEdit) {
+        onVertexEditClick?.(pair)
       }
     },
     mousemove(event) {
@@ -123,6 +136,37 @@ export function RegionBoundaryMapInteraction({ isActive, onPointAdd, onCursorMov
     mouseout: onCursorLeave,
   })
   return null
+}
+
+const EDIT_VERTEX = {
+  color: '#ffffff',
+  weight: 2,
+  fillColor: '#f97316',
+  fillOpacity: 1,
+}
+
+/** Draggable handles for reshaping an existing region boundary while editing. */
+export function RegionBoundaryEditableVertices({ points, enabled, onVertexDrag }) {
+  if (!enabled || !points?.length) return null
+  return (
+    <>
+      {points.map(([lat, lng], index) => (
+        <CircleMarker
+          key={`region-edit-vertex-${index}-${lat}-${lng}`}
+          center={[lat, lng]}
+          radius={7}
+          draggable
+          pathOptions={EDIT_VERTEX}
+          eventHandlers={{
+            dragend: (event) => {
+              const { lat: nextLat, lng: nextLng } = event.target.getLatLng()
+              onVertexDrag?.(index, [nextLat, nextLng])
+            },
+          }}
+        />
+      ))}
+    </>
+  )
 }
 
 /** Highlight the neighbor ring being traced. */
@@ -140,17 +184,30 @@ export function RegionBoundaryDraftLayers({
   isDrawing,
   isSaved,
   tracePreviewArc,
+  showVertexMarkers = true,
+  onEdgeClick,
 }) {
   const latLngs = toLatLngs(points)
   const showRubberBand = isDrawing && points.length > 0 && cursorPosition && !tracePreviewArc?.length
   const showPolygon = points.length >= 3
   const showPolyline = points.length >= 2 && !showPolygon
   const polygonStyle = isSaved && !isDrawing ? POLYGON_SAVED : POLYGON_DRAFT
+  const edgeHandlers = onEdgeClick
+    ? {
+        click: (event) => {
+          onEdgeClick([event.latlng.lat, event.latlng.lng])
+        },
+      }
+    : undefined
 
   return (
     <>
-      {showPolygon && <Polygon positions={latLngs} pathOptions={polygonStyle} />}
-      {showPolyline && <Polyline positions={latLngs} pathOptions={CONFIRMED_LINE} />}
+      {showPolygon && (
+        <Polygon positions={latLngs} pathOptions={polygonStyle} eventHandlers={edgeHandlers} />
+      )}
+      {showPolyline && (
+        <Polyline positions={latLngs} pathOptions={CONFIRMED_LINE} eventHandlers={edgeHandlers} />
+      )}
       {tracePreviewArc?.length >= 2 && (
         <Polyline positions={toLatLngs(tracePreviewArc)} pathOptions={TRACE_PREVIEW_LINE} />
       )}
@@ -160,19 +217,20 @@ export function RegionBoundaryDraftLayers({
           pathOptions={RUBBER_BAND_LINE}
         />
       )}
-      {points.map(([lat, lng], index) => (
-        <CircleMarker
-          key={`region-draft-vertex-${index}-${lat}-${lng}`}
-          center={[lat, lng]}
-          radius={5}
-          pathOptions={VERTEX}
-        />
-      ))}
+      {showVertexMarkers &&
+        points.map(([lat, lng], index) => (
+          <CircleMarker
+            key={`region-draft-vertex-${index}-${lat}-${lng}`}
+            center={[lat, lng]}
+            radius={5}
+            pathOptions={VERTEX}
+          />
+        ))}
     </>
   )
 }
 
-/** Compact floating draw toolbar — top-right of the map canvas. */
+/** Compact floating draw toolbar — bottom-left of the map canvas (mirrors filter bar anchoring). */
 export function RegionBoundaryDrawControls({
   isDrawing,
   pointCount,
@@ -211,7 +269,7 @@ export function RegionBoundaryDrawControls({
 
   return (
     <div
-      className={`pointer-events-none absolute right-2 top-12 z-[1001] ${className}`}
+      className={`pointer-events-none absolute bottom-4 left-4 z-[1000] ${className}`}
     >
       <div className="pointer-events-auto flex items-center gap-1 rounded-lg border border-zinc-700 bg-zinc-900/90 p-1 shadow-lg backdrop-blur-md">
         <button
@@ -286,7 +344,13 @@ export function RegionBoundaryDrawControls({
 /**
  * Headless region boundary drawing state — use with Global Map layers + controls.
  */
-export function useRegionBoundaryDraw({ value, onChange, existingRegions = [], excludeRegionId = null }) {
+export function useRegionBoundaryDraw({
+  value,
+  onChange,
+  existingRegions = [],
+  excludeRegionId = null,
+  enableVertexEditing = false,
+}) {
   const [isDrawing, setIsDrawing] = useState(false)
   const [interactionMode, setInteractionMode] = useState('idle') // idle | free | trace-pick | trace
   const [traceTarget, setTraceTarget] = useState(null)
@@ -453,6 +517,35 @@ export function useRegionBoundaryDraw({ value, onChange, existingRegions = [], e
     [existingForClip],
   )
 
+  const handleVertexDrag = useCallback((vertexIndex, pair) => {
+    setPoints((prev) =>
+      prev.map(([lat, lng], index) =>
+        index === vertexIndex ? [pair[0], pair[1]] : [lat, lng],
+      ),
+    )
+    setClipNotice('')
+  }, [])
+
+  const handleVertexEditClick = useCallback(
+    (pair) => {
+      if (!enableVertexEditing || interactionMode !== 'idle' || isDrawing || points.length < 3) {
+        return false
+      }
+
+      const insertion = insertVertexOnBoundary(pair[0], pair[1], points)
+      if (!insertion) return false
+
+      setPoints((prev) => {
+        const next = [...prev]
+        next.splice(insertion.insertIndex, 0, insertion.point)
+        return next
+      })
+      setClipNotice('New corner added on the boundary — drag it to adjust.')
+      return true
+    },
+    [enableVertexEditing, interactionMode, isDrawing, points],
+  )
+
   const handlePointAdd = useCallback(
     (pair) => {
       if (interactionMode === 'trace-pick') {
@@ -591,6 +684,9 @@ export function useRegionBoundaryDraw({ value, onChange, existingRegions = [], e
   const isMapInteractionActive =
     isDrawing || interactionMode === 'trace-pick' || interactionMode === 'trace'
 
+  const canVertexEdit =
+    enableVertexEditing && interactionMode === 'idle' && !isDrawing && points.length >= 3
+
   return {
     isDrawing,
     interactionMode,
@@ -603,6 +699,7 @@ export function useRegionBoundaryDraw({ value, onChange, existingRegions = [], e
     clipNotice,
     isSaved,
     isMapInteractionActive,
+    canVertexEdit,
     setClipNotice,
     setTracePickRegionId,
     reset,
@@ -614,6 +711,8 @@ export function useRegionBoundaryDraw({ value, onChange, existingRegions = [], e
     handleClear,
     handleSave,
     handlePointAdd,
+    handleVertexDrag,
+    handleVertexEditClick,
     handleCursorMove,
     handleCursorLeave: () => {
       setCursorPosition(null)

@@ -15,7 +15,7 @@ function VehiclesSkeleton() {
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
             <tr>
-              {['Plate', 'Model', 'Depot', 'QR Code', 'Livreur', 'Status', ''].map((label) => (
+              {['Plate', 'Model', 'Tonnage', 'Volume', 'Depot', 'QR Code', 'Livreur', 'Status', ''].map((label) => (
                 <th key={label} className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">{label}</th>
               ))}
             </tr>
@@ -23,7 +23,7 @@ function VehiclesSkeleton() {
           <tbody>
             {[1, 2, 3, 4].map((row) => (
               <tr key={row} className="border-b border-gray-200 dark:border-zinc-800">
-                {[160, 220, 200, 180, 200, 100, 120].map((width, index) => (
+                {[160, 220, 90, 90, 200, 180, 200, 100, 120].map((width, index) => (
                   <td key={index} className="px-6 py-4">
                     <div className="h-4 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" style={{ width: `${width}px` }} />
                   </td>
@@ -150,6 +150,8 @@ export function VehiclesPage() {
     plate_number: '',
     model: '',
     depot_id: '',
+    tonnage: '',
+    volume_capacity: '',
   })
   const [formError, setFormError] = useState('')
   const [pageError, setPageError] = useState('')
@@ -190,8 +192,11 @@ export function VehiclesPage() {
     return () => controllerRef.current?.abort()
   }, [])
 
+  const formatTonnage = (value) => (value != null && value !== '' ? `${Number(value)} t` : '—')
+  const formatVolume = (value) => (value != null && value !== '' ? `${Number(value)} L` : '—')
+
   const openCreate = () => {
-    setForm({ plate_number: '', model: '', depot_id: depotOptions[0]?.id || '' })
+    setForm({ plate_number: '', model: '', depot_id: depotOptions[0]?.id || '', tonnage: '', volume_capacity: '' })
     setFormError('')
     setIsCreateOpen(true)
   }
@@ -219,6 +224,18 @@ export function VehiclesPage() {
       return
     }
 
+    const tonnage = Number(form.tonnage)
+    if (!Number.isFinite(tonnage) || tonnage <= 0) {
+      setFormError('Tonnage is required and must be greater than zero.')
+      return
+    }
+
+    const volumeCapacity = form.volume_capacity === '' ? null : Number(form.volume_capacity)
+    if (volumeCapacity !== null && (!Number.isFinite(volumeCapacity) || volumeCapacity < 0)) {
+      setFormError('Volume must be a valid non-negative number.')
+      return
+    }
+
     setIsSubmitting(true)
     setFormError('')
 
@@ -227,6 +244,8 @@ export function VehiclesPage() {
         plate_number: form.plate_number.trim(),
         model: form.model.trim(),
         depot_id: form.depot_id,
+        tonnage,
+        volume_capacity: volumeCapacity,
       })
 
       const vehicle = response.data?.data?.vehicle || null
@@ -281,6 +300,8 @@ export function VehiclesPage() {
                     <tr>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Plate</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Model</th>
+                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Tonnage</th>
+                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Volume</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Depot</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Assigned Livreur</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">QR Code</th>
@@ -295,6 +316,8 @@ export function VehiclesPage() {
                         <tr key={vehicle.id} className="border-b border-gray-200 dark:border-zinc-800">
                           <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{vehicle.plate_number || '-'}</td>
                           <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{vehicle.model || '-'}</td>
+                          <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{formatTonnage(vehicle.tonnage)}</td>
+                          <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{formatVolume(vehicle.volume_capacity)}</td>
                           <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{vehicle.depot?.depot_name || '-'}</td>
                           <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{vehicle.current_livreur?.full_name || '-'}</td>
                           <td className="px-6 py-4">
@@ -326,7 +349,7 @@ export function VehiclesPage() {
                     })}
                     {vehicles.length === 0 && (
                       <tr>
-                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={7}>
+                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={9}>
                           No vehicles available.
                         </td>
                       </tr>
@@ -396,6 +419,37 @@ export function VehiclesPage() {
                     value={form.model}
                     onChange={(e) => setForm({ ...form, model: e.target.value })}
                     placeholder="e.g. Renault Master"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Tonnage (t) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={form.tonnage}
+                    onChange={(e) => setForm({ ...form, tonnage: e.target.value })}
+                    placeholder="e.g. 3.5"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  />
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Maximum payload weight the vehicle can carry.</p>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Volume Capacity (L)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.volume_capacity}
+                    onChange={(e) => setForm({ ...form, volume_capacity: e.target.value })}
+                    placeholder="Optional"
                     className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                   />
                 </div>

@@ -12,6 +12,10 @@ import {
 } from 'react-leaflet'
 import L from 'leaflet'
 import {
+  DARK_TILE_URL as TILE_URL,
+  GLOBAL_MAP_TILE_OPTIONS,
+} from '../../components/map/mapTileLayer'
+import {
   Globe,
   Loader2,
   X,
@@ -63,10 +67,12 @@ import {
   isValidRegionPolygon,
   RegionBoundaryDraftLayers,
   RegionBoundaryDrawControls,
+  RegionBoundaryEditableVertices,
   RegionBoundaryMapInteraction,
   RegionBoundaryTraceHighlight,
   useRegionBoundaryDraw,
 } from '../../components/RegionBoundaryDrawer'
+import { geometriesOverlap, parseRegionBoundary } from '../../utils/regionBoundaryClip'
 import {
   DEFAULT_MAP_LAYER_VISIBILITY,
   MAP_FILTER_ALL,
@@ -75,17 +81,21 @@ import {
 } from '../../components/map/MapLayerFilterBar'
 import { applyMapLayerSearch } from '../../components/map/mapLayerSearch'
 import { useAuth } from '../../context/AuthContext'
+import { useMapHudOffsetClass } from '../../context/SidebarLayoutContext'
 import { hasGpsCoordinates } from '../../components/LocationMap'
 import { parseSectorBoundary } from '../../components/SectorBoundaryPreview'
-import { latLngPairsFromGeometry } from '../../components/SectorBoundaryDrawer'
+import { geometryFromLatLngPairs, latLngPairsFromGeometry } from '../../components/SectorBoundaryDrawer'
 import apiInstance from '../../api/axiosInstance'
-
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
 const DEFAULT_CENTER = [33.5731, -7.5898]
 const DEFAULT_ZOOM = 6
+
+/** Leaflet fly duration (seconds) — filter changes + entity focus. */
+const MAP_FLY_DURATION = 1.85
+const MAP_FLY_OPTIONS = {
+  duration: MAP_FLY_DURATION,
+  easeLinearity: 0.38,
+}
 
 const DEPOT_SECTOR_PALETTE = [
   { color: '#34d399', fillColor: '#10b981' },
@@ -231,10 +241,14 @@ function FitGlobalBounds({ positions }) {
   useEffect(() => {
     if (!positions?.length) return
     if (positions.length === 1) {
-      map.setView(positions[0], 13)
+      map.flyTo(positions[0], 13, MAP_FLY_OPTIONS)
       return
     }
-    map.fitBounds(L.latLngBounds(positions), { padding: [56, 56], maxZoom: 14 })
+    map.flyToBounds(L.latLngBounds(positions), {
+      ...MAP_FLY_OPTIONS,
+      padding: [56, 56],
+      maxZoom: 14,
+    })
   }, [map, positions])
 
   return null
@@ -340,6 +354,37 @@ function FloatingLegend({ depotColorEntries = [], isEditing = false }) {
   )
 }
 
+function buildRegionDrawSurface(draw, { regionId = null } = {}) {
+  if (!draw) return null
+  return {
+    regionId,
+    isDrawing: draw.isDrawing,
+    interactionMode: draw.interactionMode,
+    traceTarget: draw.traceTarget,
+    tracePickRegionId: draw.tracePickRegionId,
+    traceableRegions: draw.traceableRegions,
+    tracePreviewArc: draw.tracePreviewArc,
+    isMapInteractionActive: draw.isMapInteractionActive,
+    enableVertexEdit: draw.canVertexEdit,
+    points: draw.points,
+    cursorPosition: draw.cursorPosition,
+    isSaved: draw.isSaved,
+    onPointAdd: draw.handlePointAdd,
+    onCursorMove: draw.handleCursorMove,
+    onCursorLeave: draw.handleCursorLeave,
+    onVertexDrag: draw.handleVertexDrag,
+    onVertexEditClick: draw.handleVertexEditClick,
+    onToggleDraw: draw.handleToggleDraw,
+    onStartTracePick: draw.handleStartTracePick,
+    onLeaveTrace: draw.handleLeaveTrace,
+    onCancelTracePick: draw.handleCancelTracePick,
+    onTracePickRegionChange: draw.setTracePickRegionId,
+    onUndo: draw.handleUndo,
+    onClear: draw.handleClear,
+    onSave: draw.handleSave,
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /*  Map Canvas — supports draggable vertex handles in edit mode         */
 /* ------------------------------------------------------------------ */
@@ -373,8 +418,12 @@ function GlobalMapCanvas({
   industryEditPosition,
   isEditingMap,
   isCreatingRegion,
+  isEditingRegion,
   regionCreateDraw,
+  regionEditDraw,
 }) {
+  const hudOffsetClass = useMapHudOffsetClass()
+  const activeRegionDraw = regionCreateDraw || regionEditDraw
   const mapData = useMemo(
     () =>
       applyMapLayerSearch(mapLayerFilter, mapLayerSearch, {
@@ -557,10 +606,8 @@ function GlobalMapCanvas({
     <div
       ref={canvasRef}
       className={`global-map-canvas relative h-full min-h-0 w-full ${
-        isCreatingRegion && regionCreateDraw?.isMapInteractionActive
-          ? 'sector-boundary-map--drawing'
-          : ''
-      }`}
+        activeRegionDraw?.isMapInteractionActive ? 'sector-boundary-map--drawing' : ''
+      } ${activeRegionDraw?.enableVertexEdit ? 'sector-boundary-map--vertex-edit' : ''}`}
     >
       <MapContainer
         center={fitPositions[0] || DEFAULT_CENTER}
@@ -570,7 +617,7 @@ function GlobalMapCanvas({
         zoomControl={false}
       >
         <ZoomControl position="topright" />
-        <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
+        <TileLayer url={TILE_URL} {...GLOBAL_MAP_TILE_OPTIONS} />
         {fitPositions.length > 0 && <FitGlobalBounds positions={fitPositions} />}
         <MapInstanceBridge onMapReady={onMapReady} />
         <MapCanvasResizeSync mapInstance={mapInstance} containerRef={canvasRef} />
@@ -579,9 +626,10 @@ function GlobalMapCanvas({
           regionLayers.map(({ region, rings }) => {
             const isThisBeingEdited =
               editingBoundary?.entityType === 'region' && editingBoundary.id === region.id
+            if (regionEditDraw?.regionId === region.id) return null
             const renderRings =
               isThisBeingEdited && editingBoundary?.rings ? editingBoundary.rings : rings
-            const isClickable = !isThisBeingEdited && !isCreatingRegion
+            const isClickable = !isThisBeingEdited && !isCreatingRegion && !isEditingRegion
             return renderRings.map((positions, ringIndex) => (
               <Polygon
                 key={`region-${region.id}-${ringIndex}`}
@@ -658,8 +706,8 @@ function GlobalMapCanvas({
         */}
         {editingBoundary &&
           Array.isArray(editingBoundary.rings) &&
-          ((editingBoundary.entityType === 'sector' && show.sectors) ||
-            (editingBoundary.entityType === 'region' && show.regions)) && (
+          editingBoundary.entityType === 'sector' &&
+          show.sectors && (
           <>
             {editingBoundary.rings.flatMap((ring, ringIndex) =>
               ring.map(([lat, lng], vertexIndex) => (
@@ -794,56 +842,67 @@ function GlobalMapCanvas({
             </Marker>
           ))}
 
-        {isCreatingRegion && regionCreateDraw && (
+        {activeRegionDraw && (
           <>
-            <RegionBoundaryTraceHighlight traceTarget={regionCreateDraw.traceTarget} />
+            <RegionBoundaryTraceHighlight traceTarget={activeRegionDraw.traceTarget} />
             <RegionBoundaryMapInteraction
-              isActive={regionCreateDraw.isMapInteractionActive}
-              onPointAdd={regionCreateDraw.onPointAdd}
-              onCursorMove={regionCreateDraw.onCursorMove}
-              onCursorLeave={regionCreateDraw.onCursorLeave}
+              isActive={activeRegionDraw.isMapInteractionActive}
+              enableVertexEdit={activeRegionDraw.enableVertexEdit}
+              onPointAdd={activeRegionDraw.onPointAdd}
+              onCursorMove={activeRegionDraw.onCursorMove}
+              onCursorLeave={activeRegionDraw.onCursorLeave}
+              onVertexEditClick={activeRegionDraw.onVertexEditClick}
             />
             <RegionBoundaryDraftLayers
-              points={regionCreateDraw.points}
-              cursorPosition={regionCreateDraw.cursorPosition}
-              isDrawing={regionCreateDraw.isDrawing || regionCreateDraw.interactionMode === 'trace'}
-              isSaved={regionCreateDraw.isSaved}
-              tracePreviewArc={regionCreateDraw.tracePreviewArc}
+              points={activeRegionDraw.points}
+              cursorPosition={activeRegionDraw.cursorPosition}
+              isDrawing={
+                activeRegionDraw.isDrawing || activeRegionDraw.interactionMode === 'trace'
+              }
+              isSaved={activeRegionDraw.isSaved}
+              tracePreviewArc={activeRegionDraw.tracePreviewArc}
+              showVertexMarkers={!activeRegionDraw.enableVertexEdit}
+              onEdgeClick={
+                activeRegionDraw.enableVertexEdit
+                  ? activeRegionDraw.onVertexEditClick
+                  : undefined
+              }
+            />
+            <RegionBoundaryEditableVertices
+              points={activeRegionDraw.points}
+              enabled={activeRegionDraw.enableVertexEdit}
+              onVertexDrag={activeRegionDraw.onVertexDrag}
             />
           </>
         )}
       </MapContainer>
 
-      {isCreatingRegion && regionCreateDraw && (
+      {activeRegionDraw && (
         <RegionBoundaryDrawControls
-          isDrawing={regionCreateDraw.isDrawing}
-          pointCount={regionCreateDraw.points.length}
-          interactionMode={regionCreateDraw.interactionMode}
-          tracePickRegionId={regionCreateDraw.tracePickRegionId}
-          traceableRegions={regionCreateDraw.traceableRegions}
-          onToggleDraw={regionCreateDraw.onToggleDraw}
-          onStartTracePick={regionCreateDraw.onStartTracePick}
-          onLeaveTrace={regionCreateDraw.onLeaveTrace}
-          onCancelTracePick={regionCreateDraw.onCancelTracePick}
-          onTracePickRegionChange={regionCreateDraw.onTracePickRegionChange}
-          onUndo={regionCreateDraw.onUndo}
-          onClear={regionCreateDraw.onClear}
-          onSave={regionCreateDraw.onSave}
+          className={hudOffsetClass}
+          isDrawing={activeRegionDraw.isDrawing}
+          pointCount={activeRegionDraw.points.length}
+          interactionMode={activeRegionDraw.interactionMode}
+          tracePickRegionId={activeRegionDraw.tracePickRegionId}
+          traceableRegions={activeRegionDraw.traceableRegions}
+          onToggleDraw={activeRegionDraw.onToggleDraw}
+          onStartTracePick={activeRegionDraw.onStartTracePick}
+          onLeaveTrace={activeRegionDraw.onLeaveTrace}
+          onCancelTracePick={activeRegionDraw.onCancelTracePick}
+          onTracePickRegionChange={activeRegionDraw.onTracePickRegionChange}
+          onUndo={activeRegionDraw.onUndo}
+          onClear={activeRegionDraw.onClear}
+          onSave={activeRegionDraw.onSave}
         />
       )}
 
       <GlobalMapCommandBar
-        sectors={sectors.length}
-        depots={depots.length}
-        industries={industries.length}
-        clients={clients.length}
-        regions={regions.length}
-        vehicles={vehicles.length}
+        hudOffsetClass={hudOffsetClass}
         filter={mapLayerFilter}
         onFilterChange={onMapLayerFilterChange}
         searchQuery={mapLayerSearch}
         onSearchChange={onMapLayerSearchChange}
-        searchDisabled={mapLayerFilter === MAP_FILTER_ALL || isCreatingRegion}
+        searchDisabled={isCreatingRegion}
       />
       {show.sectors && (
         <FloatingLegend depotColorEntries={depotColorEntries} isEditing={isEditingMap} />
@@ -865,6 +924,12 @@ const EMPTY_CREATE_REGION_FORM = {
 
 const createRailInputClass =
   'w-full rounded-lg border border-zinc-700 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20'
+
+function regionBoundaryPointCount(boundary) {
+  const ring = boundary?.coordinates?.[0]
+  if (!Array.isArray(ring) || ring.length < 4) return 0
+  return ring.length - 1
+}
 
 function RegionCreateRail({
   form,
@@ -937,11 +1002,16 @@ function RegionCreateRail({
 
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Boundary</p>
-            <p className="mt-1 text-sm text-zinc-300">
-              {boundaryReady
-                ? `Saved on map (${form.boundary?.coordinates?.[0]?.length - 1 || '?'} corners)`
-                : 'Not saved yet'}
-            </p>
+            {boundaryReady ? (
+              <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                Boundary captured ({regionBoundaryPointCount(form.boundary)} points)
+              </span>
+            ) : (
+              <p className="mt-2 text-sm text-zinc-400">
+                Use the toolbar on the main map to draw the boundaries.
+              </p>
+            )}
           </div>
 
           {clipNotice && (
@@ -1090,7 +1160,7 @@ const baseInputClass =
   'w-full rounded-lg border border-zinc-700 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20 disabled:opacity-60'
 const baseSelectClass = baseInputClass + ' appearance-none pr-8'
 
-function EditRegionForm({ form, onChange }) {
+function EditRegionForm({ form, onChange, clipNotice = '' }) {
   return (
     <div className="space-y-5">
       <div>
@@ -1098,7 +1168,8 @@ function EditRegionForm({ form, onChange }) {
           Editing Region
         </p>
         <p className="mt-1 text-xs text-zinc-500">
-          Update the metadata and drag any white corner on the map to reshape the boundary.
+          Use the map toolbar to trace shared edges or free-draw open sides. Drag corners or click a
+          boundary line to add a new one.
         </p>
       </div>
 
@@ -1143,9 +1214,23 @@ function EditRegionForm({ form, onChange }) {
       <div className="flex items-start gap-2.5 rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5">
         <MapIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-400" />
         <p className="text-xs leading-relaxed text-zinc-400">
-          Drag the <span className="text-zinc-300">white corner dots</span> on the orange dashed boundary to reshape the region.
+          <span className="text-zinc-300">Trace neighbor</span> for shared borders,{' '}
+          <span className="text-zinc-300">Free draw</span> for open sides, drag orange handles to
+          move corners, or click a line segment to insert a new corner.
         </p>
       </div>
+
+      {clipNotice && (
+        <div
+          className={`rounded-lg border px-3 py-2 text-xs ${
+            clipNotice.includes('saved') || clipNotice.includes('added')
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+              : 'border-amber-500/30 bg-amber-500/10 text-amber-100'
+          }`}
+        >
+          {clipNotice}
+        </div>
+      )}
     </div>
   )
 }
@@ -1496,6 +1581,7 @@ function DetailPanel({
   onSaveEdit,
   onCancelEdit,
   onClientDetailsUpdate,
+  regionEditClipNotice = '',
 }) {
   if (!selectedElement) return null
   const meta = ENTITY_META[selectedElement.type]
@@ -1660,7 +1746,11 @@ function DetailPanel({
           />
         ) : isRegion ? (
           isEditing ? (
-            <EditRegionForm form={editForm} onChange={onEditFormChange} />
+            <EditRegionForm
+              form={editForm}
+              onChange={onEditFormChange}
+              clipNotice={regionEditClipNotice}
+            />
           ) : (
             <RegionDetailsContent
               region={details}
@@ -2033,38 +2123,44 @@ export function GlobalMapPage() {
   const [createRegionError, setCreateRegionError] = useState('')
   const [isCreatingRegionSubmitting, setIsCreatingRegionSubmitting] = useState(false)
 
+  const isEditingRegion = isEditing && selectedElement?.type === 'region'
+  const editingRegionId = isEditingRegion ? selectedElement?.id || details?.id : null
+  const [regionEditSeed, setRegionEditSeed] = useState(null)
+
   const regionDraw = useRegionBoundaryDraw({
     value: createRegionForm.boundary,
     onChange: (boundary) => setCreateRegionForm((prev) => ({ ...prev, boundary })),
     existingRegions: regions,
   })
 
-  const regionCreateDraw = useMemo(() => {
-    if (!isCreatingRegion) return null
-    return {
-      isDrawing: regionDraw.isDrawing,
-      interactionMode: regionDraw.interactionMode,
-      traceTarget: regionDraw.traceTarget,
-      tracePickRegionId: regionDraw.tracePickRegionId,
-      traceableRegions: regionDraw.traceableRegions,
-      tracePreviewArc: regionDraw.tracePreviewArc,
-      isMapInteractionActive: regionDraw.isMapInteractionActive,
-      points: regionDraw.points,
-      cursorPosition: regionDraw.cursorPosition,
-      isSaved: regionDraw.isSaved,
-      onPointAdd: regionDraw.handlePointAdd,
-      onCursorMove: regionDraw.handleCursorMove,
-      onCursorLeave: regionDraw.handleCursorLeave,
-      onToggleDraw: regionDraw.handleToggleDraw,
-      onStartTracePick: regionDraw.handleStartTracePick,
-      onLeaveTrace: regionDraw.handleLeaveTrace,
-      onCancelTracePick: regionDraw.handleCancelTracePick,
-      onTracePickRegionChange: regionDraw.setTracePickRegionId,
-      onUndo: regionDraw.handleUndo,
-      onClear: regionDraw.handleClear,
-      onSave: regionDraw.handleSave,
+  const regionEditDrawHook = useRegionBoundaryDraw({
+    value: regionEditSeed,
+    onChange: (boundary) => {
+      setEditRings(boundary ? polygonRingsFromBoundary(boundary) : null)
+    },
+    existingRegions: regions,
+    excludeRegionId: editingRegionId,
+    enableVertexEditing: isEditingRegion,
+  })
+
+  const regionCreateDraw = useMemo(
+    () => (isCreatingRegion ? buildRegionDrawSurface(regionDraw) : null),
+    [isCreatingRegion, regionDraw],
+  )
+
+  const regionEditDraw = useMemo(
+    () =>
+      isEditingRegion
+        ? buildRegionDrawSurface(regionEditDrawHook, { regionId: editingRegionId })
+        : null,
+    [isEditingRegion, regionEditDrawHook, editingRegionId],
+  )
+
+  useEffect(() => {
+    if (!isEditingRegion) {
+      setRegionEditSeed(null)
     }
-  }, [isCreatingRegion, regionDraw])
+  }, [isEditingRegion])
 
   useEffect(() => {
     localStorage.setItem(MAP_LAYER_FILTER_STORAGE_KEY, JSON.stringify(mapLayerFilter))
@@ -2161,7 +2257,7 @@ export function GlobalMapPage() {
     if (type === 'vehicle') {
       const marker = buildVehicleMarkers(vehicles, depots).find((item) => item.id === row.id)
       if (marker) {
-        mapInstance.flyTo(marker.position, 15, { duration: 0.8 })
+        mapInstance.flyTo(marker.position, 15, MAP_FLY_OPTIONS)
       }
       return
     }
@@ -2171,7 +2267,7 @@ export function GlobalMapPage() {
       const points = rings.flat()
       if (points.length) {
         mapInstance.flyToBounds(points, {
-          duration: 0.8,
+          ...MAP_FLY_OPTIONS,
           padding: type === 'region' ? [40, 40] : [48, 48],
         })
       }
@@ -2181,7 +2277,7 @@ export function GlobalMapPage() {
     const lat = row.gps_latitude
     const lng = row.gps_longitude
     if (hasGpsCoordinates(lat, lng)) {
-      mapInstance.flyTo([Number(lat), Number(lng)], 14, { duration: 0.8 })
+      mapInstance.flyTo([Number(lat), Number(lng)], 14, MAP_FLY_OPTIONS)
     }
   }, [isLoading, industries, depots, sectors, clients, regions, vehicles, mapInstance, searchParams, setSearchParams])
 
@@ -2370,7 +2466,7 @@ export function GlobalMapPage() {
         if (region?.boundary) {
           const rings = polygonRingsFromBoundary(region.boundary)
           const points = rings.flat()
-          if (points.length) mapInstance.flyToBounds(points, { duration: 0.8, padding: [40, 40] })
+          if (points.length) mapInstance.flyToBounds(points, { ...MAP_FLY_OPTIONS, padding: [40, 40] })
         }
         return
       }
@@ -2378,7 +2474,7 @@ export function GlobalMapPage() {
       if (payload?.type === 'vehicle') {
         const marker = buildVehicleMarkers(vehicles, depots).find((item) => item.id === payload.id)
         if (marker) {
-          mapInstance.flyTo(marker.position, 15, { duration: 0.8 })
+          mapInstance.flyTo(marker.position, 15, MAP_FLY_OPTIONS)
         }
       }
 
@@ -2387,7 +2483,7 @@ export function GlobalMapPage() {
         if (sector?.boundary) {
           const rings = polygonRingsFromBoundary(sector.boundary)
           const points = rings.flat()
-          if (points.length) mapInstance.flyToBounds(points, { duration: 0.8, padding: [48, 48] })
+          if (points.length) mapInstance.flyToBounds(points, { ...MAP_FLY_OPTIONS, padding: [48, 48] })
         }
       }
     },
@@ -2395,12 +2491,14 @@ export function GlobalMapPage() {
   )
 
   const handleClose = useCallback(() => {
+    regionEditDrawHook.reset()
+    setRegionEditSeed(null)
     setSelectedElement(null)
     setIsEditing(false)
     setEditForm(EMPTY_EDIT_FORM)
     setEditRings(null)
     setSaveError('')
-  }, [])
+  }, [regionEditDrawHook])
 
   const handleNavigate = useCallback(
     (path) => {
@@ -2440,6 +2538,7 @@ export function GlobalMapPage() {
     }
     if (entityType === 'region') {
       setEditForm(buildEditFormFromRegion(details))
+      setRegionEditSeed(details.boundary || null)
       setEditRings(polygonRingsFromBoundary(details.boundary))
       return
     }
@@ -2495,11 +2594,13 @@ export function GlobalMapPage() {
   }, [])
 
   const cancelEdit = useCallback(() => {
+    regionEditDrawHook.reset()
+    setRegionEditSeed(null)
     setIsEditing(false)
     setEditForm(EMPTY_EDIT_FORM)
     setEditRings(null)
     setSaveError('')
-  }, [])
+  }, [regionEditDrawHook])
 
   const handleEditFormChange = useCallback((patch) => {
     setEditForm((prev) => ({ ...prev, ...patch }))
@@ -2670,18 +2771,25 @@ export function GlobalMapPage() {
     }
 
     if (entityType === 'region') {
-      if (!editRings) {
-        setIsSavingEdit(false)
-        return
-      }
       if (!editForm.regionName?.trim()) {
         setSaveError('Region name is required.')
         setIsSavingEdit(false)
         return
       }
-      const boundary = boundaryFromPolygonRings(editRings)
-      if (!boundary) {
+      const boundary = geometryFromLatLngPairs(regionEditDrawHook.points)
+      if (!boundary || !isValidRegionPolygon(boundary)) {
         setSaveError('A valid boundary with at least 3 corners is required.')
+        setIsSavingEdit(false)
+        return
+      }
+      const existingForClip = regions
+        .filter((r) => r.id !== details.id)
+        .map((r) => parseRegionBoundary(r.boundary))
+        .filter(Boolean)
+      if (geometriesOverlap(boundary, existingForClip)) {
+        setSaveError(
+          'Boundary overlaps another region. Use Trace neighbor for shared edges, then free draw for open sides.',
+        )
         setIsSavingEdit(false)
         return
       }
@@ -2711,6 +2819,8 @@ export function GlobalMapPage() {
           console.warn('[GlobalMapPage] post-save region refresh failed:', refreshErr)
         }
 
+        regionEditDrawHook.reset()
+        setRegionEditSeed(null)
         setIsEditing(false)
         setEditForm(EMPTY_REGION_EDIT_FORM)
         setEditRings(null)
@@ -2772,23 +2882,17 @@ export function GlobalMapPage() {
     } finally {
       setIsSavingEdit(false)
     }
-  }, [details, editRings, editForm, selectedElement, canManageLogistics])
+  }, [details, editRings, editForm, selectedElement, canManageLogistics, regionEditDrawHook, regions])
 
   const editingBoundaryPayload = useMemo(() => {
     if (!isEditing || !details || !editRings || !selectedElement) return null
+    if (selectedElement.type === 'region') return null
     if (selectedElement.type === 'sector') {
       return {
         entityType: 'sector',
         id: details.id,
         rings: editRings,
         previewDepotId: editForm.depotId || null,
-      }
-    }
-    if (selectedElement.type === 'region') {
-      return {
-        entityType: 'region',
-        id: details.id,
-        rings: editRings,
       }
     }
     return null
@@ -2838,7 +2942,7 @@ export function GlobalMapPage() {
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden">
       {/* MAP — always 2/3; right rail is always visible (home or entity detail) */}
-      <div className="relative h-full min-h-0 min-w-0 w-2/3 shrink-0 overflow-hidden">
+      <div className="relative h-full min-h-0 min-w-0 w-2/3 shrink-0 overflow-hidden transition-all duration-300">
         {loadError && (
           <div className="absolute left-1/2 top-4 z-[1001] w-full max-w-md -translate-x-1/2 px-4">
             <div className="rounded-xl border border-red-900/50 bg-red-950/80 px-4 py-3 text-sm text-red-200 shadow-lg backdrop-blur-md">
@@ -2883,13 +2987,15 @@ export function GlobalMapPage() {
             industryEditPosition={industryEditPosition}
             isEditingMap={isEditing}
             isCreatingRegion={isCreatingRegion}
+            isEditingRegion={isEditingRegion}
             regionCreateDraw={regionCreateDraw}
+            regionEditDraw={regionEditDraw}
           />
         )}
       </div>
 
       {/* RIGHT RAIL — default: Home (Executive); on map click: entity detail */}
-      <div className="flex h-full w-1/3 min-w-0 shrink-0 flex-col overflow-hidden border-l border-zinc-800 bg-[#1c1c1e] shadow-[inset_1px_0_0_rgba(255,255,255,0.05)] z-[1100]">
+      <div className="flex h-full w-1/3 min-w-0 shrink-0 flex-col overflow-hidden border-l border-zinc-800 bg-[#1c1c1e] shadow-[inset_1px_0_0_rgba(255,255,255,0.05)] z-[1100] transition-all duration-300">
         {isCreatingRegion ? (
           <RegionCreateRail
             form={createRegionForm}
@@ -2922,6 +3028,7 @@ export function GlobalMapPage() {
             onEnterEdit={enterEditMode}
             onSaveEdit={handleSaveEdit}
             onCancelEdit={cancelEdit}
+            regionEditClipNotice={regionEditDrawHook.clipNotice}
             onClientDetailsUpdate={(updated) =>
               setDetails((prev) => (prev ? { ...prev, ...updated } : updated))
             }
