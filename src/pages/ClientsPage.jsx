@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Store, Plus, X, Check, XCircle, MapPin } from 'lucide-react'
+import { ChevronRight, Plus, X, Check, XCircle } from 'lucide-react'
+import {
+  LOGISTICS_MODULES,
+  EntityIconBadge,
+  EntityStatusBadge,
+} from '../components/logistics/logisticsModuleUi'
+
+const CLIENT_MODULE = LOGISTICS_MODULES.client
 import { motion, AnimatePresence } from 'framer-motion'
 import { AnimatedPage } from '../components/AnimatedPage'
 import apiInstance from '../api/axiosInstance'
@@ -27,7 +34,6 @@ function ClientsSkeleton() {
               <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Name & Store</th>
               <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Phone</th>
               <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">City</th>
-              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Geolocation</th>
               <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
             </tr>
           </thead>
@@ -37,7 +43,6 @@ function ClientsSkeleton() {
                 <td className="px-6 py-4"><div className="h-5 w-44 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
                 <td className="px-6 py-4"><div className="h-5 w-32 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
                 <td className="px-6 py-4"><div className="h-5 w-28 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
-                <td className="px-6 py-4"><div className="h-5 w-36 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
                 <td className="px-6 py-4"><div className="h-5 w-20 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
               </tr>
             ))}
@@ -247,10 +252,12 @@ export function ClientsPage() {
         gpsLongitude: form.gpsLongitude === '' ? undefined : Number(form.gpsLongitude),
         openingHours: Object.keys(form.openingHours).length > 0 ? form.openingHours : undefined,
       }
-      await apiInstance.post('/clients', payload)
+      const res = await apiInstance.post('/clients', payload)
+      const created = res.data?.data?.client
       setIsCreateOpen(false)
       showToast('Client created successfully', 'success')
-      load()
+      await load()
+      if (created?.id) navigate(CLIENT_MODULE.detailPath(created.id))
     } catch (err) {
       setFormError(err?.response?.data?.message || 'Failed to create client.')
     } finally {
@@ -283,11 +290,14 @@ export function ClientsPage() {
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Clients</h1>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Manage client accounts, store information, and registration details.
-            </p>
+          <div className="flex min-w-0 items-start gap-3">
+            <EntityIconBadge moduleKey="client" />
+            <div>
+              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{CLIENT_MODULE.plural}</h1>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Client stores linked to the Global Map and order history.
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -311,46 +321,32 @@ export function ClientsPage() {
                     <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Name & Store</th>
                     <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Phone</th>
                     <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">City</th>
-                    <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Geolocation</th>
                     <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
+                    <th className="w-10 px-2 py-3" aria-hidden />
                   </tr>
                 </thead>
                 <tbody>
                   {clients.map((client) => (
                     <tr
                       key={client.id}
-                      onClick={() => navigate('/clients/' + client.id)}
-                      className="cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                      onClick={() => navigate(CLIENT_MODULE.detailPath(client.id))}
+                      className="group cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                            <Store className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
-                          </div>
+                          <EntityIconBadge moduleKey="client" size="sm" />
                           <div>
                             <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                              {client.client_name}
+                              {client.store_name || client.client_name}
                             </p>
-                            {client.store_name && (
-                              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                {client.store_name}
-                              </p>
+                            {client.store_name && client.client_name && (
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400">{client.client_name}</p>
                             )}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-zinc-700 dark:text-zinc-300">{client.phone || '-'}</td>
                       <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{client.city || '-'}</td>
-                      <td className="px-6 py-4">
-                        {client.gps_latitude && client.gps_longitude ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                            <MapPin className="h-3 w-3" />
-                            {Number(client.gps_latitude).toFixed(4)}, {Number(client.gps_longitude).toFixed(4)}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-zinc-400">-</span>
-                        )}
-                      </td>
                       <td className="px-6 py-4">
                         {client.is_active ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
@@ -368,6 +364,9 @@ export function ClientsPage() {
                             Unverified
                           </span>
                         )}
+                      </td>
+                      <td className="px-2 py-4 text-zinc-300 group-hover:text-zinc-500 dark:text-zinc-600">
+                        <ChevronRight className="h-4 w-4" />
                       </td>
                     </tr>
                   ))}

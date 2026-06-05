@@ -9,6 +9,7 @@ import {
   HelpCircle,
   LogOut,
   Moon,
+  PanelLeftClose,
   Settings,
   Sun,
 } from 'lucide-react'
@@ -24,7 +25,7 @@ const avatarInitials = (name = '') => {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
 }
 
-export function Sidebar({ onNavigate }) {
+export function Sidebar({ onNavigate, onCollapse }) {
   const location = useLocation()
   const { user, hasPermission, logout } = useAuth()
   const { t, i18n } = useTranslation()
@@ -59,14 +60,27 @@ export function Sidebar({ onNavigate }) {
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex h-14 items-center border-b border-zinc-200 px-4 dark:border-zinc-800">
-        <div className="mr-3 flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 text-white text-sm dark:bg-zinc-100 dark:text-zinc-900">
-          D
+      <div className="flex h-14 items-center gap-2 border-b border-zinc-200 px-3 dark:border-zinc-800">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">
+            D
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t('sidebar.appName')}</p>
+            <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">ERP Dashboard</p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t('sidebar.appName')}</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">ERP Dashboard</p>
-        </div>
+        {onCollapse && (
+          <button
+            type="button"
+            onClick={onCollapse}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            aria-label={t('sidebar.hide')}
+            title={t('sidebar.hide')}
+          >
+            <PanelLeftClose className="h-4 w-4" strokeWidth={1.75} />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2 sidebar-scroll">

@@ -1,10 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Warehouse, Plus, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronRight, Plus } from 'lucide-react'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
+import { SlideOverPanel } from '../../components/SlideOverPanel'
+import {
+  LOGISTICS_MODULES,
+  EntityIconBadge,
+  EntitySegmentedControl,
+  EntityStatusBadge,
+  formatGpsLocation,
+} from '../../components/logistics/logisticsModuleUi'
 import apiInstance from '../../api/axiosInstance'
+
+const DEPOT_MODULE = LOGISTICS_MODULES.depot
 
 function DepotsSkeleton() {
   return (
@@ -97,7 +106,7 @@ export function DepotsPage() {
     setIsSubmitting(true)
     setFormError('')
     try {
-      await apiInstance.post('/depots', {
+      const res = await apiInstance.post('/depots', {
         depotName: form.depotName,
         address: form.address,
         gpsLatitude: form.gpsLatitude === '' ? undefined : Number(form.gpsLatitude),
@@ -107,8 +116,10 @@ export function DepotsPage() {
         sectorIds: form.sectorIds,
         isActive: form.isActive,
       })
+      const created = res.data?.data?.depot
       setIsCreateOpen(false)
-      load()
+      await load()
+      if (created?.id) navigate(DEPOT_MODULE.detailPath(created.id))
     } catch (err) {
       setFormError(err?.response?.data?.message || 'Failed to create depot.')
     } finally {
@@ -121,9 +132,14 @@ export function DepotsPage() {
       <AnimatedPage>
         <div className="space-y-6">
           <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Depots</h1>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Manage warehouse depots, addresses, and capacity utilization.</p>
+            <div className="flex min-w-0 items-start gap-3">
+              <EntityIconBadge moduleKey="depot" />
+              <div>
+                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{DEPOT_MODULE.plural}</h1>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  Warehouse depots linked to the Global Map and capacity tracking.
+                </p>
+              </div>
             </div>
             <button
               type="button"
@@ -142,9 +158,11 @@ export function DepotsPage() {
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-gray-50 dark:bg-zinc-800/50">
                     <tr>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Depot</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Address</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Capacity Utilization</th>
+                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Name</th>
+                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Location</th>
+                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Capacity</th>
+                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
+                      <th className="w-10 px-2 py-3" aria-hidden />
                     </tr>
                   </thead>
                   <tbody>
@@ -153,25 +171,38 @@ export function DepotsPage() {
                       return (
                         <tr
                           key={depot.id}
-                          onClick={() => navigate('/depots/' + depot.id)}
-                          className="cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                          onClick={() => navigate(DEPOT_MODULE.detailPath(depot.id))}
+                          className="group cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                         >
-                          <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{depot.depot_name}</td>
-                          <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{depot.address || '-'}</td>
                           <td className="px-6 py-4">
-                            <div className="w-48 space-y-1">
+                            <div className="flex items-center gap-3">
+                              <EntityIconBadge moduleKey="depot" size="sm" />
+                              <span className="font-medium text-zinc-900 dark:text-zinc-100">{depot.depot_name}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 font-mono text-xs text-zinc-500 dark:text-zinc-400">
+                            {formatGpsLocation(depot.gps_latitude, depot.gps_longitude)}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="w-32 space-y-1">
                               <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{used}%</span>
-                              <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-zinc-700">
-                                <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600" style={{ width: `${used}%` }} />
+                              <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-zinc-700">
+                                <div className="h-full rounded-full bg-blue-500" style={{ width: `${used}%` }} />
                               </div>
                             </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <EntityStatusBadge isActive={depot.is_active} />
+                          </td>
+                          <td className="px-2 py-4 text-zinc-300 group-hover:text-zinc-500 dark:text-zinc-600">
+                            <ChevronRight className="h-4 w-4" />
                           </td>
                         </tr>
                       )
                     })}
                     {depots.length === 0 && (
                       <tr>
-                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={3}>
+                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={5}>
                           No depots available.
                         </td>
                       </tr>
@@ -184,25 +215,29 @@ export function DepotsPage() {
         </div>
       </AnimatedPage>
 
-      <AnimatePresence>
-        {isCreateOpen && (
-          <motion.div className="fixed inset-0 z-[60]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-            <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsCreateOpen(false)} aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
-            <motion.div
-              className="absolute right-0 top-0 h-full w-full max-w-lg overflow-y-auto border-l border-gray-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
-              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            >
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Add Depot</h2>
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Create a new warehouse depot.</p>
-                </div>
-                <button type="button" onClick={() => setIsCreateOpen(false)} className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-5">
+      <SlideOverPanel
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        maxWidthClass="max-w-lg"
+        title={
+          <span className="inline-flex items-center gap-2.5">
+            <EntityIconBadge moduleKey="depot" size="sm" />
+            Add Depot
+          </span>
+        }
+        description="GPS coordinates place this depot on the Global Map."
+        footer={
+          <div className="flex gap-2">
+            <button type="submit" form="depot-create-form" disabled={isSubmitting} className="flex-1 rounded-lg bg-zinc-900 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">
+              {isSubmitting ? 'Creating…' : 'Create Depot'}
+            </button>
+            <button type="button" onClick={() => setIsCreateOpen(false)} className="flex-1 rounded-lg border border-zinc-200 py-2.5 text-sm font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+              Cancel
+            </button>
+          </div>
+        }
+      >
+              <form id="depot-create-form" onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Depot Name <span className="text-red-500">*</span></label>
                   <input type="text" value={form.depotName} onChange={(e) => setForm({ ...form, depotName: e.target.value })}
@@ -270,35 +305,18 @@ export function DepotsPage() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Status</label>
-                  <div className="flex gap-3">
-                    {[{ value: true, label: 'Active' }, { value: false, label: 'Inactive' }].map((opt) => (
-                      <button key={String(opt.value)} type="button"
-                        onClick={() => setForm({ ...form, isActive: opt.value })}
-                        className={`flex-1 rounded-xl border-2 py-2.5 text-sm font-semibold transition ${
-                          form.isActive === opt.value
-                            ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                            : 'border-gray-200 text-zinc-500 hover:border-gray-400 dark:border-zinc-700 dark:hover:border-zinc-500'
-                        }`}
-                      >{opt.label}</button>
-                    ))}
-                  </div>
+                  <EntitySegmentedControl
+                    value={form.isActive}
+                    onChange={(v) => setForm({ ...form, isActive: v })}
+                    options={[
+                      { value: true, label: 'Active' },
+                      { value: false, label: 'Inactive' },
+                    ]}
+                  />
                 </div>
                 {formError && <p className="text-sm text-red-500">{formError}</p>}
-                <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={isSubmitting}
-                    className="flex-1 rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">
-                    {isSubmitting ? 'Creating…' : 'Create Depot'}
-                  </button>
-                  <button type="button" onClick={() => setIsCreateOpen(false)}
-                    className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900">
-                    Cancel
-                  </button>
-                </div>
               </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </SlideOverPanel>
     </DashboardLayout>
   )
 }

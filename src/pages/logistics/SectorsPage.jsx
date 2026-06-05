@@ -1,11 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, Plus, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronRight, Plus } from 'lucide-react'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
+import { SlideOverPanel } from '../../components/SlideOverPanel'
 import { SectorBoundaryDrawer, isValidSectorPolygon } from '../../components/SectorBoundaryDrawer'
+import {
+  LOGISTICS_MODULES,
+  EntityIconBadge,
+  EntitySegmentedControl,
+  EntityStatusBadge,
+} from '../../components/logistics/logisticsModuleUi'
 import apiInstance from '../../api/axiosInstance'
+
+const SECTOR_MODULE = LOGISTICS_MODULES.sector
 
 function SectorsSkeleton() {
   return (
@@ -97,15 +105,17 @@ export function SectorsPage() {
     setIsSubmitting(true)
     setFormError('')
     try {
-      await apiInstance.post('/sectors', {
+      const res = await apiInstance.post('/sectors', {
         sectorName: form.sectorName.trim(),
         regionId: form.regionId || undefined,
         boundary: form.boundary,
         assignedProfileId: form.assignedProfileId || null,
         isActive: form.isActive,
       })
+      const created = res.data?.data?.sector
       setIsCreateOpen(false)
-      load()
+      await load()
+      if (created?.id) navigate(SECTOR_MODULE.detailPath(created.id))
     } catch (err) {
       setFormError(err?.response?.data?.message || 'Failed to create sector.')
     } finally {
@@ -118,9 +128,14 @@ export function SectorsPage() {
       <AnimatedPage>
         <div className="space-y-6">
           <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Sectors</h1>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Manage sectors and link them to regions.</p>
+            <div className="flex min-w-0 items-start gap-3">
+              <EntityIconBadge moduleKey="sector" />
+              <div>
+                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{SECTOR_MODULE.plural}</h1>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  Coverage sectors with boundaries on the Global Map.
+                </p>
+              </div>
             </div>
             <button
               type="button"
@@ -144,34 +159,35 @@ export function SectorsPage() {
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Region</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Depot</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
+                      <th className="w-10 px-2 py-3" aria-hidden />
                     </tr>
                   </thead>
                   <tbody>
                     {sectors.map((sector) => (
                       <tr
                         key={sector.id}
-                        onClick={() => navigate(`/sectors/${sector.id}`)}
-                        className="cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                        onClick={() => navigate(SECTOR_MODULE.detailPath(sector.id))}
+                        className="group cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                       >
-                        <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{sector.sector_name}</td>
-                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{sector.regions?.region_name || '-'}</td>
-                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{sector.depots?.depot_name || '-'}</td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              sector.is_active !== false
-                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
-                                : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
-                            }`}
-                          >
-                            {sector.is_active !== false ? 'Active' : 'Inactive'}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <EntityIconBadge moduleKey="sector" size="sm" />
+                            <span className="font-medium text-zinc-900 dark:text-zinc-100">{sector.sector_name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{sector.regions?.region_name || '—'}</td>
+                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{sector.depots?.depot_name || '—'}</td>
+                        <td className="px-6 py-4">
+                          <EntityStatusBadge isActive={sector.is_active !== false} />
+                        </td>
+                        <td className="px-2 py-4 text-zinc-300 group-hover:text-zinc-500 dark:text-zinc-600">
+                          <ChevronRight className="h-4 w-4" />
                         </td>
                       </tr>
                     ))}
                     {sectors.length === 0 && (
                       <tr>
-                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={4}>
+                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={5}>
                           No sectors available.
                         </td>
                       </tr>
@@ -184,28 +200,29 @@ export function SectorsPage() {
         </div>
       </AnimatedPage>
 
-      <AnimatePresence>
-        {isCreateOpen && (
-          <motion.div className="fixed inset-0 z-[60]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-            <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsCreateOpen(false)} aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
-            <motion.div
-              className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-gray-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            >
-              <div className="mb-6 flex items-start justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Add Sector</h2>
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Create a new sector and define its operational metadata.</p>
-                </div>
-                <button type="button" onClick={() => setIsCreateOpen(false)} className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5">
+      <SlideOverPanel
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        maxWidthClass="max-w-2xl"
+        title={
+          <span className="inline-flex items-center gap-2.5">
+            <EntityIconBadge moduleKey="sector" size="sm" />
+            Add Sector
+          </span>
+        }
+        description="Draw the boundary — it appears on the Global Map."
+        footer={
+          <div className="flex gap-2">
+            <button type="submit" form="sector-create-form" disabled={isSubmitting} className="flex-1 rounded-lg bg-zinc-900 py-2.5 text-sm font-semibold text-white disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">
+              {isSubmitting ? 'Creating…' : 'Create Sector'}
+            </button>
+            <button type="button" onClick={() => setIsCreateOpen(false)} className="flex-1 rounded-lg border border-zinc-200 py-2.5 text-sm font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+              Cancel
+            </button>
+          </div>
+        }
+      >
+              <form id="sector-create-form" onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Sector Name <span className="text-red-500">*</span></label>
                   <input
@@ -255,39 +272,19 @@ export function SectorsPage() {
 
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Status</label>
-                  <div className="flex gap-3">
-                    {[{ value: true, label: 'Active' }, { value: false, label: 'Inactive' }].map((opt) => (
-                      <button
-                        key={String(opt.value)}
-                        type="button"
-                        onClick={() => setForm({ ...form, isActive: opt.value })}
-                        className={`flex-1 rounded-xl border-2 py-2.5 text-sm font-semibold transition ${
-                          form.isActive === opt.value
-                            ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                            : 'border-gray-200 text-zinc-500 hover:border-gray-400 dark:border-zinc-700 dark:hover:border-zinc-500'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
+                  <EntitySegmentedControl
+                    value={form.isActive}
+                    onChange={(v) => setForm({ ...form, isActive: v })}
+                    options={[
+                      { value: true, label: 'Active' },
+                      { value: false, label: 'Inactive' },
+                    ]}
+                  />
                 </div>
 
                 {formError && <p className="text-sm text-red-500">{formError}</p>}
-
-                <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={isSubmitting} className="flex-1 rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">
-                    {isSubmitting ? 'Creating…' : 'Create Sector'}
-                  </button>
-                  <button type="button" onClick={() => setIsCreateOpen(false)} className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900">
-                    Cancel
-                  </button>
-                </div>
               </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </SlideOverPanel>
     </DashboardLayout>
   )
 }

@@ -19,6 +19,8 @@ const resources = {
         logistics: 'Logistics',
         catalog: 'Product Catalog',
         support: 'Support',
+        hide: 'Hide sidebar',
+        show: 'Show sidebar',
       },
       login: {
         title: 'Welcome back',
@@ -92,6 +94,8 @@ const resources = {
         logistics: 'Logistique',
         catalog: 'Catalogue de produits',
         support: 'Support',
+        hide: 'Masquer le menu',
+        show: 'Afficher le menu',
       },
       login: {
         title: 'Heureux de vous revoir',

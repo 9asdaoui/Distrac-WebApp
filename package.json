@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",
+    "@turf/area": "^7.3.5",
+    "@turf/boolean-point-in-polygon": "^7.3.5",
+    "@turf/difference": "^7.3.5",
+    "@turf/helpers": "^7.3.5",
     "axios": "^1.7.7",
     "framer-motion": "^12.38.0",
     "i18next": "^26.2.0",

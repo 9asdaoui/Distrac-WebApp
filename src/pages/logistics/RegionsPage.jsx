@@ -1,9 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Map, Plus, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
+import { ChevronRight, Plus } from 'lucide-react'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
+import {
+  LOGISTICS_MODULES,
+  EntityIconBadge,
+  EntityMapLink,
+  EntityStatusBadge,
+} from '../../components/logistics/logisticsModuleUi'
 import apiInstance from '../../api/axiosInstance'
+
+const REGION_MODULE = LOGISTICS_MODULES.region
 
 function RegionsSkeleton() {
   return (
@@ -14,6 +22,7 @@ function RegionsSkeleton() {
             <tr>
               <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Region</th>
               <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Code</th>
+              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Boundary</th>
               <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
             </tr>
           </thead>
@@ -22,6 +31,7 @@ function RegionsSkeleton() {
               <tr key={row} className="border-b border-gray-200 dark:border-zinc-800">
                 <td className="px-6 py-4"><div className="h-5 w-40 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
                 <td className="px-6 py-4"><div className="h-5 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
+                <td className="px-6 py-4"><div className="h-5 w-16 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
                 <td className="px-6 py-4"><div className="h-5 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
               </tr>
             ))}
@@ -33,12 +43,9 @@ function RegionsSkeleton() {
 }
 
 export function RegionsPage() {
+  const navigate = useNavigate()
   const [regions, setRegions] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [form, setForm] = useState({ regionName: '', code: '', isActive: true })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formError, setFormError] = useState('')
   const controllerRef = useRef(null)
 
   const load = async () => {
@@ -63,41 +70,23 @@ export function RegionsPage() {
     return () => controllerRef.current?.abort()
   }, [])
 
-  const openCreate = () => {
-    setForm({ regionName: '', code: '', isActive: true })
-    setFormError('')
-    setIsCreateOpen(true)
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!form.regionName.trim()) { setFormError('Region name is required.'); return }
-    setIsSubmitting(true)
-    setFormError('')
-    try {
-      await apiInstance.post('/regions', form)
-      setIsCreateOpen(false)
-      load()
-    } catch (err) {
-      setFormError(err?.response?.data?.message || 'Failed to create region.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  const openCreate = () => navigate('/global-map?create=region')
 
   return (
     <DashboardLayout>
       <AnimatedPage>
         <div className="space-y-6">
           <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Regions</h1>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Manage business regions used to map sectors and routes.</p>
+            <div className="flex min-w-0 items-start gap-3">
+              <EntityIconBadge moduleKey="region" />
+              <div>
+                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{REGION_MODULE.plural}</h1>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  Region territories on the Global Map — boundaries cannot overlap.
+                </p>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="btn-primary">
+            <button type="button" onClick={openCreate} className="btn-primary">
               <Plus className="h-4 w-4" />
               Add Region
             </button>
@@ -113,20 +102,51 @@ export function RegionsPage() {
                     <tr>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Region</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Code</th>
+                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Boundary</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
+                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Map</th>
+                      <th className="w-10 px-2 py-3" aria-hidden />
                     </tr>
                   </thead>
                   <tbody>
                     {regions.map((region) => (
-                      <tr key={region.id} className="border-b border-gray-200 dark:border-zinc-800">
-                        <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{region.region_name || region.name || '-'}</td>
-                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{region.code || '-'}</td>
-                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{region.is_active === false ? 'Inactive' : 'Active'}</td>
+                      <tr
+                        key={region.id}
+                        onClick={() => region.id && navigate(REGION_MODULE.mapDeepLink(region.id))}
+                        className="group cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <EntityIconBadge moduleKey="region" size="sm" />
+                            <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                              {region.region_name || region.name || '—'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{region.code || '—'}</td>
+                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">
+                          {region.boundary ? (
+                            <span className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                              Defined
+                            </span>
+                          ) : (
+                            <span className="text-xs text-zinc-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <EntityStatusBadge isActive={region.is_active !== false} />
+                        </td>
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          {region.id && <EntityMapLink moduleKey="region" entityId={region.id} className="text-orange-600 dark:text-orange-400" />}
+                        </td>
+                        <td className="px-2 py-4 text-zinc-300 group-hover:text-zinc-500 dark:text-zinc-600">
+                          <ChevronRight className="h-4 w-4" />
+                        </td>
                       </tr>
                     ))}
                     {regions.length === 0 && (
                       <tr>
-                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={3}>
+                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={6}>
                           No regions available.
                         </td>
                       </tr>
@@ -138,69 +158,6 @@ export function RegionsPage() {
           )}
         </div>
       </AnimatedPage>
-
-      <AnimatePresence>
-        {isCreateOpen && (
-          <motion.div className="fixed inset-0 z-[60]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-            <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsCreateOpen(false)} aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
-            <motion.div
-              className="absolute right-0 top-0 h-full w-full max-w-lg overflow-y-auto border-l border-gray-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
-              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            >
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Add Region</h2>
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Define a new business region to map sectors and routes.</p>
-                </div>
-                <button type="button" onClick={() => setIsCreateOpen(false)} className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Region Name <span className="text-red-500">*</span></label>
-                  <input type="text" value={form.regionName} onChange={(e) => setForm({ ...form, regionName: e.target.value })}
-                    placeholder="e.g. Grand Alger"
-                    className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100" />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Code</label>
-                  <input type="text" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })}
-                    placeholder="e.g. ALG-N"
-                    className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100" />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Status</label>
-                  <div className="flex gap-3">
-                    {[{ value: true, label: 'Active' }, { value: false, label: 'Inactive' }].map((opt) => (
-                      <button key={String(opt.value)} type="button"
-                        onClick={() => setForm({ ...form, isActive: opt.value })}
-                        className={`flex-1 rounded-xl border-2 py-2.5 text-sm font-semibold transition ${
-                          form.isActive === opt.value
-                            ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                            : 'border-gray-200 text-zinc-500 hover:border-gray-400 dark:border-zinc-700 dark:hover:border-zinc-500'
-                        }`}
-                      >{opt.label}</button>
-                    ))}
-                  </div>
-                </div>
-                {formError && <p className="text-sm text-red-500">{formError}</p>}
-                <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={isSubmitting}
-                    className="btn-primary-flex disabled:opacity-40">
-                    {isSubmitting ? 'Creating…' : 'Create Region'}
-                  </button>
-                  <button type="button" onClick={() => setIsCreateOpen(false)}
-                    className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </DashboardLayout>
   )
 }

@@ -65,12 +65,12 @@ export function SlideOverPanel({
             <div className="flex shrink-0 items-start justify-between border-b border-gray-200 px-6 py-4 dark:border-zinc-800">
               <div className="min-w-0 pr-4">
                 {title && (
-                  <h2
+                  <div
                     id="slide-over-title"
                     className="text-xl font-semibold text-zinc-900 dark:text-zinc-100"
                   >
                     {title}
-                  </h2>
+                  </div>
                 )}
                 {description && (
                   <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">

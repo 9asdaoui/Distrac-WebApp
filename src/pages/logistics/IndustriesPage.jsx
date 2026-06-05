@@ -1,29 +1,46 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Factory, Plus, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronRight, Plus, Search } from 'lucide-react'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
+import { SlideOverPanel } from '../../components/SlideOverPanel'
+import {
+  EMPTY_INDUSTRY_FORM,
+  IndustryFormFields,
+  formatIndustryLocation,
+  industryFormToPayload,
+} from '../../components/logistics/IndustryFormFields'
+import { IndustryTypeBadge } from '../../components/logistics/IndustryDetailsContent'
+import {
+  LOGISTICS_MODULES,
+  EntityIconBadge,
+  EntityStatusBadge,
+} from '../../components/logistics/logisticsModuleUi'
+
+const INDUSTRY_MODULE = LOGISTICS_MODULES.industry
 import apiInstance from '../../api/axiosInstance'
 
 function IndustriesSkeleton() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="bg-gray-50 dark:bg-zinc-800/50">
+          <thead className="bg-zinc-50 dark:bg-zinc-800/50">
             <tr>
-              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Industry</th>
-              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Type</th>
-              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Description</th>
+              {['Name', 'Type', 'Location', 'Status'].map((col) => (
+                <th key={col} className="px-6 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  {col}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {[1, 2, 3, 4].map((row) => (
-              <tr key={row} className="border-b border-gray-200 dark:border-zinc-800">
-                <td className="px-6 py-4"><div className="h-5 w-40 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
-                <td className="px-6 py-4"><div className="h-5 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
-                <td className="px-6 py-4"><div className="h-5 w-56 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" /></td>
+              <tr key={row} className="border-t border-zinc-100 dark:border-zinc-800">
+                <td className="px-6 py-4"><div className="h-4 w-36 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" /></td>
+                <td className="px-6 py-4"><div className="h-4 w-16 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" /></td>
+                <td className="px-6 py-4"><div className="h-4 w-28 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" /></td>
+                <td className="px-6 py-4"><div className="h-4 w-14 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" /></td>
               </tr>
             ))}
           </tbody>
@@ -37,8 +54,9 @@ export function IndustriesPage() {
   const navigate = useNavigate()
   const [industries, setIndustries] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [search, setSearch] = useState('')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [form, setForm] = useState({ industryName: '', description: '', isInternal: false, isActive: true })
+  const [form, setForm] = useState({ ...EMPTY_INDUSTRY_FORM })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
   const controllerRef = useRef(null)
@@ -67,21 +85,37 @@ export function IndustriesPage() {
     return () => controllerRef.current?.abort()
   }, [])
 
+  const filteredIndustries = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return industries
+    return industries.filter((row) =>
+      [row.industry_name, row.description, row.is_internal ? 'internal' : 'external']
+        .some((part) => String(part ?? '').toLowerCase().includes(q)),
+    )
+  }, [industries, search])
+
   const openCreate = () => {
-    setForm({ industryName: '', description: '', isInternal: false, isActive: true })
+    setForm({ ...EMPTY_INDUSTRY_FORM })
     setFormError('')
     setIsCreateOpen(true)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.industryName.trim()) { setFormError('Industry name is required.'); return }
+    if (!form.industryName.trim()) {
+      setFormError('Industry name is required.')
+      return
+    }
     setIsSubmitting(true)
     setFormError('')
     try {
-      await apiInstance.post('/industries', form)
+      const res = await apiInstance.post('/industries', industryFormToPayload(form))
+      const created = res.data?.data?.industry
       setIsCreateOpen(false)
-      load()
+      await load()
+      if (created?.id) {
+        navigate(INDUSTRY_MODULE.detailPath(created.id))
+      }
     } catch (err) {
       setFormError(err?.response?.data?.message || 'Failed to create industry.')
     } finally {
@@ -93,49 +127,85 @@ export function IndustriesPage() {
     <DashboardLayout>
       <AnimatedPage>
         <div className="space-y-6">
-          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Industries</h1>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Manage internal and external industries used in logistics operations.</p>
+          <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <EntityIconBadge moduleKey="industry" size="md" />
+              <div>
+                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{INDUSTRY_MODULE.plural}</h1>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  Manage internal and external industries — linked to the Global Map.
+                </p>
+              </div>
             </div>
             <button
               type="button"
               onClick={openCreate}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+            >
               <Plus className="h-4 w-4" />
               Add Industry
             </button>
           </div>
 
+          <div className="relative max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search industries…"
+              className="w-full rounded-lg border border-zinc-200 bg-white py-2.5 pl-9 pr-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-500"
+            />
+          </div>
+
           {isLoading ? (
             <IndustriesSkeleton />
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-gray-50 dark:bg-zinc-800/50">
+                  <thead className="bg-zinc-50 dark:bg-zinc-800/50">
                     <tr>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Industry</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Type</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Description</th>
+                      <th className="px-6 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">Name</th>
+                      <th className="px-6 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">Type</th>
+                      <th className="px-6 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">Location</th>
+                      <th className="px-6 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">Status</th>
+                      <th className="w-10 px-2 py-3" aria-hidden />
                     </tr>
                   </thead>
                   <tbody>
-                    {industries.map((industry) => (
+                    {filteredIndustries.map((industry) => (
                       <tr
                         key={industry.id}
-                        onClick={() => navigate('/industries/' + industry.id)}
-                        className="cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                        onClick={() => navigate(INDUSTRY_MODULE.detailPath(industry.id))}
+                        className="group cursor-pointer border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                       >
-                        <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{industry.industry_name}</td>
-                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{industry.is_internal ? 'Internal' : 'External'}</td>
-                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{industry.description || '-'}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <EntityIconBadge moduleKey="industry" size="sm" />
+                            <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                              {industry.industry_name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <IndustryTypeBadge isInternal={industry.is_internal} />
+                        </td>
+                        <td className="px-6 py-4 font-mono text-xs text-zinc-500 dark:text-zinc-400">
+                          {formatIndustryLocation(industry)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <EntityStatusBadge isActive={industry.is_active} />
+                        </td>
+                        <td className="px-2 py-4 text-zinc-300 transition group-hover:text-zinc-500 dark:text-zinc-600 dark:group-hover:text-zinc-400">
+                          <ChevronRight className="h-4 w-4" />
+                        </td>
                       </tr>
                     ))}
-                    {industries.length === 0 && (
+                    {filteredIndustries.length === 0 && (
                       <tr>
-                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={3}>
-                          No industries available.
+                        <td colSpan={5} className="px-6 py-12 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                          {search.trim() ? 'No industries match your search.' : 'No industries available.'}
                         </td>
                       </tr>
                     )}
@@ -147,116 +217,45 @@ export function IndustriesPage() {
         </div>
       </AnimatedPage>
 
-      {/* Create slide-over */}
-      <AnimatePresence>
-        {isCreateOpen && (
-          <motion.div
-            className="fixed inset-0 z-[60]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <motion.div
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-              onClick={() => setIsCreateOpen(false)}
-              aria-hidden="true"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            />
-            <motion.div
-              className="absolute right-0 top-0 h-full w-full max-w-lg overflow-y-auto border-l border-gray-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      <SlideOverPanel
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        maxWidthClass="max-w-md"
+        title={
+          <span className="inline-flex items-center gap-2.5">
+            <EntityIconBadge moduleKey="industry" size="sm" />
+            Add Industry
+          </span>
+        }
+        description="GPS coordinates place this industry on the Global Map."
+        footer={
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              form="industry-create-form"
+              disabled={isSubmitting}
+              className="flex-1 rounded-lg bg-zinc-900 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
             >
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Add Industry</h2>
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Create a new industry entry for logistics operations.</p>
-                </div>
-                <button type="button" onClick={() => setIsCreateOpen(false)}
-                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Industry Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.industryName}
-                    onChange={(e) => setForm({ ...form, industryName: e.target.value })}
-                    placeholder="e.g. Agroalimentaire Sarl"
-                    className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Description</label>
-                  <textarea
-                    rows={3}
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder="Optional description…"
-                    className="w-full resize-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Type</label>
-                  <div className="flex gap-3">
-                    {[{ value: false, label: 'External' }, { value: true, label: 'Internal' }].map((opt) => (
-                      <button key={String(opt.value)} type="button"
-                        onClick={() => setForm({ ...form, isInternal: opt.value })}
-                        className={`flex-1 rounded-xl border-2 py-2.5 text-sm font-semibold transition ${
-                          form.isInternal === opt.value
-                            ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                            : 'border-gray-200 text-zinc-500 hover:border-gray-400 dark:border-zinc-700 dark:hover:border-zinc-500'
-                        }`}
-                      >{opt.label}</button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Status</label>
-                  <div className="flex gap-3">
-                    {[{ value: true, label: 'Active' }, { value: false, label: 'Inactive' }].map((opt) => (
-                      <button key={String(opt.value)} type="button"
-                        onClick={() => setForm({ ...form, isActive: opt.value })}
-                        className={`flex-1 rounded-xl border-2 py-2.5 text-sm font-semibold transition ${
-                          form.isActive === opt.value
-                            ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                            : 'border-gray-200 text-zinc-500 hover:border-gray-400 dark:border-zinc-700 dark:hover:border-zinc-500'
-                        }`}
-                      >{opt.label}</button>
-                    ))}
-                  </div>
-                </div>
-
-                {formError && <p className="text-sm text-red-500">{formError}</p>}
-
-                <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={isSubmitting}
-                    className="flex-1 rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">
-                    {isSubmitting ? 'Creating…' : 'Create Industry'}
-                  </button>
-                  <button type="button" onClick={() => setIsCreateOpen(false)}
-                    className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {isSubmitting ? 'Creating…' : 'Create Industry'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCreateOpen(false)}
+              className="flex-1 rounded-lg border border-zinc-200 py-2.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
+            >
+              Cancel
+            </button>
+          </div>
+        }
+      >
+        <form id="industry-create-form" onSubmit={handleSubmit} className="space-y-5">
+          <IndustryFormFields
+            form={form}
+            onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+          />
+          {formError && <p className="text-sm text-red-500">{formError}</p>}
+        </form>
+      </SlideOverPanel>
     </DashboardLayout>
   )
 }
