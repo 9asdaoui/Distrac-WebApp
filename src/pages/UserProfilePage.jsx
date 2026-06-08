@@ -300,6 +300,9 @@ export function UserProfilePage() {
   const [profile, setProfile] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [vendorLoadLimit, setVendorLoadLimit] = useState('')
+  const [isSavingLimit, setIsSavingLimit] = useState(false)
+  const [limitMessage, setLimitMessage] = useState('')
 
   useEffect(() => {
     if (!id) return undefined
@@ -314,7 +317,9 @@ export function UserProfilePage() {
       try {
         const res = await apiInstance.get(`/users/${id}`, { signal: controller.signal })
         if (!controller.signal.aborted) {
-          setProfile(res.data?.data || null)
+          const payload = res.data?.data || null
+          setProfile(payload)
+          setVendorLoadLimit(String(payload?.user?.vendor_load_value_limit ?? ''))
         }
       } catch (err) {
         if (err.name === 'CanceledError' || controller.signal.aborted) return
@@ -339,6 +344,22 @@ export function UserProfilePage() {
     SECTOR: assignments.filter((row) => row.entity_type === 'SECTOR'),
     DEPOT: assignments.filter((row) => row.entity_type === 'DEPOT'),
     INDUSTRY: assignments.filter((row) => row.entity_type === 'INDUSTRY'),
+  }
+
+  const handleSaveVendorLimit = async () => {
+    if (!user?.id) return
+    setIsSavingLimit(true)
+    setLimitMessage('')
+    try {
+      await apiInstance.patch(`/users/${user.id}/vendor-limits`, {
+        vendorLoadValueLimit: Number(vendorLoadLimit) || 0,
+      })
+      setLimitMessage('Vendor load limit saved.')
+    } catch (err) {
+      setLimitMessage(err?.response?.data?.message || 'Failed to save vendor load limit.')
+    } finally {
+      setIsSavingLimit(false)
+    }
   }
 
   return (
@@ -409,6 +430,36 @@ export function UserProfilePage() {
                 </p>
               </div>
             </header>
+
+            {String(user.role_name || '').toUpperCase() === 'VENDOR' && (
+              <PanelCard title="Vendor load money limit" icon={Package}>
+                <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+                  Maximum total product value the vendor may load on the vehicle per depot request.
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <div className="flex-1">
+                    <label className="mb-1 block text-xs font-medium text-zinc-500">Limit (MAD)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={vendorLoadLimit}
+                      onChange={(e) => setVendorLoadLimit(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSaveVendorLimit}
+                    disabled={isSavingLimit}
+                    className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
+                  >
+                    {isSavingLimit ? 'Saving…' : 'Save limit'}
+                  </button>
+                </div>
+                {limitMessage && <p className="mt-2 text-xs text-zinc-500">{limitMessage}</p>}
+              </PanelCard>
+            )}
 
             {roleInsights.stats?.length > 0 && (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -218,6 +218,9 @@ function AboutSectorCard({ sector, clients, staff, compact = false }) {
             '—'
           )}
         </SidebarRow>
+        <SidebarRow icon={MapPin} label="Delivery mode" compact={compact}>
+          {sector.fulfillment_mode === 'VENDOR' ? 'Vendor-exclusive' : 'Livreur'}
+        </SidebarRow>
         <SidebarRow icon={User} label="Default owner" compact={compact}>
           {sector.profiles?.full_name || '—'}
         </SidebarRow>

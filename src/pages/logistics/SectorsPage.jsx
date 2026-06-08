@@ -55,6 +55,7 @@ export function SectorsPage() {
     regionId: '',
     boundary: null,
     assignedProfileId: '',
+    fulfillmentMode: 'LIVREUR',
     isActive: true,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -86,7 +87,7 @@ export function SectorsPage() {
   }, [])
 
   const openCreate = () => {
-    setForm({ sectorName: '', regionId: '', boundary: null, assignedProfileId: '', isActive: true })
+    setForm({ sectorName: '', regionId: '', boundary: null, assignedProfileId: '', fulfillmentMode: 'LIVREUR', isActive: true })
     setFormError('')
     setMapDrawerKey((key) => key + 1)
     setIsCreateOpen(true)
@@ -110,6 +111,7 @@ export function SectorsPage() {
         regionId: form.regionId || undefined,
         boundary: form.boundary,
         assignedProfileId: form.assignedProfileId || null,
+        fulfillmentMode: form.fulfillmentMode || 'LIVREUR',
         isActive: form.isActive,
       })
       const created = res.data?.data?.sector
@@ -257,6 +259,18 @@ export function SectorsPage() {
                     value={form.boundary}
                     onChange={(boundary) => setForm((prev) => ({ ...prev, boundary }))}
                   />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Delivery mode</label>
+                  <select
+                    value={form.fulfillmentMode}
+                    onChange={(e) => setForm({ ...form, fulfillmentMode: e.target.value })}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+                  >
+                    <option value="LIVREUR">Livreur delivery</option>
+                    <option value="VENDOR">Vendor-exclusive</option>
+                  </select>
                 </div>
 
                 <div>

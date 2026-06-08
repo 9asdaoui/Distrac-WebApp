@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import apiInstance from '../../api/axiosInstance'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -28,7 +29,80 @@ const TABS = [
   { id: 'stock', label: 'Stock' },
   { id: 'livreurs', label: 'Assigned Livreurs' },
   { id: 'missions', label: 'Missions' },
+  { id: 'vendor_loads', label: 'Vendor Loads' },
 ]
+
+function VendorLoadRequestsPanel({ compact = false }) {
+  const [requests, setRequests] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const load = async () => {
+    setIsLoading(true)
+    try {
+      const res = await apiInstance.get('/depot/vendor-load-requests', { params: { status: 'PENDING_DEPOT' } })
+      setRequests(res.data?.data?.requests || [])
+    } catch {
+      setRequests([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  const handleReview = async (requestId, action) => {
+    try {
+      await apiInstance.patch(`/depot/vendor-load-requests/${requestId}/${action}`)
+      await load()
+    } catch {
+      // ignore
+    }
+  }
+
+  if (isLoading) {
+    return <div className="h-24 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+  }
+
+  if (requests.length === 0) {
+    return <p className="text-sm text-zinc-500">No pending vendor load requests.</p>
+  }
+
+  const cellPad = compact ? 'px-3 py-2.5' : 'px-6 py-4'
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-800">
+      <table className="min-w-full text-left text-sm">
+        <thead className="bg-gray-50 dark:bg-zinc-800/50">
+          <tr>
+            <th className={`${cellPad} font-medium text-zinc-600`}>Vendor</th>
+            <th className={`${cellPad} font-medium text-zinc-600`}>Date</th>
+            <th className={`${cellPad} font-medium text-zinc-600`}>Value</th>
+            <th className={`${cellPad} font-medium text-zinc-600`}>Weight (kg)</th>
+            <th className={`${cellPad} font-medium text-zinc-600`}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {requests.map((request) => (
+            <tr key={request.id} className="border-t border-gray-200 dark:border-zinc-800">
+              <td className={cellPad}>{request.vendor?.full_name || '—'}</td>
+              <td className={cellPad}>{request.mission_date || '—'}</td>
+              <td className={cellPad}>{Number(request.total_value || 0).toLocaleString()} MAD</td>
+              <td className={cellPad}>{Number(request.total_weight_kg || 0).toLocaleString()}</td>
+              <td className={cellPad}>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => handleReview(request.id, 'approve')} className="rounded-lg border border-emerald-200 px-2 py-1 text-xs font-semibold text-emerald-700">Approve</button>
+                  <button type="button" onClick={() => handleReview(request.id, 'reject')} className="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700">Reject</button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 function formatDa(value) {
   return `${Number(value || 0).toLocaleString()} DA`
@@ -451,6 +525,7 @@ export function DepotDetailsContent({
           {activeTab === 'stock' && <StockTable stock={depot.stock} compact={compact} />}
           {activeTab === 'livreurs' && <LivreursTable livreurs={depot.livreurs} compact={compact} />}
           {activeTab === 'missions' && <MissionsTable missions={depot.missions} compact={compact} />}
+          {activeTab === 'vendor_loads' && <VendorLoadRequestsPanel compact={compact} />}
         </div>
       </div>
     </div>

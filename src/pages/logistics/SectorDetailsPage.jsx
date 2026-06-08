@@ -44,6 +44,7 @@ function sectorToEditForm(sector) {
     regionId: sector.region_id || '',
     depotId: sector.depot_id || '',
     assignedProfileId: sector.assigned_profile_id || '',
+    fulfillmentMode: sector.fulfillment_mode || 'LIVREUR',
     isActive: sector.is_active !== false,
     boundary: parseSectorBoundary(sector.boundary),
   }
@@ -162,6 +163,7 @@ export function SectorDetailsPage() {
         regionId: editForm.regionId || null,
         depotId: editForm.depotId || null,
         assignedProfileId: editForm.assignedProfileId || null,
+        fulfillmentMode: editForm.fulfillmentMode || 'LIVREUR',
         boundary: editForm.boundary,
         isActive: editForm.isActive,
       })
@@ -283,6 +285,17 @@ export function SectorDetailsPage() {
                   {depot.depot_name}
                 </option>
               ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Delivery mode</label>
+            <select
+              value={editForm.fulfillmentMode}
+              onChange={(e) => setEditForm({ ...editForm, fulfillmentMode: e.target.value })}
+              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+            >
+              <option value="LIVREUR">Livreur delivery</option>
+              <option value="VENDOR">Vendor-exclusive (out of livreur range)</option>
             </select>
           </div>
           <div>
