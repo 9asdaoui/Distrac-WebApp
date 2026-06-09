@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Menu } from '@headlessui/react'
 import { motion } from 'framer-motion'
 import {
   CheckCircle2,
+  ChevronDown,
   ChevronUp,
   Globe,
   HelpCircle,
@@ -17,12 +18,19 @@ import { useTranslation } from 'react-i18next'
 import { getMenuConfig } from '../config/menuConfig'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-
 const avatarInitials = (name = '') => {
   const parts = String(name).trim().split(' ').filter(Boolean)
   if (parts.length === 0) return 'U'
   if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase()
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+}
+
+function isSidebarItemActive(item, pathname) {
+  const basePath = item.path.split('?')[0]
+  if (basePath === '/global-map') {
+    return pathname === '/global-map'
+  }
+  return pathname === basePath || pathname.startsWith(`${basePath}/`)
 }
 
 export function Sidebar({ onNavigate, onCollapse }) {
@@ -42,11 +50,50 @@ export function Sidebar({ onNavigate, onCollapse }) {
   const menuGroups = getMenuConfig()
     .map((group) => ({
       ...group,
-      items: (group.items || []).filter(
-        (item) => canAccess(item.requiredPermission)
-      ),
+      items: (group.items || [])
+        .map((item) => {
+          if (!item.children?.length) {
+            return canAccess(item.requiredPermission) ? item : null
+          }
+
+          const children = item.children.filter((child) => canAccess(child.requiredPermission))
+          const parentAllowed = canAccess(item.requiredPermission)
+          if (!parentAllowed && children.length === 0) return null
+          return { ...item, children }
+        })
+        .filter(Boolean),
     }))
     .filter((group) => group.items.length > 0)
+
+  const [expandedPaths, setExpandedPaths] = useState(() => new Set())
+
+  useEffect(() => {
+    setExpandedPaths((prev) => {
+      const next = new Set(prev)
+      for (const group of menuGroups) {
+        for (const item of group.items) {
+          if (!item.children?.length) continue
+          const onGlobalMap = location.pathname === '/global-map'
+          const childActive = item.children.some((child) =>
+            isSidebarItemActive(child, location.pathname),
+          )
+          if (onGlobalMap || childActive) {
+            next.add(item.path)
+          }
+        }
+      }
+      return next
+    })
+  }, [location.pathname, menuGroups])
+
+  const toggleExpanded = (path) => {
+    setExpandedPaths((prev) => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
+  }
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng)
@@ -92,28 +139,75 @@ export function Sidebar({ onNavigate, onCollapse }) {
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon
-                const isActive = location.pathname === item.path
+                const hasChildren = item.children?.length > 0
+                const isExpanded = hasChildren && expandedPaths.has(item.path)
+                const isActive = isSidebarItemActive(item, location.pathname)
+                const childActive = hasChildren
+                  && item.children.some((child) => isSidebarItemActive(child, location.pathname))
+
                 return (
-                  <div key={item.path} className="relative">
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                        className="absolute inset-0 rounded-lg bg-zinc-100 dark:bg-zinc-800"
-                        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                      />
+                  <div key={item.path}>
+                    <div className="relative">
+                      {(isActive || childActive) && (
+                        <motion.div
+                          layoutId="activeIndicator"
+                          className="absolute inset-0 rounded-lg bg-zinc-100 dark:bg-zinc-800"
+                          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                        />
+                      )}
+                      <div className="relative flex items-center">
+                        <Link
+                          to={item.path}
+                          onClick={onNavigate}
+                          className={`flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+                            isActive || childActive
+                              ? 'font-medium text-zinc-900 dark:text-zinc-100'
+                              : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">
+                            {item.labelKey ? t(item.labelKey, { defaultValue: item.label }) : item.label}
+                          </span>
+                        </Link>
+                        {hasChildren && (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpanded(item.path)}
+                            className="relative mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-zinc-400 transition hover:bg-zinc-200/80 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+                            aria-label={isExpanded ? 'Collapse sub-menu' : 'Expand sub-menu'}
+                          >
+                            <ChevronDown
+                              className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`}
+                            />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {hasChildren && isExpanded && (
+                      <div className="mt-0.5 space-y-0.5 pl-3">
+                        {item.children.map((child) => {
+                          const ChildIcon = child.icon
+                          const isChildActive = isSidebarItemActive(child, location.pathname)
+                          return (
+                            <Link
+                              key={child.path}
+                              to={child.path}
+                              onClick={onNavigate}
+                              className={`flex items-center gap-2.5 rounded-lg py-1.5 pl-6 pr-3 text-[13px] transition ${
+                                isChildActive
+                                  ? 'bg-zinc-100 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
+                                  : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900/60 dark:hover:text-zinc-200'
+                              }`}
+                            >
+                              <ChildIcon className="h-3 w-3 shrink-0 opacity-80" />
+                              <span className="truncate">{child.label}</span>
+                            </Link>
+                          )
+                        })}
+                      </div>
                     )}
-                    <Link
-                      to={item.path}
-                      onClick={onNavigate}
-                      className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
-                        isActive
-                          ? 'font-medium text-zinc-900 dark:text-zinc-100'
-                          : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-                      }`}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      <span>{item.labelKey ? t(item.labelKey, { defaultValue: item.label }) : item.label}</span>
-                    </Link>
                   </div>
                 )
               })}

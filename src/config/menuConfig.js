@@ -17,6 +17,7 @@ import {
   PackageCheck,
   QrCode,
   Store,
+  Boxes,
 } from 'lucide-react'
 
 export function getMenuConfig() {
@@ -57,42 +58,44 @@ export function getMenuConfig() {
           path: '/global-map',
           icon: Globe,
           requiredPermission: ['view_logistics_tab', 'manage_logistics'],
-        },
-        {
-          label: 'Industries',
-          path: '/industries',
-          icon: Factory,
-          requiredPermission: ['view_industries', 'view_logistics_tab', 'manage_logistics'],
-        },
-        {
-          label: 'Depots',
-          path: '/depots',
-          icon: Warehouse,
-          requiredPermission: ['view_depots', 'view_logistics_tab', 'manage_logistics'],
-        },
-        {
-          label: 'Regions',
-          path: '/regions',
-          icon: Map,
-          requiredPermission: ['view_regions', 'view_logistics_tab', 'manage_logistics'],
-        },
-        {
-          label: 'Sectors',
-          path: '/sectors',
-          icon: MapPin,
-          requiredPermission: ['view_sectors', 'view_logistics_tab', 'manage_logistics'],
-        },
-        {
-          label: 'Clients',
-          path: '/clients',
-          icon: Store,
-          requiredPermission: ['view_clients_tab', 'manage_logistics'],
-        },
-        {
-          label: 'Vehicles',
-          path: '/vehicles',
-          icon: QrCode,
-          requiredPermission: 'manage_logistics',
+          children: [
+            {
+              label: 'Industries',
+              path: '/industries',
+              icon: Factory,
+              requiredPermission: ['view_industries', 'view_logistics_tab', 'manage_logistics'],
+            },
+            {
+              label: 'Depots',
+              path: '/depots',
+              icon: Warehouse,
+              requiredPermission: ['view_depots', 'view_logistics_tab', 'manage_logistics'],
+            },
+            {
+              label: 'Regions',
+              path: '/regions',
+              icon: Map,
+              requiredPermission: ['view_regions', 'view_logistics_tab', 'manage_logistics'],
+            },
+            {
+              label: 'Sectors',
+              path: '/sectors',
+              icon: MapPin,
+              requiredPermission: ['view_sectors', 'view_logistics_tab', 'manage_logistics'],
+            },
+            {
+              label: 'Clients',
+              path: '/clients',
+              icon: Store,
+              requiredPermission: ['view_clients_tab', 'manage_logistics'],
+            },
+            {
+              label: 'Vehicles',
+              path: '/vehicles',
+              icon: QrCode,
+              requiredPermission: 'manage_logistics',
+            },
+          ],
         },
       ],
     },
@@ -100,12 +103,6 @@ export function getMenuConfig() {
       type: 'group',
       title: 'CATALOG',
       items: [
-        {
-          label: 'Products',
-          path: '/products',
-          icon: Package,
-          requiredPermission: ['view_products', 'manage_products'],
-        },
         {
           label: 'Brands',
           path: '/brands',
@@ -163,6 +160,18 @@ export function getMenuConfig() {
       type: 'group',
       title: 'INVENTORY',
       items: [
+        {
+          label: 'Stock',
+          path: '/inventory/stock',
+          icon: Boxes,
+          requiredPermission: 'manage_logistics',
+        },
+        {
+          label: 'Products',
+          path: '/products',
+          icon: Package,
+          requiredPermission: ['view_products', 'manage_products'],
+        },
         {
           label: 'Proposal Inbox',
           path: '/inventory/proposals',

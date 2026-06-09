@@ -35,6 +35,9 @@ import { ExceptionsPage } from './pages/operations/ExceptionsPage'
 import { DebtPage } from './pages/finance/DebtPage'
 import { ProposalsPage } from './pages/inventory/ProposalsPage'
 import { FulfillmentPage } from './pages/inventory/FulfillmentPage'
+import { StockPage } from './pages/inventory/StockPage'
+import { StockProductDetailPage } from './pages/inventory/StockProductDetailPage'
+import { StockRequestDetailPage } from './pages/inventory/StockRequestDetailPage'
 
 function AppRoutes() {
   const { isAuthLoading } = useAuth()
@@ -284,6 +287,33 @@ function AppRoutes() {
         element={
           <ProtectedRoute requiredPermission={['view_reports_tab', 'view_finance']}>
             <DebtPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/inventory/stock"
+        element={
+          <ProtectedRoute requiredPermission="manage_logistics">
+            <StockPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/inventory/stock/requests/:requestId"
+        element={
+          <ProtectedRoute requiredPermission="manage_logistics">
+            <StockRequestDetailPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/inventory/stock/:productId"
+        element={
+          <ProtectedRoute requiredPermission="manage_logistics">
+            <StockProductDetailPage />
           </ProtectedRoute>
         }
       />

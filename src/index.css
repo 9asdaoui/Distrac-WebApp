@@ -339,3 +339,33 @@ code {
 .global-map-canvas .leaflet-control-zoom a:hover {
   background: rgba(39, 39, 42, 0.95) !important;
 }
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-[#ff6b00] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#e55f00] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff6b00] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary-sm {
+    @apply btn-primary px-3 py-2 text-xs;
+  }
+
+  .btn-primary-block {
+    @apply w-full;
+  }
+
+  .btn-primary-flex {
+    @apply inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#ff6b00] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#e55f00] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:border-zinc-400 hover:bg-zinc-50 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-700;
+  }
+
+  .btn-secondary-sm {
+    @apply btn-secondary px-3 py-2 text-xs;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-zinc-600 transition hover:border-zinc-200 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-800;
+  }
+}
