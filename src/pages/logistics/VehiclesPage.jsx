@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Truck, Plus, X, QrCode, Printer, Warehouse, UserRound, CheckCircle2, CircleOff } from 'lucide-react'
+import { Truck, Plus, X, QrCode, Printer, Radio } from 'lucide-react'
+import { WialonLinkModal } from '../../components/logistics/WialonLinkModal'
+import { useAuth } from '../../context/AuthContext'
 import QRCode from 'react-qr-code'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { EntityMapLink } from '../../components/logistics/logisticsModuleUi'
@@ -15,7 +18,7 @@ function VehiclesSkeleton() {
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
             <tr>
-              {['Plate', 'Model', 'Tonnage', 'Volume', 'Depot', 'QR Code', 'Livreur', 'Status', ''].map((label) => (
+              {['Plate', 'Model', 'Tonnage', 'Volume', 'Depot', 'Livreur', 'GPS', 'QR Code', 'Status', ''].map((label) => (
                 <th key={label} className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">{label}</th>
               ))}
             </tr>
@@ -140,6 +143,10 @@ function PrintPreviewModal({ vehicle, onClose }) {
 }
 
 export function VehiclesPage() {
+  const { hasPermission } = useAuth()
+  const [searchParams] = useSearchParams()
+  const focusId = searchParams.get('focus')
+  const canManageLogistics = hasPermission('manage_logistics')
   const [vehicles, setVehicles] = useState([])
   const [depots, setDepots] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -155,9 +162,18 @@ export function VehiclesPage() {
   })
   const [formError, setFormError] = useState('')
   const [pageError, setPageError] = useState('')
+  const [linkVehicle, setLinkVehicle] = useState(null)
+  const [isBulkLinking, setIsBulkLinking] = useState(false)
+  const [bulkLinkMessage, setBulkLinkMessage] = useState('')
   const controllerRef = useRef(null)
 
   const depotOptions = useMemo(() => depots.slice().sort((a, b) => String(a.depot_name || '').localeCompare(String(b.depot_name || ''))), [depots])
+  const focusRowRef = useRef(null)
+
+  useEffect(() => {
+    if (!focusId || isLoading) return
+    focusRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [focusId, isLoading, vehicles.length])
 
   const loadData = async () => {
     if (controllerRef.current) controllerRef.current.abort()
@@ -263,6 +279,22 @@ export function VehiclesPage() {
     setCreatedVehicle(vehicle)
   }
 
+  const handleLinkAllSuggested = async () => {
+    setIsBulkLinking(true)
+    setBulkLinkMessage('')
+    setPageError('')
+    try {
+      const res = await apiInstance.post('/wialon/link-all-suggested')
+      const count = res.data?.data?.linked?.length || 0
+      setBulkLinkMessage(res.data?.message || `Linked ${count} vehicle(s).`)
+      await loadData()
+    } catch (error) {
+      setPageError(error?.response?.data?.message || 'Failed to link suggested vehicles.')
+    } finally {
+      setIsBulkLinking(false)
+    }
+  }
+
   return (
     <DashboardLayout>
       <AnimatedPage>
@@ -274,15 +306,34 @@ export function VehiclesPage() {
                 Create vehicles, assign them to depots, and print the QR used for daily pointage.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="btn-primary"
-            >
-              <Plus className="h-4 w-4" />
-              Add Vehicle
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {canManageLogistics && (
+                <button
+                  type="button"
+                  onClick={handleLinkAllSuggested}
+                  disabled={isBulkLinking}
+                  className="btn-secondary"
+                >
+                  <Radio className="h-4 w-4" />
+                  {isBulkLinking ? 'Linking…' : 'Link all suggested'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={openCreate}
+                className="btn-primary"
+              >
+                <Plus className="h-4 w-4" />
+                Add Vehicle
+              </button>
+            </div>
           </div>
+
+          {bulkLinkMessage && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+              {bulkLinkMessage}
+            </div>
+          )}
 
           {pageError && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
@@ -304,6 +355,7 @@ export function VehiclesPage() {
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Volume</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Depot</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Assigned Livreur</th>
+                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">GPS</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">QR Code</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
                       <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Actions</th>
@@ -313,13 +365,26 @@ export function VehiclesPage() {
                     {vehicles.map((vehicle) => {
                       const isActive = vehicle.is_active !== false
                       return (
-                        <tr key={vehicle.id} className="border-b border-gray-200 dark:border-zinc-800">
+                        <tr
+                          key={vehicle.id}
+                          ref={focusId === vehicle.id ? focusRowRef : null}
+                          className={`border-b border-gray-200 dark:border-zinc-800 ${
+                            focusId === vehicle.id ? 'bg-orange-500/10 ring-1 ring-inset ring-orange-500/40' : ''
+                          }`}
+                        >
                           <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{vehicle.plate_number || '-'}</td>
                           <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{vehicle.model || '-'}</td>
                           <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{formatTonnage(vehicle.tonnage)}</td>
                           <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{formatVolume(vehicle.volume_capacity)}</td>
                           <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{vehicle.depot?.depot_name || '-'}</td>
                           <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{vehicle.current_livreur?.full_name || '-'}</td>
+                          <td className="px-6 py-4">
+                            {vehicle.wialon_unit_id ? (
+                              <Badge tone="success">{vehicle.wialon_unit_name || `Unit ${vehicle.wialon_unit_id}`}</Badge>
+                            ) : (
+                              <Badge tone="warning">Not linked</Badge>
+                            )}
+                          </td>
                           <td className="px-6 py-4">
                             <span className="inline-flex max-w-[180px] items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                               <QrCode className="h-3.5 w-3.5" />
@@ -334,6 +399,16 @@ export function VehiclesPage() {
                           <td className="px-6 py-4">
                             <div className="flex flex-wrap items-center gap-2">
                               <EntityMapLink moduleKey="vehicle" entityId={vehicle.id} layout="page" />
+                              {canManageLogistics && (
+                                <button
+                                  type="button"
+                                  onClick={() => setLinkVehicle(vehicle)}
+                                  className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                >
+                                  <Radio className="h-3.5 w-3.5" />
+                                  Wialon
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => openQrPreview(vehicle)}
@@ -349,7 +424,7 @@ export function VehiclesPage() {
                     })}
                     {vehicles.length === 0 && (
                       <tr>
-                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={9}>
+                        <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={10}>
                           No vehicles available.
                         </td>
                       </tr>
@@ -361,6 +436,16 @@ export function VehiclesPage() {
           )}
         </div>
       </AnimatedPage>
+
+      <AnimatePresence>
+        {linkVehicle && (
+          <WialonLinkModal
+            vehicle={linkVehicle}
+            onClose={() => setLinkVehicle(null)}
+            onLinked={loadData}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isCreateOpen && (

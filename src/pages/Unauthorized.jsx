@@ -25,7 +25,7 @@ export function Unauthorized() {
         </div>
 
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/global-map')}
           className="inline-block rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           Return to Dashboard

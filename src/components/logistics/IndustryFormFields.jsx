@@ -1,5 +1,17 @@
 import React from 'react'
+import { MapPin, Factory } from 'lucide-react'
 import { hasGpsCoordinates } from '../LocationMap'
+import {
+  FormField,
+  FormGrid,
+  FormInput,
+  FormIntro,
+  FormSection,
+  FormSegmented,
+  FormTextarea,
+  ccFormInputClass,
+  ccFormTextareaClass,
+} from '../map/CommandCenterForm'
 
 export const EMPTY_INDUSTRY_FORM = {
   industryName: '',
@@ -13,20 +25,15 @@ export const EMPTY_INDUSTRY_FORM = {
 const LIGHT_INPUT =
   'w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-500/20'
 
-const DARK_INPUT =
-  'w-full rounded-lg border border-zinc-700 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 transition focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20'
-
 const LIGHT_LABEL = 'mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400'
-const DARK_LABEL = 'mb-1.5 block text-xs font-medium text-zinc-400'
 
 export function IndustrySegmentedControl({ value, onChange, options, variant = 'light' }) {
   const isDark = variant === 'dark'
+  if (isDark) {
+    return <FormSegmented value={value} onChange={onChange} options={options} />
+  }
   return (
-    <div
-      className={`flex w-full rounded-lg p-1 ${
-        isDark ? 'bg-zinc-900' : 'bg-zinc-100 dark:bg-zinc-900'
-      }`}
-    >
+    <div className="flex w-full rounded-lg p-1 bg-zinc-100 dark:bg-zinc-900">
       {options.map((opt) => {
         const selected = value === opt.value
         return (
@@ -36,12 +43,8 @@ export function IndustrySegmentedControl({ value, onChange, options, variant = '
             onClick={() => onChange(opt.value)}
             className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition ${
               selected
-                ? isDark
-                  ? 'bg-zinc-800 text-zinc-100 shadow-sm'
-                  : 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100'
-                : isDark
-                  ? 'text-zinc-400 hover:text-zinc-200'
-                  : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+                ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100'
+                : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
             }`}
           >
             {opt.label}
@@ -53,13 +56,99 @@ export function IndustrySegmentedControl({ value, onChange, options, variant = '
 }
 
 export function IndustryFormFields({ form, onChange, variant = 'light' }) {
-  const inputClass = variant === 'dark' ? DARK_INPUT : LIGHT_INPUT
-  const labelClass = variant === 'dark' ? DARK_LABEL : LIGHT_LABEL
+  if (variant === 'dark') {
+    return (
+      <div className="space-y-4">
+        <FormIntro
+          accent="rose"
+          title="Industry profile"
+          description="Update identity, GPS pin, and operational flags. Drag the factory marker on the map to refine coordinates."
+        />
+
+        <FormSection title="Identity">
+          <FormField
+            icon={Factory}
+            label="Industry name"
+            required
+            iconAccent="text-rose-300 bg-rose-500/10 ring-rose-500/20"
+          >
+            <FormInput
+              type="text"
+              value={form.industryName}
+              onChange={(e) => onChange({ industryName: e.target.value })}
+              placeholder="e.g. Agroalimentaire Sarl"
+              maxLength={200}
+            />
+          </FormField>
+
+          <FormField
+            icon={Factory}
+            label="Description"
+            hint="Optional — shown in lists and map popups"
+            iconAccent="text-zinc-300 bg-zinc-800/80 ring-zinc-700/50"
+          >
+            <FormTextarea
+              rows={3}
+              value={form.description}
+              onChange={(e) => onChange({ description: e.target.value })}
+              placeholder="What this industry produces or supplies…"
+            />
+          </FormField>
+        </FormSection>
+
+        <FormSection title="Map location" description="Coordinates place the rose pin on the command map.">
+          <FormGrid>
+            <FormField icon={MapPin} label="Latitude" iconAccent="text-sky-300 bg-sky-500/10 ring-sky-500/20">
+              <FormInput
+                type="number"
+                step="any"
+                value={form.gpsLatitude}
+                onChange={(e) => onChange({ gpsLatitude: e.target.value })}
+                placeholder="33.5731"
+              />
+            </FormField>
+            <FormField icon={MapPin} label="Longitude" iconAccent="text-sky-300 bg-sky-500/10 ring-sky-500/20">
+              <FormInput
+                type="number"
+                step="any"
+                value={form.gpsLongitude}
+                onChange={(e) => onChange({ gpsLongitude: e.target.value })}
+                placeholder="-7.5898"
+              />
+            </FormField>
+          </FormGrid>
+        </FormSection>
+
+        <FormSection title="Classification">
+          <FormField label="Supply type" iconAccent="text-amber-300 bg-amber-500/10 ring-amber-500/20">
+            <FormSegmented
+              value={form.isInternal}
+              onChange={(v) => onChange({ isInternal: v })}
+              options={[
+                { value: false, label: 'External' },
+                { value: true, label: 'Internal' },
+              ]}
+            />
+          </FormField>
+          <FormField label="Status" iconAccent="text-emerald-300 bg-emerald-500/10 ring-emerald-500/20">
+            <FormSegmented
+              value={form.isActive}
+              onChange={(v) => onChange({ isActive: v })}
+              options={[
+                { value: true, label: 'Active' },
+                { value: false, label: 'Inactive' },
+              ]}
+            />
+          </FormField>
+        </FormSection>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-5">
       <div>
-        <label className={labelClass}>
+        <label className={LIGHT_LABEL}>
           Industry Name <span className="text-red-500">*</span>
         </label>
         <input
@@ -67,49 +156,49 @@ export function IndustryFormFields({ form, onChange, variant = 'light' }) {
           value={form.industryName}
           onChange={(e) => onChange({ industryName: e.target.value })}
           placeholder="e.g. Agroalimentaire Sarl"
-          className={inputClass}
+          className={LIGHT_INPUT}
           maxLength={200}
         />
       </div>
 
       <div>
-        <label className={labelClass}>Description</label>
+        <label className={LIGHT_LABEL}>Description</label>
         <textarea
           rows={3}
           value={form.description}
           onChange={(e) => onChange({ description: e.target.value })}
           placeholder="Optional description…"
-          className={`${inputClass} resize-none`}
+          className={`${LIGHT_INPUT} resize-none`}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelClass}>GPS Latitude</label>
+          <label className={LIGHT_LABEL}>GPS Latitude</label>
           <input
             type="number"
             step="any"
             value={form.gpsLatitude}
             onChange={(e) => onChange({ gpsLatitude: e.target.value })}
             placeholder="33.5731"
-            className={inputClass}
+            className={LIGHT_INPUT}
           />
         </div>
         <div>
-          <label className={labelClass}>GPS Longitude</label>
+          <label className={LIGHT_LABEL}>GPS Longitude</label>
           <input
             type="number"
             step="any"
             value={form.gpsLongitude}
             onChange={(e) => onChange({ gpsLongitude: e.target.value })}
             placeholder="-7.5898"
-            className={inputClass}
+            className={LIGHT_INPUT}
           />
         </div>
       </div>
 
       <div>
-        <label className={labelClass}>Type</label>
+        <label className={LIGHT_LABEL}>Type</label>
         <IndustrySegmentedControl
           value={form.isInternal}
           onChange={(v) => onChange({ isInternal: v })}
@@ -122,7 +211,7 @@ export function IndustryFormFields({ form, onChange, variant = 'light' }) {
       </div>
 
       <div>
-        <label className={labelClass}>Status</label>
+        <label className={LIGHT_LABEL}>Status</label>
         <IndustrySegmentedControl
           value={form.isActive}
           onChange={(v) => onChange({ isActive: v })}
@@ -154,3 +243,7 @@ export function industryFormToPayload(form) {
     gpsLongitude: form.gpsLongitude === '' ? undefined : Number(form.gpsLongitude),
   }
 }
+
+// Re-export for any legacy imports
+export const DARK_INPUT = ccFormInputClass
+export const DARK_LABEL = LIGHT_LABEL

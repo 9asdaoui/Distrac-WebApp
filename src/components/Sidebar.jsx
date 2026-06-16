@@ -70,6 +70,7 @@ export function Sidebar({ onNavigate, onCollapse }) {
   useEffect(() => {
     setExpandedPaths((prev) => {
       const next = new Set(prev)
+      let changed = false
       for (const group of menuGroups) {
         for (const item of group.items) {
           if (!item.children?.length) continue
@@ -77,14 +78,17 @@ export function Sidebar({ onNavigate, onCollapse }) {
           const childActive = item.children.some((child) =>
             isSidebarItemActive(child, location.pathname),
           )
-          if (onGlobalMap || childActive) {
+          if ((onGlobalMap || childActive) && !next.has(item.path)) {
             next.add(item.path)
+            changed = true
           }
         }
       }
-      return next
+      return changed ? next : prev
     })
-  }, [location.pathname, menuGroups])
+    // menuGroups is rebuilt each render; only re-sync expansion when route changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
 
   const toggleExpanded = (path) => {
     setExpandedPaths((prev) => {
@@ -109,7 +113,7 @@ export function Sidebar({ onNavigate, onCollapse }) {
     <aside className="flex h-full w-64 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex h-14 items-center gap-2 border-b border-zinc-200 px-3 dark:border-zinc-800">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#ff6b00] text-sm text-white">
             D
           </div>
           <div className="min-w-0">
@@ -151,7 +155,7 @@ export function Sidebar({ onNavigate, onCollapse }) {
                       {(isActive || childActive) && (
                         <motion.div
                           layoutId="activeIndicator"
-                          className="absolute inset-0 rounded-lg bg-zinc-100 dark:bg-zinc-800"
+                          className="absolute inset-0 rounded-lg bg-orange-50 dark:bg-[rgba(255,107,0,0.12)]"
                           transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                         />
                       )}
@@ -161,7 +165,7 @@ export function Sidebar({ onNavigate, onCollapse }) {
                           onClick={onNavigate}
                           className={`flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
                             isActive || childActive
-                              ? 'font-medium text-zinc-900 dark:text-zinc-100'
+                              ? 'font-semibold text-[#ff6b00]'
                               : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
                           }`}
                         >
@@ -246,9 +250,9 @@ export function Sidebar({ onNavigate, onCollapse }) {
         })}
 
         <Menu as="div" className="relative">
-          <Menu.Button className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-left transition hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 dark:hover:bg-zinc-800">
+          <Menu.Button className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-left transition hover:border-[#ff6b00]/40 hover:bg-orange-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-[#ff6b00]/40 dark:hover:bg-[rgba(255,107,0,0.08)]">
             <div className="relative">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-xs font-semibold text-white dark:bg-zinc-200 dark:text-zinc-900">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ff6b00] text-xs font-semibold text-white">
                 {avatarInitials(user?.full_name)}
               </div>
               <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full border-2 border-zinc-50 bg-emerald-500 dark:border-zinc-900" />
@@ -266,7 +270,7 @@ export function Sidebar({ onNavigate, onCollapse }) {
             <div className="p-2">
               <div className="flex items-center gap-3 rounded-lg px-2 py-2">
                 <div className="relative">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-xs font-semibold text-white dark:bg-zinc-200 dark:text-zinc-900">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ff6b00] text-xs font-semibold text-white">
                     {avatarInitials(user?.full_name)}
                   </div>
                   <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 dark:border-[#1c1c1e]" />

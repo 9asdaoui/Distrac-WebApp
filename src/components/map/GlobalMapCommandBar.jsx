@@ -1,26 +1,39 @@
 import React, { useLayoutEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Building2,
   Factory,
-  Globe,
+  LayoutDashboard,
   LayoutGrid,
   Map,
+  RefreshCw,
   Search,
   Truck,
   User2,
   Warehouse,
 } from 'lucide-react'
 import { MAP_FILTER_ALL } from './MapLayerFilterBar'
+import { WialonStatusChip } from './WialonStatusChip'
 
-const FILTER_TABS = [
-  { id: MAP_FILTER_ALL, label: 'All', icon: LayoutGrid },
-  { id: 'industries', label: 'Industries', icon: Factory },
-  { id: 'depots', label: 'Depots', icon: Warehouse },
-  { id: 'regions', label: 'Regions', icon: Map },
-  { id: 'sectors', label: 'Sectors', icon: Building2 },
-  { id: 'clients', label: 'Clients', icon: User2 },
-  { id: 'vehicles', label: 'Vehicles', icon: Truck },
+const FILTER_TAB_IDS = [
+  MAP_FILTER_ALL,
+  'industries',
+  'depots',
+  'regions',
+  'sectors',
+  'clients',
+  'vehicles',
 ]
+
+const FILTER_TAB_ICONS = {
+  [MAP_FILTER_ALL]: LayoutGrid,
+  industries: Factory,
+  depots: Warehouse,
+  regions: Map,
+  sectors: Building2,
+  clients: User2,
+  vehicles: Truck,
+}
 
 function useNarrowCommandBar() {
   const [narrow, setNarrow] = useState(false)
@@ -43,7 +56,13 @@ export function GlobalMapCommandBar({
   searchQuery = '',
   onSearchChange,
   searchDisabled = false,
+  onRefresh,
+  showWialonStatus = false,
+  wialonPulseNonce = 0,
+  modeHint = '',
+  modeBadge = null,
 }) {
+  const { t } = useTranslation()
   const narrow = useNarrowCommandBar()
   const tabsContainerRef = useRef(null)
   const tabRefs = useRef({})
@@ -73,8 +92,17 @@ export function GlobalMapCommandBar({
     >
       <div className="global-map-command-bar pointer-events-auto max-w-full">
         <div className="flex shrink-0 items-center gap-2 pl-1">
-          <Globe className="h-3.5 w-3.5 shrink-0 text-zinc-400" strokeWidth={2} />
-          <span className="whitespace-nowrap text-[13px] font-semibold text-white">Global Map</span>
+          <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-zinc-400" strokeWidth={2} />
+          <span className="whitespace-nowrap text-[13px] font-semibold text-white">
+            {t('sidebar.commandCenter')}
+          </span>
+          {modeBadge?.label ? (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ${modeBadge.className || ''}`}
+            >
+              {modeBadge.label}
+            </span>
+          ) : null}
         </div>
 
         <div className="global-map-command-divider mx-2" aria-hidden />
@@ -93,7 +121,9 @@ export function GlobalMapCommandBar({
             }}
             aria-hidden
           />
-          {FILTER_TABS.map(({ id, label, icon: Icon }) => {
+          {FILTER_TAB_IDS.map((id) => {
+            const Icon = FILTER_TAB_ICONS[id]
+            const label = t(`commandCenter.layers.${id === MAP_FILTER_ALL ? 'all' : id}`)
             const active = filter === id
             return (
               <button
@@ -136,15 +166,42 @@ export function GlobalMapCommandBar({
                 type="search"
                 value={searchQuery}
                 onChange={(e) => onSearchChange?.(e.target.value)}
-                placeholder="Search…"
+                placeholder={t('commandCenter.search')}
                 disabled={!showSearch}
                 tabIndex={showSearch ? 0 : -1}
-                aria-label="Filter active layer list"
+                aria-label={t('commandCenter.filterList')}
               />
             </label>
           </div>
         </div>
+
+        {onRefresh && (
+          <>
+            <div className="global-map-command-divider mx-2" aria-hidden />
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 transition hover:bg-white/10 hover:text-white"
+              aria-label={t('commandCenter.refreshMap')}
+              title={t('commandCenter.refreshMap')}
+            >
+              <RefreshCw className="h-3.5 w-3.5" strokeWidth={2} />
+            </button>
+          </>
+        )}
+
+        {showWialonStatus && (
+          <>
+            <div className="global-map-command-divider mx-2" aria-hidden />
+            <WialonStatusChip pulseNonce={wialonPulseNonce} />
+          </>
+        )}
       </div>
+      {modeHint ? (
+        <p className="pointer-events-none mt-2 max-w-xs rounded-full border border-zinc-700/80 bg-zinc-900/80 px-3 py-1 text-[11px] text-zinc-400 backdrop-blur-sm">
+          {modeHint}
+        </p>
+      ) : null}
     </div>
   )
 }

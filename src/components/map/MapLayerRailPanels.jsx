@@ -1,12 +1,18 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Building2,
   Factory,
   Map,
-  Truck,
+  MapPin,
+  Phone,
+  QrCode,
   Store,
+  Truck,
   User2,
   Warehouse,
+  Hash,
+  Box,
 } from 'lucide-react'
 import { SectorBoundaryDrawer, isValidSectorPolygon } from '../SectorBoundaryDrawer'
 import { hasGpsCoordinates } from '../LocationMap'
@@ -22,8 +28,19 @@ import {
   MapRailRow,
   MapRailShell,
   MapRailTable,
-  railInputClass,
 } from './MapRailShell'
+import {
+  FormError,
+  FormField,
+  FormFooter,
+  FormGrid,
+  FormInput,
+  FormIntro,
+  FormSection,
+  FormSelect,
+  FormTip,
+  FormToggle,
+} from './CommandCenterForm'
 import {
   clientRailKpis,
   depotRailKpis,
@@ -40,13 +57,8 @@ import {
   filterSectorsForSearch,
   filterVehiclesForSearch,
 } from './mapLayerSearch'
-import {
-  EMPTY_INDUSTRY_FORM,
-  IndustryFormFields,
-  formatIndustryLocation,
-  industryFormToPayload,
-} from '../logistics/IndustryFormFields'
 import { IndustryTypeBadge } from '../logistics/IndustryDetailsContent'
+import { formatIndustryLocation } from '../logistics/IndustryFormFields'
 import {
   EntityStatusBadge,
   formatGpsLocation,
@@ -74,27 +86,6 @@ function RailTogglePair({ value, onChange, options }) {
   )
 }
 
-function RailFormFooter({ onCancel, submitLabel, isSubmitting }) {
-  return (
-    <div className="flex gap-2">
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="flex-1 rounded-lg bg-zinc-100 py-2.5 text-xs font-semibold text-zinc-900 disabled:opacity-40"
-      >
-        {isSubmitting ? 'Saving…' : submitLabel}
-      </button>
-      <button
-        type="button"
-        onClick={onCancel}
-        className="flex-1 rounded-lg border border-zinc-700 py-2.5 text-xs font-medium text-zinc-400 hover:bg-zinc-800"
-      >
-        Cancel
-      </button>
-    </div>
-  )
-}
-
 function RegionsMapRail({
   regions,
   sectors = [],
@@ -102,17 +93,19 @@ function RegionsMapRail({
   onSelectItem,
   searchQuery = '',
   onStartRegionCreate,
+  canManageLogistics = false,
 }) {
+  const { t } = useTranslation()
   const filteredRegions = filterRegionsForSearch(regions, searchQuery)
 
   return (
     <MapRailShell
-      title="Regions"
-      subtitle="Same records as the Regions page — click a row to focus on the map."
+      title={t('commandCenter.rail.regions.title')}
+      subtitle={t('commandCenter.rail.regions.subtitle')}
       icon={Map}
       iconAccentClass={LOGISTICS_MODULES.region.accentDark}
-      onAdd={() => onStartRegionCreate?.()}
-      addLabel="Add Region"
+      onAdd={canManageLogistics ? () => onStartRegionCreate?.() : undefined}
+      addLabel={t('commandCenter.rail.regions.add')}
     >
       {isLoading ? (
         <>
@@ -156,67 +149,26 @@ function RegionsMapRail({
   )
 }
 
-function IndustriesMapRail({ industries, isLoading, onRefresh, onSelectItem, searchQuery = '' }) {
+function IndustriesMapRail({
+  industries,
+  isLoading,
+  onRefresh,
+  onSelectItem,
+  searchQuery = '',
+  canManageLogistics = false,
+  onStartIndustryCreate,
+}) {
+  const { t } = useTranslation()
   const filteredIndustries = filterIndustriesForSearch(industries, searchQuery)
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [form, setForm] = useState({ ...EMPTY_INDUSTRY_FORM })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formError, setFormError] = useState('')
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!form.industryName.trim()) {
-      setFormError('Industry name is required.')
-      return
-    }
-    setIsSubmitting(true)
-    setFormError('')
-    try {
-      await apiInstance.post('/industries', industryFormToPayload(form))
-      setIsCreateOpen(false)
-      onRefresh?.()
-    } catch (err) {
-      setFormError(err?.response?.data?.message || 'Failed to create industry.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   return (
     <MapRailShell
-      title="Industries"
-      subtitle="Same records as the Industries page — click a row to inspect on the map."
+      title={t('commandCenter.rail.industries.title')}
+      subtitle={t('commandCenter.rail.industries.subtitle')}
       icon={Factory}
       iconAccentClass={LOGISTICS_MODULES.industry.accentDark}
-      onAdd={() => {
-        setForm({ ...EMPTY_INDUSTRY_FORM })
-        setFormError('')
-        setIsCreateOpen(true)
-      }}
-      addLabel="Add Industry"
-      overlay={
-        isCreateOpen ? (
-          <MapRailCreateOverlay
-            title="Add Industry"
-            subtitle="Fields match the Industries page — GPS places the pin on this map."
-            onClose={() => setIsCreateOpen(false)}
-          >
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <IndustryFormFields
-                form={form}
-                onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
-                variant="dark"
-              />
-              {formError && <p className="text-xs text-red-400">{formError}</p>}
-              <RailFormFooter
-                onCancel={() => setIsCreateOpen(false)}
-                submitLabel="Create Industry"
-                isSubmitting={isSubmitting}
-              />
-            </form>
-          </MapRailCreateOverlay>
-        ) : null
-      }
+      onAdd={canManageLogistics ? () => onStartIndustryCreate?.() : undefined}
+      addLabel={t('commandCenter.rail.industries.add')}
     >
       {isLoading ? (
         <>
@@ -227,7 +179,12 @@ function IndustriesMapRail({ industries, isLoading, onRefresh, onSelectItem, sea
         <>
           <MapRailKpiStrip items={industryRailKpis(filteredIndustries)} />
           <MapRailTable
-          columns={['Name', 'Type', 'Location', 'Status']}
+          columns={[
+            t('commandCenter.rail.columns.name'),
+            t('commandCenter.rail.columns.type'),
+            t('commandCenter.rail.columns.location'),
+            t('commandCenter.rail.columns.status'),
+          ]}
           isEmpty={filteredIndustries.length === 0}
         >
           {filteredIndustries.map((row) => (
@@ -256,7 +213,8 @@ function IndustriesMapRail({ industries, isLoading, onRefresh, onSelectItem, sea
   )
 }
 
-function DepotsMapRail({ depots, isLoading, onRefresh, onSelectItem, searchQuery = '' }) {
+function DepotsMapRail({ depots, isLoading, onRefresh, onSelectItem, searchQuery = '', canManageLogistics = false }) {
+  const { t } = useTranslation()
   const filteredDepots = filterDepotsForSearch(depots, searchQuery)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [form, setForm] = useState({
@@ -274,7 +232,7 @@ function DepotsMapRail({ depots, isLoading, onRefresh, onSelectItem, searchQuery
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.depotName.trim()) {
-      setFormError('Depot name is required.')
+      setFormError(t('commandCenter.rail.depots.nameRequired'))
       return
     }
     setIsSubmitting(true)
@@ -292,7 +250,7 @@ function DepotsMapRail({ depots, isLoading, onRefresh, onSelectItem, searchQuery
       setIsCreateOpen(false)
       onRefresh?.()
     } catch (err) {
-      setFormError(err?.response?.data?.message || 'Failed to create depot.')
+      setFormError(err?.response?.data?.message || t('commandCenter.rail.depots.createFailed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -300,70 +258,93 @@ function DepotsMapRail({ depots, isLoading, onRefresh, onSelectItem, searchQuery
 
   return (
     <MapRailShell
-      title="Depots"
-      subtitle="Same records as the Depots page — click a row to inspect on the map."
+      title={t('commandCenter.rail.depots.title')}
+      subtitle={t('commandCenter.rail.depots.subtitle')}
       icon={Warehouse}
       iconAccentClass={LOGISTICS_MODULES.depot.accentDark}
-      onAdd={() => {
-        setForm({
-          depotName: '',
-          address: '',
-          gpsLatitude: '',
-          gpsLongitude: '',
-          totalPriceCapacity: '',
-          totalVolumeCapacity: '',
-          isActive: true,
-        })
-        setFormError('')
-        setIsCreateOpen(true)
-      }}
-      addLabel="Add Depot"
+      onAdd={
+        canManageLogistics
+          ? () => {
+              setForm({
+                depotName: '',
+                address: '',
+                gpsLatitude: '',
+                gpsLongitude: '',
+                totalPriceCapacity: '',
+                totalVolumeCapacity: '',
+                isActive: true,
+              })
+              setFormError('')
+              setIsCreateOpen(true)
+            }
+          : undefined
+      }
+      addLabel={t('commandCenter.rail.depots.add')}
       overlay={
         isCreateOpen ? (
-          <MapRailCreateOverlay title="Add Depot" onClose={() => setIsCreateOpen(false)}>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Name *</label>
-                <input
-                  className={railInputClass}
-                  value={form.depotName}
-                  onChange={(e) => setForm({ ...form, depotName: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Address</label>
-                <input
-                  className={railInputClass}
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-400">Latitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    className={railInputClass}
-                    value={form.gpsLatitude}
-                    onChange={(e) => setForm({ ...form, gpsLatitude: e.target.value })}
+          <MapRailCreateOverlay
+            title={t('commandCenter.rail.depots.add')}
+            accent="blue"
+            onClose={() => setIsCreateOpen(false)}
+          >
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <FormIntro
+                accent="blue"
+                title={t('commandCenter.rail.depots.add')}
+                description={t('commandCenter.rail.depots.subtitle')}
+              />
+              <FormSection title={t('commandCenter.rail.columns.location')}>
+                <FormField
+                  icon={Warehouse}
+                  label={t('commandCenter.rail.form.name')}
+                  required
+                  iconAccent="text-blue-300 bg-blue-500/10 ring-blue-500/20"
+                >
+                  <FormInput
+                    value={form.depotName}
+                    onChange={(e) => setForm({ ...form, depotName: e.target.value })}
+                    placeholder="e.g. Casablanca Hub"
                   />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-400">Longitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    className={railInputClass}
-                    value={form.gpsLongitude}
-                    onChange={(e) => setForm({ ...form, gpsLongitude: e.target.value })}
+                </FormField>
+                <FormField
+                  icon={MapPin}
+                  label={t('commandCenter.rail.form.address')}
+                  iconAccent="text-sky-300 bg-sky-500/10 ring-sky-500/20"
+                >
+                  <FormInput
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    placeholder="Street, city"
                   />
-                </div>
-              </div>
-              {formError && <p className="text-xs text-red-400">{formError}</p>}
-              <RailFormFooter
+                </FormField>
+                <FormGrid>
+                  <FormField icon={MapPin} label={t('commandCenter.rail.form.latitude')} iconAccent="text-zinc-300 bg-zinc-800/80">
+                    <FormInput
+                      type="number"
+                      step="any"
+                      value={form.gpsLatitude}
+                      onChange={(e) => setForm({ ...form, gpsLatitude: e.target.value })}
+                      placeholder="33.57"
+                    />
+                  </FormField>
+                  <FormField icon={MapPin} label={t('commandCenter.rail.form.longitude')} iconAccent="text-zinc-300 bg-zinc-800/80">
+                    <FormInput
+                      type="number"
+                      step="any"
+                      value={form.gpsLongitude}
+                      onChange={(e) => setForm({ ...form, gpsLongitude: e.target.value })}
+                      placeholder="-7.58"
+                    />
+                  </FormField>
+                </FormGrid>
+              </FormSection>
+              <FormTip variant="blue" title="Map pin">
+                GPS coordinates place the warehouse marker on the command map immediately after save.
+              </FormTip>
+              <FormError>{formError}</FormError>
+              <FormFooter
                 onCancel={() => setIsCreateOpen(false)}
-                submitLabel="Create Depot"
+                submitLabel={t('commandCenter.rail.depots.create')}
                 isSubmitting={isSubmitting}
               />
             </form>
@@ -379,7 +360,15 @@ function DepotsMapRail({ depots, isLoading, onRefresh, onSelectItem, searchQuery
       ) : (
         <>
           <MapRailKpiStrip items={depotRailKpis(filteredDepots)} />
-          <MapRailTable columns={['Name', 'Location', 'Capacity', 'Status']} isEmpty={filteredDepots.length === 0}>
+          <MapRailTable
+            columns={[
+              t('commandCenter.rail.columns.name'),
+              t('commandCenter.rail.columns.location'),
+              t('commandCenter.rail.columns.capacity'),
+              t('commandCenter.rail.columns.status'),
+            ]}
+            isEmpty={filteredDepots.length === 0}
+          >
           {filteredDepots.map((depot) => {
             const used = Math.min(depot.capacity_usage?.used_percentage || 0, 100)
             return (
@@ -412,7 +401,8 @@ function DepotsMapRail({ depots, isLoading, onRefresh, onSelectItem, searchQuery
   )
 }
 
-function SectorsMapRail({ sectors, regions, isLoading, onRefresh, onSelectItem, searchQuery = '' }) {
+function SectorsMapRail({ sectors, regions, isLoading, onRefresh, onSelectItem, searchQuery = '', canManageLogistics = false }) {
+  const { t } = useTranslation()
   const filteredSectors = filterSectorsForSearch(sectors, searchQuery)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [form, setForm] = useState({
@@ -447,7 +437,7 @@ function SectorsMapRail({ sectors, regions, isLoading, onRefresh, onSelectItem, 
       setIsCreateOpen(false)
       onRefresh?.()
     } catch (err) {
-      setFormError(err?.response?.data?.message || 'Failed to create sector.')
+      setFormError(err?.response?.data?.message || t('commandCenter.rail.sectors.createFailed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -455,57 +445,93 @@ function SectorsMapRail({ sectors, regions, isLoading, onRefresh, onSelectItem, 
 
   return (
     <MapRailShell
-      title="Sectors"
-      subtitle="Same records as the Sectors page — click a row to inspect on the map."
+      title={t('commandCenter.rail.sectors.title')}
+      subtitle={t('commandCenter.rail.sectors.subtitle')}
       icon={Building2}
       iconAccentClass={LOGISTICS_MODULES.sector.accentDark}
-      onAdd={() => {
-        setForm({ sectorName: '', regionId: '', boundary: null, isActive: true })
-        setFormError('')
-        setMapDrawerKey((k) => k + 1)
-        setIsCreateOpen(true)
-      }}
-      addLabel="Add Sector"
+      onAdd={
+        canManageLogistics
+          ? () => {
+              setForm({ sectorName: '', regionId: '', boundary: null, isActive: true })
+              setFormError('')
+              setMapDrawerKey((k) => k + 1)
+              setIsCreateOpen(true)
+            }
+          : undefined
+      }
+      addLabel={t('commandCenter.rail.sectors.add')}
       overlay={
         isCreateOpen ? (
-          <MapRailCreateOverlay title="Add Sector" onClose={() => setIsCreateOpen(false)}>
+          <MapRailCreateOverlay
+            title={t('commandCenter.rail.sectors.add')}
+            accent="amber"
+            onClose={() => setIsCreateOpen(false)}
+          >
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Name *</label>
-                <input
-                  className={railInputClass}
-                  value={form.sectorName}
-                  onChange={(e) => setForm({ ...form, sectorName: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Region</label>
-                <select
-                  className={railInputClass}
-                  value={form.regionId}
-                  onChange={(e) => setForm({ ...form, regionId: e.target.value })}
+              <FormIntro
+                accent="amber"
+                title={t('commandCenter.rail.sectors.add')}
+                description="Name the sector, link a region, then draw the delivery boundary below."
+              />
+              <FormSection title="Sector details">
+                <FormField
+                  icon={Building2}
+                  label={t('commandCenter.rail.form.name')}
+                  required
+                  iconAccent="text-amber-300 bg-amber-500/10 ring-amber-500/20"
                 >
-                  <option value="">— None —</option>
-                  {regions.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.region_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Boundary *</label>
-                <SectorBoundaryDrawer
-                  key={mapDrawerKey}
-                  className="h-[240px]"
-                  value={form.boundary}
-                  onChange={(boundary) => setForm((p) => ({ ...p, boundary }))}
-                />
-              </div>
-              {formError && <p className="text-xs text-red-400">{formError}</p>}
-              <RailFormFooter
+                  <FormInput
+                    value={form.sectorName}
+                    onChange={(e) => setForm({ ...form, sectorName: e.target.value })}
+                    placeholder="e.g. Maarif"
+                  />
+                </FormField>
+                <FormField
+                  icon={Map}
+                  label={t('commandCenter.rail.columns.region')}
+                  iconAccent="text-sky-300 bg-sky-500/10 ring-sky-500/20"
+                >
+                  <FormSelect
+                    value={form.regionId}
+                    onChange={(e) => setForm({ ...form, regionId: e.target.value })}
+                  >
+                    <option value="">— None —</option>
+                    {regions.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.region_name}
+                      </option>
+                    ))}
+                  </FormSelect>
+                </FormField>
+                <FormField
+                  icon={MapPin}
+                  label="Boundary"
+                  required
+                  hint="Click corners on the mini-map to outline the sector polygon."
+                  iconAccent="text-orange-300 bg-orange-500/10 ring-orange-500/20"
+                >
+                  <div className="overflow-hidden rounded-xl border border-zinc-800">
+                    <SectorBoundaryDrawer
+                      key={mapDrawerKey}
+                      className="h-[240px]"
+                      value={form.boundary}
+                      onChange={(boundary) => setForm((p) => ({ ...p, boundary }))}
+                    />
+                  </div>
+                </FormField>
+                <FormField icon={Building2} label={t('commandCenter.rail.form.active')} iconAccent="text-emerald-300 bg-emerald-500/10 ring-emerald-500/20">
+                  <FormToggle
+                    checked={form.isActive}
+                    onChange={(v) => setForm({ ...form, isActive: v })}
+                    labelOn={t('commandCenter.popup.active')}
+                    labelOff={t('commandCenter.popup.inactive')}
+                  />
+                </FormField>
+              </FormSection>
+              <FormError>{formError}</FormError>
+              <FormFooter
                 onCancel={() => setIsCreateOpen(false)}
-                submitLabel="Create Sector"
+                submitLabel={t('commandCenter.rail.sectors.create')}
                 isSubmitting={isSubmitting}
               />
             </form>
@@ -521,7 +547,15 @@ function SectorsMapRail({ sectors, regions, isLoading, onRefresh, onSelectItem, 
       ) : (
         <>
           <MapRailKpiStrip items={sectorRailKpis(filteredSectors)} />
-          <MapRailTable columns={['Sector', 'Region', 'Depot', 'Status']} isEmpty={filteredSectors.length === 0}>
+          <MapRailTable
+            columns={[
+              t('commandCenter.rail.columns.name'),
+              t('commandCenter.rail.columns.region'),
+              t('commandCenter.rail.columns.depot'),
+              t('commandCenter.rail.columns.status'),
+            ]}
+            isEmpty={filteredSectors.length === 0}
+          >
           {filteredSectors.map((sector) => (
             <MapRailRow
               key={sector.id}
@@ -544,7 +578,8 @@ function SectorsMapRail({ sectors, regions, isLoading, onRefresh, onSelectItem, 
   )
 }
 
-function ClientsMapRail({ clients, isLoading, onRefresh, onSelectItem, searchQuery = '' }) {
+function ClientsMapRail({ clients, isLoading, onRefresh, onSelectItem, searchQuery = '', canManageLogistics = false }) {
+  const { t } = useTranslation()
   const filteredClients = filterClientsForSearch(clients, searchQuery)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [form, setForm] = useState({
@@ -584,7 +619,7 @@ function ClientsMapRail({ clients, isLoading, onRefresh, onSelectItem, searchQue
       setIsCreateOpen(false)
       onRefresh?.()
     } catch (err) {
-      setFormError(err?.response?.data?.message || 'Failed to create client.')
+      setFormError(err?.response?.data?.message || t('commandCenter.rail.clients.createFailed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -592,90 +627,104 @@ function ClientsMapRail({ clients, isLoading, onRefresh, onSelectItem, searchQue
 
   return (
     <MapRailShell
-      title="Clients"
-      subtitle="Same records as the Clients page — click a row to inspect on the map."
+      title={t('commandCenter.rail.clients.title')}
+      subtitle={t('commandCenter.rail.clients.subtitle')}
       icon={Store}
       iconAccentClass={LOGISTICS_MODULES.client.accentDark}
-      onAdd={() => {
-        setForm({
-          clientName: '',
-          storeName: '',
-          phone: '',
-          qrCode: '',
-          city: '',
-          gpsLatitude: '',
-          gpsLongitude: '',
-        })
-        setFormError('')
-        setIsCreateOpen(true)
-      }}
-      addLabel="Add Client"
+      onAdd={
+        canManageLogistics
+          ? () => {
+              setForm({
+                clientName: '',
+                storeName: '',
+                phone: '',
+                qrCode: '',
+                city: '',
+                gpsLatitude: '',
+                gpsLongitude: '',
+              })
+              setFormError('')
+              setIsCreateOpen(true)
+            }
+          : undefined
+      }
+      addLabel={t('commandCenter.rail.clients.add')}
       overlay={
         isCreateOpen ? (
-          <MapRailCreateOverlay title="Add Client" onClose={() => setIsCreateOpen(false)}>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Client name *</label>
-                <input
-                  className={railInputClass}
-                  value={form.clientName}
-                  onChange={(e) => setForm({ ...form, clientName: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Store name</label>
-                <input
-                  className={railInputClass}
-                  value={form.storeName}
-                  onChange={(e) => setForm({ ...form, storeName: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">QR code *</label>
-                <input
-                  className={railInputClass}
-                  value={form.qrCode}
-                  onChange={(e) => setForm({ ...form, qrCode: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Phone</label>
-                <input
-                  className={railInputClass}
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">City</label>
-                <input
-                  className={railInputClass}
-                  value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="number"
-                  step="any"
-                  placeholder="Lat"
-                  className={railInputClass}
-                  value={form.gpsLatitude}
-                  onChange={(e) => setForm({ ...form, gpsLatitude: e.target.value })}
-                />
-                <input
-                  type="number"
-                  step="any"
-                  placeholder="Lng"
-                  className={railInputClass}
-                  value={form.gpsLongitude}
-                  onChange={(e) => setForm({ ...form, gpsLongitude: e.target.value })}
-                />
-              </div>
-              {formError && <p className="text-xs text-red-400">{formError}</p>}
-              <RailFormFooter
+          <MapRailCreateOverlay
+            title={t('commandCenter.rail.clients.add')}
+            accent="emerald"
+            onClose={() => setIsCreateOpen(false)}
+          >
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <FormIntro
+                accent="emerald"
+                title={t('commandCenter.rail.clients.add')}
+                description={t('commandCenter.rail.clients.subtitle')}
+              />
+              <FormSection title="Store profile">
+                <FormField icon={User2} label="Client name" required iconAccent="text-emerald-300 bg-emerald-500/10 ring-emerald-500/20">
+                  <FormInput
+                    value={form.clientName}
+                    onChange={(e) => setForm({ ...form, clientName: e.target.value })}
+                    placeholder="Legal or contact name"
+                  />
+                </FormField>
+                <FormField icon={Store} label="Store name" iconAccent="text-zinc-300 bg-zinc-800/80 ring-zinc-700/50">
+                  <FormInput
+                    value={form.storeName}
+                    onChange={(e) => setForm({ ...form, storeName: e.target.value })}
+                    placeholder="Displayed on map & orders"
+                  />
+                </FormField>
+                <FormField icon={QrCode} label="QR code" required hint="Scanned at delivery and check-in." iconAccent="text-violet-300 bg-violet-500/10 ring-violet-500/20">
+                  <FormInput
+                    value={form.qrCode}
+                    onChange={(e) => setForm({ ...form, qrCode: e.target.value })}
+                    placeholder="Unique client QR"
+                  />
+                </FormField>
+                <FormField icon={Phone} label="Phone" iconAccent="text-sky-300 bg-sky-500/10 ring-sky-500/20">
+                  <FormInput
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    placeholder="+212 6 XX XX XX XX"
+                  />
+                </FormField>
+                <FormField icon={MapPin} label={t('commandCenter.rail.columns.location')} iconAccent="text-amber-300 bg-amber-500/10 ring-amber-500/20">
+                  <FormInput
+                    value={form.city}
+                    onChange={(e) => setForm({ ...form, city: e.target.value })}
+                    placeholder="City"
+                  />
+                </FormField>
+              </FormSection>
+              <FormSection title="GPS coordinates">
+                <FormGrid>
+                  <FormField icon={MapPin} label={t('commandCenter.rail.form.latitude')}>
+                    <FormInput
+                      type="number"
+                      step="any"
+                      value={form.gpsLatitude}
+                      onChange={(e) => setForm({ ...form, gpsLatitude: e.target.value })}
+                      placeholder="33.57"
+                    />
+                  </FormField>
+                  <FormField icon={MapPin} label={t('commandCenter.rail.form.longitude')}>
+                    <FormInput
+                      type="number"
+                      step="any"
+                      value={form.gpsLongitude}
+                      onChange={(e) => setForm({ ...form, gpsLongitude: e.target.value })}
+                      placeholder="-7.58"
+                    />
+                  </FormField>
+                </FormGrid>
+              </FormSection>
+              <FormError>{formError}</FormError>
+              <FormFooter
                 onCancel={() => setIsCreateOpen(false)}
-                submitLabel="Create Client"
+                submitLabel={t('commandCenter.rail.clients.create')}
                 isSubmitting={isSubmitting}
               />
             </form>
@@ -691,7 +740,14 @@ function ClientsMapRail({ clients, isLoading, onRefresh, onSelectItem, searchQue
       ) : (
         <>
           <MapRailKpiStrip items={clientRailKpis(filteredClients)} />
-          <MapRailTable columns={['Name', 'City', 'Status']} isEmpty={filteredClients.length === 0}>
+          <MapRailTable
+            columns={[
+              t('commandCenter.rail.columns.name'),
+              t('commandCenter.rail.columns.location'),
+              t('commandCenter.rail.columns.status'),
+            ]}
+            isEmpty={filteredClients.length === 0}
+          >
           {filteredClients.map((client) => (
               <MapRailRow
                 key={client.id}
@@ -719,7 +775,8 @@ function ClientsMapRail({ clients, isLoading, onRefresh, onSelectItem, searchQue
   )
 }
 
-function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, onSelectItem, searchQuery = '' }) {
+function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, onSelectItem, searchQuery = '', canManageLogistics = false }) {
+  const { t } = useTranslation()
   const filteredVehicles = filterVehiclesForSearch(vehicles, searchQuery)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [form, setForm] = useState({ plate_number: '', model: '', depot_id: '', tonnage: '', volume_capacity: '' })
@@ -758,7 +815,7 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, onSelectItem,
       setIsCreateOpen(false)
       onRefresh?.()
     } catch (err) {
-      setFormError(err?.response?.data?.message || 'Failed to create vehicle.')
+      setFormError(err?.response?.data?.message || t('commandCenter.rail.vehicles.createFailed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -766,83 +823,93 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, onSelectItem,
 
   return (
     <MapRailShell
-      title="Vehicles"
-      subtitle="Fleet vehicles assigned to depots — click a row to inspect on the map."
+      title={t('commandCenter.rail.vehicles.title')}
+      subtitle={t('commandCenter.rail.vehicles.subtitle')}
       icon={Truck}
-      onAdd={() => {
-        setForm({
-          plate_number: '',
-          model: '',
-          depot_id: depots[0]?.id || '',
-          tonnage: '',
-          volume_capacity: '',
-        })
-        setFormError('')
-        setIsCreateOpen(true)
-      }}
-      addLabel="Add Vehicle"
+      onAdd={
+        canManageLogistics
+          ? () => {
+              setForm({
+                plate_number: '',
+                model: '',
+                depot_id: depots[0]?.id || '',
+                tonnage: '',
+                volume_capacity: '',
+              })
+              setFormError('')
+              setIsCreateOpen(true)
+            }
+          : undefined
+      }
+      addLabel={t('commandCenter.rail.vehicles.add')}
       overlay={
         isCreateOpen ? (
-          <MapRailCreateOverlay title="Add Vehicle" onClose={() => setIsCreateOpen(false)}>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Plate *</label>
-                <input
-                  className={railInputClass}
-                  value={form.plate_number}
-                  onChange={(e) => setForm({ ...form, plate_number: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Model *</label>
-                <input
-                  className={railInputClass}
-                  value={form.model}
-                  onChange={(e) => setForm({ ...form, model: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Tonnage (t) *</label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  className={railInputClass}
-                  value={form.tonnage}
-                  onChange={(e) => setForm({ ...form, tonnage: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Volume (L)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  className={railInputClass}
-                  value={form.volume_capacity}
-                  onChange={(e) => setForm({ ...form, volume_capacity: e.target.value })}
-                  placeholder="Optional"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Depot *</label>
-                <select
-                  className={railInputClass}
-                  value={form.depot_id}
-                  onChange={(e) => setForm({ ...form, depot_id: e.target.value })}
-                >
-                  <option value="">Select depot</option>
-                  {depots.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.depot_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {formError && <p className="text-xs text-red-400">{formError}</p>}
-              <RailFormFooter
+          <MapRailCreateOverlay
+            title={t('commandCenter.rail.vehicles.add')}
+            accent="blue"
+            onClose={() => setIsCreateOpen(false)}
+          >
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <FormIntro
+                accent="blue"
+                title={t('commandCenter.rail.vehicles.add')}
+                description={t('commandCenter.rail.vehicles.subtitle')}
+              />
+              <FormSection title={t('commandCenter.vehicleDetails.assignment')}>
+                <FormField icon={Hash} label={t('commandCenter.rail.form.plate')} required iconAccent="text-orange-300 bg-orange-500/10 ring-orange-500/20">
+                  <FormInput
+                    value={form.plate_number}
+                    onChange={(e) => setForm({ ...form, plate_number: e.target.value })}
+                    placeholder="12345-A-67"
+                  />
+                </FormField>
+                <FormField icon={Truck} label={t('commandCenter.rail.form.model')} required iconAccent="text-sky-300 bg-sky-500/10 ring-sky-500/20">
+                  <FormInput
+                    value={form.model}
+                    onChange={(e) => setForm({ ...form, model: e.target.value })}
+                    placeholder="Van, truck…"
+                  />
+                </FormField>
+                <FormField icon={Warehouse} label={t('commandCenter.rail.form.depot')} required iconAccent="text-blue-300 bg-blue-500/10 ring-blue-500/20">
+                  <FormSelect
+                    value={form.depot_id}
+                    onChange={(e) => setForm({ ...form, depot_id: e.target.value })}
+                  >
+                    <option value="">Select depot</option>
+                    {depots.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.depot_name}
+                      </option>
+                    ))}
+                  </FormSelect>
+                </FormField>
+              </FormSection>
+              <FormSection title="Capacity">
+                <FormField icon={Box} label={t('commandCenter.rail.form.tonnage')} required iconAccent="text-amber-300 bg-amber-500/10 ring-amber-500/20">
+                  <FormInput
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={form.tonnage}
+                    onChange={(e) => setForm({ ...form, tonnage: e.target.value })}
+                    placeholder="3.5"
+                  />
+                </FormField>
+                <FormField icon={Box} label={t('commandCenter.rail.form.volume')} iconAccent="text-violet-300 bg-violet-500/10 ring-violet-500/20">
+                  <FormInput
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.volume_capacity}
+                    onChange={(e) => setForm({ ...form, volume_capacity: e.target.value })}
+                    placeholder="Optional"
+                  />
+                </FormField>
+              </FormSection>
+              <FormError>{formError}</FormError>
+              <FormFooter
                 onCancel={() => setIsCreateOpen(false)}
-                submitLabel="Create Vehicle"
+                submitLabel={t('commandCenter.rail.vehicles.create')}
                 isSubmitting={isSubmitting}
               />
             </form>
@@ -858,7 +925,15 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, onSelectItem,
       ) : (
         <>
           <MapRailKpiStrip items={vehicleRailKpis(filteredVehicles, { depots })} />
-          <MapRailTable columns={['Plate', 'Model', 'Depot', 'Status']} isEmpty={filteredVehicles.length === 0}>
+          <MapRailTable
+            columns={[
+              t('commandCenter.rail.columns.plate'),
+              t('commandCenter.rail.columns.model'),
+              t('commandCenter.rail.columns.depot'),
+              t('commandCenter.rail.columns.status'),
+            ]}
+            isEmpty={filteredVehicles.length === 0}
+          >
           {filteredVehicles.map((v) => (
             <MapRailRow
               key={v.id}
@@ -873,7 +948,7 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, onSelectItem,
               <MapRailCell className="font-medium text-zinc-100">{v.plate_number}</MapRailCell>
               <MapRailCell>{v.model || '—'}</MapRailCell>
               <MapRailCell>{v.depot?.depot_name || '—'}</MapRailCell>
-              <MapRailCell>{v.is_active === false ? 'Inactive' : 'Active'}</MapRailCell>
+              <MapRailCell>{v.is_active === false ? t('commandCenter.popup.inactive') : t('commandCenter.popup.active')}</MapRailCell>
             </MapRailRow>
           ))}
         </MapRailTable>
@@ -889,6 +964,8 @@ export function MapLayerRailRouter({
   onRefresh,
   onSelectItem,
   onStartRegionCreate,
+  onStartIndustryCreate,
+  canManageLogistics = false,
   searchQuery = '',
   regions,
   sectors,
@@ -901,7 +978,7 @@ export function MapLayerRailRouter({
     return <MapHomeSidePanel />
   }
 
-  const shared = { isLoading, onRefresh, onSelectItem, searchQuery }
+  const shared = { isLoading, onRefresh, onSelectItem, searchQuery, canManageLogistics }
 
   switch (filter) {
     case 'regions':
@@ -914,7 +991,13 @@ export function MapLayerRailRouter({
         />
       )
     case 'industries':
-      return <IndustriesMapRail industries={industries} {...shared} />
+      return (
+        <IndustriesMapRail
+          industries={industries}
+          {...shared}
+          onStartIndustryCreate={onStartIndustryCreate}
+        />
+      )
     case 'depots':
       return <DepotsMapRail depots={depots} {...shared} />
     case 'sectors':

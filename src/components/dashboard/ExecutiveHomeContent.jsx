@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { AlertTriangle, DollarSign, Activity, ShoppingCart } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -11,47 +12,22 @@ import {
   Line,
   ComposedChart,
 } from 'recharts'
-import apiInstance from '../../api/axiosInstance'
+import { useTheme } from '../../context/ThemeContext'
+import { useExecutiveKpis } from '../../hooks/useExecutiveKpis'
 
-function startOfDay(date) {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-function isoDate(date) {
-  return startOfDay(date).toISOString().slice(0, 10)
-}
-
-function formatDayLabel(date) {
-  return new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date)
-}
-
-function toAmount(value) {
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
-function KpiCard({ title, value, subtitle, icon: Icon, colorClass, variant }) {
-  const isDark = variant === 'dark'
+function KpiCard({ title, value, subtitle, icon: Icon, colorClass, forceDark = false }) {
   return (
-    <div
-      className={
-        isDark
-          ? 'rounded-xl border border-zinc-800 bg-zinc-900/80 p-4'
-          : 'rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900'
-      }
-    >
+    <div className={forceDark ? 'rounded-xl border border-zinc-800 bg-zinc-900/80 p-4' : 'card-sm'}>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{title}</p>
+        <p className={`text-[10px] font-semibold uppercase tracking-wider ${forceDark ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-400'}`}>{title}</p>
         <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${colorClass}`}>
           <Icon className="h-3.5 w-3.5" />
         </div>
       </div>
-      <p className={`font-bold ${isDark ? 'text-2xl text-zinc-100' : 'text-3xl text-zinc-900 dark:text-zinc-100'}`}>
+      <p className={`text-3xl font-bold ${forceDark ? 'text-zinc-100' : 'text-zinc-900 dark:text-zinc-100'}`}>
         {value}
       </p>
-      <p className="mt-1 text-[11px] text-zinc-500">{subtitle}</p>
+      <p className={`mt-1 text-[11px] ${forceDark ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-400'}`}>{subtitle}</p>
     </div>
   )
 }
@@ -60,208 +36,130 @@ function KpiCard({ title, value, subtitle, icon: Icon, colorClass, variant }) {
  * Executive Home dashboard body (KPIs + 7-day orders chart).
  * Shared by /dashboard and Global Map default side panel.
  */
-export function ExecutiveHomeContent({ variant = 'light', compact = false, showIntro = true }) {
-  const [ordersToday, setOrdersToday] = useState([])
-  const [ordersLast7d, setOrdersLast7d] = useState([])
-  const [pendingExceptionsCount, setPendingExceptionsCount] = useState(0)
-  const [depotStatus, setDepotStatus] = useState([])
-  const [debtSummary, setDebtSummary] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
-  const controllerRef = useRef(null)
+export function ExecutiveHomeContent({ compact = false, showIntro = true, variant }) {
+  const { t } = useTranslation()
+  const { theme } = useTheme()
+  const forceDark = variant === 'dark'
+  const isDark = forceDark || theme === 'dark'
 
-  useEffect(() => {
-    const load = async () => {
-      if (controllerRef.current) controllerRef.current.abort()
-      const controller = new AbortController()
-      controllerRef.current = controller
-      setIsLoading(true)
-      setError('')
+  const {
+    isLoading,
+    error,
+    totalDailySales,
+    avgDepotHealth,
+    activeDebt,
+    pendingExceptionsCount,
+    ordersChartData,
+  } = useExecutiveKpis()
 
-      const today = new Date()
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(today.getDate() - 6)
+  // Theme-aware chart colors
+  const chartColors = {
+    grid:    isDark ? '#3f3f46' : '#e4e4e7',
+    tick:    isDark ? '#a1a1aa' : '#71717a',
+    tooltipBg:     isDark ? '#18181b' : '#ffffff',
+    tooltipBorder: isDark ? '#3f3f46' : '#e4e4e7',
+    tooltipText:   isDark ? '#fafafa' : '#18181b',
+    bar:     '#ff6b00',
+    line:    '#ff9548',
+    cursor:  isDark ? 'rgba(113,113,122,0.12)' : 'rgba(228,228,231,0.7)',
+  }
 
-      const todayStr = isoDate(today)
-      const sevenDaysAgoStr = isoDate(sevenDaysAgo)
-
-      try {
-        const [ordersTodayRes, orders7dRes, exceptionsRes, depotRes, debtRes] = await Promise.all([
-          apiInstance.get(`/orders?fromDate=${todayStr}&toDate=${todayStr}&limit=100`, { signal: controller.signal }),
-          apiInstance.get(`/orders?fromDate=${sevenDaysAgoStr}&toDate=${todayStr}&limit=100`, { signal: controller.signal }),
-          apiInstance.get('/exceptions?status=PENDING', { signal: controller.signal }),
-          apiInstance.get('/reports/depot/status', { signal: controller.signal }),
-          apiInstance.get('/reports/debt/summary', { signal: controller.signal }),
-        ])
-
-        if (!controller.signal.aborted) {
-          setOrdersToday(ordersTodayRes.data?.data?.orders || [])
-          setOrdersLast7d(orders7dRes.data?.data?.orders || [])
-          setPendingExceptionsCount(exceptionsRes.data?.data?.exceptions?.length || 0)
-          setDepotStatus(depotRes.data?.data?.depots || [])
-          setDebtSummary(debtRes.data?.data?.summary || [])
-        }
-      } catch (e) {
-        if (e.name !== 'CanceledError') {
-          setError('Failed to load executive dashboard data.')
-          setOrdersToday([])
-          setOrdersLast7d([])
-          setPendingExceptionsCount(0)
-          setDepotStatus([])
-          setDebtSummary([])
-        }
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false)
-      }
-    }
-
-    load()
-    return () => controllerRef.current?.abort()
-  }, [])
-
-  const totalDailySales = useMemo(
-    () => ordersToday.reduce((sum, order) => sum + toAmount(order.total_amount), 0),
-    [ordersToday],
-  )
-
-  const avgDepotHealth = useMemo(() => {
-    if (!depotStatus.length) return 0
-    const total = depotStatus.reduce((sum, depot) => sum + toAmount(depot.usage_percentage), 0)
-    return total / depotStatus.length
-  }, [depotStatus])
-
-  const activeDebt = useMemo(
-    () => debtSummary.reduce((sum, row) => sum + toAmount(row.total_responsibility_amount), 0),
-    [debtSummary],
-  )
-
-  const ordersChartData = useMemo(() => {
-    const days = []
-    const today = startOfDay(new Date())
-    for (let i = 6; i >= 0; i -= 1) {
-      const d = new Date(today)
-      d.setDate(today.getDate() - i)
-      days.push({
-        key: isoDate(d),
-        label: formatDayLabel(d),
-        orders: 0,
-      })
-    }
-
-    const byDay = new Map(days.map((d) => [d.key, d]))
-    for (const order of ordersLast7d) {
-      const rawDate = order.order_date || order.created_at
-      if (!rawDate) continue
-      const key = String(rawDate).slice(0, 10)
-      if (byDay.has(key)) {
-        byDay.get(key).orders += 1
-      }
-    }
-
-    return days
-  }, [ordersLast7d])
-
-  const isDark = variant === 'dark'
   const chartHeight = compact ? 'h-52' : 'h-80'
-  const gridClass = compact ? 'grid grid-cols-1 gap-3 sm:grid-cols-2' : 'grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4'
+  const gridClass = compact
+    ? 'grid grid-cols-1 gap-3 sm:grid-cols-2'
+    : 'grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4'
 
   return (
     <div className={compact ? 'space-y-4' : 'space-y-6'}>
       {showIntro && (
-        <div className={isDark ? '' : 'rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900'}>
-          {isDark ? (
-            <div className="border-b border-zinc-800 px-1 pb-4">
-              <h2 className="text-base font-semibold text-zinc-100">Executive Home</h2>
-              <p className="mt-1 text-xs text-zinc-500">
-                Real-time operational pulse across sales, risks, logistics, and responsibility ledger.
-              </p>
-            </div>
-          ) : (
-            <>
-              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Executive Home</h1>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Real-time operational pulse across sales, risks, logistics, and responsibility ledger.
-              </p>
-            </>
-          )}
+        <div className="card">
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('executiveHome.introTitle')}</h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            {t('executiveHome.introSubtitle')}
+          </p>
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-900/40 bg-red-950/50 px-3 py-2 text-xs text-red-300">
-          {error}
+        <div className={forceDark ? 'rounded-lg border border-red-500/30 bg-red-500/10 p-3' : 'alert-error'}>
+          <p className={`text-sm ${forceDark ? 'text-red-300' : 'text-red-700 dark:text-red-300'}`}>
+            {t('executiveHome.loadError')}
+          </p>
         </div>
       )}
 
       <div className={gridClass}>
         <KpiCard
-          title="Total Daily Sales"
-          value={isLoading ? '...' : `${Math.round(totalDailySales).toLocaleString()} DA`}
-          subtitle="based on today's orders"
+          forceDark={forceDark}
+          title={t('executiveHome.dailySales')}
+          value={isLoading ? '—' : `${Math.round(totalDailySales).toLocaleString()} DA`}
+          subtitle={t('executiveHome.ordersTodaySubtitle')}
           icon={ShoppingCart}
-          colorClass="bg-emerald-500/15 text-emerald-400"
-          variant={variant}
+          colorClass="bg-emerald-500/15 text-emerald-500"
         />
         <KpiCard
-          title="Pending Exceptions"
-          value={isLoading ? '...' : pendingExceptionsCount}
-          subtitle="awaiting supervisor decision"
+          forceDark={forceDark}
+          title={t('executiveHome.pendingExceptions')}
+          value={isLoading ? '—' : pendingExceptionsCount}
+          subtitle={t('executiveHome.pendingSubtitle')}
           icon={AlertTriangle}
-          colorClass="bg-amber-500/15 text-amber-400"
-          variant={variant}
+          colorClass="bg-amber-500/15 text-amber-500"
         />
         <KpiCard
-          title="Depot Health"
-          value={isLoading ? '...' : `${avgDepotHealth.toFixed(1)}%`}
-          subtitle="average capacity utilization"
+          forceDark={forceDark}
+          title={t('executiveHome.depotHealth')}
+          value={isLoading ? '—' : `${avgDepotHealth.toFixed(1)}%`}
+          subtitle={t('executiveHome.depotHealthSubtitle')}
           icon={Activity}
-          colorClass="bg-blue-500/15 text-blue-400"
-          variant={variant}
+          colorClass="bg-[rgba(255,107,0,0.15)] text-[#ff6b00]"
         />
         <KpiCard
-          title="Active Debt"
-          value={isLoading ? '...' : `${Math.round(activeDebt).toLocaleString()} DA`}
-          subtitle="supervisor responsibility total"
+          forceDark={forceDark}
+          title={t('executiveHome.activeDebt')}
+          value={isLoading ? '—' : `${Math.round(activeDebt).toLocaleString()} DA`}
+          subtitle={t('executiveHome.activeDebtSubtitle')}
           icon={DollarSign}
-          colorClass="bg-rose-500/15 text-rose-400"
-          variant={variant}
+          colorClass="bg-rose-500/15 text-rose-500"
         />
       </div>
 
-      <div
-        className={
-          isDark
-            ? 'rounded-xl border border-zinc-800 bg-zinc-900/80 p-4'
-            : 'rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900'
-        }
-      >
+      <div className={forceDark ? 'rounded-xl border border-zinc-800 bg-zinc-900/80 p-4' : 'card'}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className={`font-semibold text-zinc-100 ${compact ? 'text-sm' : 'text-lg'}`}>
-            Orders Over The Last 7 Days
+          <h3 className={`font-semibold ${forceDark ? 'text-sm text-zinc-100' : `text-zinc-900 dark:text-zinc-100 ${compact ? 'text-sm' : 'text-lg'}`}`}>
+            {t('executiveHome.ordersLast7Days')}
           </h3>
-          <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Daily count</span>
+          <span className={`text-[10px] font-semibold uppercase tracking-wide ${forceDark ? 'text-zinc-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
+            {t('executiveHome.orders')}
+          </span>
         </div>
-        <div className={`${chartHeight} w-full`}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={ordersChartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
-              <XAxis dataKey="label" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis allowDecimals={false} tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip
-                cursor={{ fill: 'rgba(113,113,122,0.12)' }}
-                contentStyle={{
-                  borderRadius: '8px',
-                  border: '1px solid #3f3f46',
-                  background: '#18181b',
-                  color: '#fafafa',
-                  fontSize: '12px',
-                }}
-              />
-              <Bar dataKey="orders" radius={[6, 6, 0, 0]} fill="#0ea5e9" />
-              <Line type="monotone" dataKey="orders" stroke="#38bdf8" strokeWidth={2} dot={{ r: 2 }} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+
+        {ordersChartData.every((d) => d.orders === 0) && !isLoading ? (
+          <div className={`flex h-40 items-center justify-center text-sm ${forceDark ? 'text-zinc-500' : 'text-zinc-400 dark:text-zinc-600'}`}>
+            {t('executiveHome.noOrders')}
+          </div>
+        ) : (
+          <div className={`${chartHeight} w-full`}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={ordersChartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                <XAxis dataKey="label" tick={{ fill: chartColors.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: chartColors.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  cursor={{ fill: chartColors.cursor }}
+                  contentStyle={{
+                    borderRadius: '8px',
+                    border: `1px solid ${chartColors.tooltipBorder}`,
+                    background: chartColors.tooltipBg,
+                    color: chartColors.tooltipText,
+                    fontSize: '12px',
+                  }}
+                />
+                <Bar dataKey="orders" radius={[6, 6, 0, 0]} fill={chartColors.bar} />
+                <Line type="monotone" dataKey="orders" stroke={chartColors.line} strokeWidth={2} dot={{ r: 2, fill: chartColors.line }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
     </div>
   )

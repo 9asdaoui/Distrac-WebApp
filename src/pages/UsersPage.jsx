@@ -2,24 +2,11 @@ import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, Plus, UserPlus, Users, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { DashboardLayout } from '../components/DashboardLayout'
 import { AnimatedPage } from '../components/AnimatedPage'
+import { DataTable } from '../components/DataTable'
 import apiInstance from '../api/axiosInstance'
-
-const ROLE_BADGE_CLASS =
-  'inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200'
-
-const STATUS_ACTIVE_CLASS =
-  'inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
-
-const STATUS_INACTIVE_CLASS =
-  'inline-flex items-center rounded-full border border-zinc-300 bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-
-const assignmentLabels = {
-  SECTOR: 'Sectors',
-  DEPOT: 'Depots',
-  INDUSTRY: 'Industries',
-}
 
 const emptyFormState = {
   fullName: '',
@@ -74,9 +61,9 @@ const splitName = (fullName = '') => {
   }
 }
 
-const summarizeAssignments = (assignments = []) => {
+const summarizeAssignments = (assignments = [], t) => {
   if (!Array.isArray(assignments) || assignments.length === 0) {
-    return 'No assignments'
+    return t('users.noAssignments')
   }
 
   const counts = assignments.reduce(
@@ -91,11 +78,11 @@ const summarizeAssignments = (assignments = []) => {
   )
 
   const parts = []
-  if (counts.SECTOR > 0) parts.push(`${counts.SECTOR} Sector${counts.SECTOR > 1 ? 's' : ''}`)
-  if (counts.DEPOT > 0) parts.push(`${counts.DEPOT} Depot${counts.DEPOT > 1 ? 's' : ''}`)
-  if (counts.INDUSTRY > 0) parts.push(`${counts.INDUSTRY} Industr${counts.INDUSTRY > 1 ? 'ies' : 'y'}`)
+  if (counts.SECTOR > 0) parts.push(`${counts.SECTOR} ${t('users.sector')}${counts.SECTOR > 1 ? 's' : ''}`)
+  if (counts.DEPOT > 0) parts.push(`${counts.DEPOT} ${t('users.depot')}${counts.DEPOT > 1 ? 's' : ''}`)
+  if (counts.INDUSTRY > 0) parts.push(`${counts.INDUSTRY} ${t('users.industry')}${counts.INDUSTRY > 1 ? 's' : ''}`)
 
-  return parts.length > 0 ? parts.join(', ') : 'No assignments'
+  return parts.length > 0 ? parts.join(', ') : t('users.noAssignments')
 }
 
 function Toast({ message, type = 'success', onClose }) {
@@ -103,13 +90,7 @@ function Toast({ message, type = 'success', onClose }) {
 
   return (
     <div className="fixed right-4 top-4 z-[70] max-w-sm">
-      <div
-        className={`flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg ${
-          type === 'success'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
-            : 'border-red-200 bg-red-50 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200'
-        }`}
-      >
+      <div className={type === 'success' ? 'alert-success shadow-lg' : 'alert-error shadow-lg'}>
         <div className="pt-0.5">
           <UserPlus className="h-4 w-4" />
         </div>
@@ -127,52 +108,52 @@ function Toast({ message, type = 'success', onClose }) {
   )
 }
 
-function UsersTableSkeleton() {
+function UsersTableSkeleton({ t }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="table-container">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="bg-gray-50 dark:bg-zinc-800/50">
+          <thead className="table-head">
             <tr>
-              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">User</th>
-              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Role</th>
-              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
-              <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Assignments</th>
+              <th className="table-th">{t('users.user')}</th>
+              <th className="table-th">{t('users.role')}</th>
+              <th className="table-th">{t('users.status')}</th>
+              <th className="table-th">{t('users.assignments')}</th>
             </tr>
           </thead>
           <tbody>
             {[1, 2, 3, 4].map((row) => (
               <motion.tr
                 key={row}
-                className="border-b border-gray-200 dark:border-zinc-800"
+                className="border-b border-zinc-200 dark:border-zinc-800"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: row * 0.1, duration: 0.4 }}
               >
-                <td className="px-6 py-4">
+                <td className="table-td">
                   <motion.div
-                    className="h-5 w-52 rounded bg-gray-200 dark:bg-zinc-700"
+                    className="h-5 w-52 rounded bg-zinc-200 dark:bg-zinc-700"
                     animate={{ opacity: [0.6, 1, 0.6] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                 </td>
-                <td className="px-6 py-4">
+                <td className="table-td">
                   <motion.div
-                    className="h-5 w-24 rounded bg-gray-200 dark:bg-zinc-700"
+                    className="h-5 w-24 rounded bg-zinc-200 dark:bg-zinc-700"
                     animate={{ opacity: [0.6, 1, 0.6] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                 </td>
-                <td className="px-6 py-4">
+                <td className="table-td">
                   <motion.div
-                    className="h-5 w-16 rounded bg-gray-200 dark:bg-zinc-700"
+                    className="h-5 w-16 rounded bg-zinc-200 dark:bg-zinc-700"
                     animate={{ opacity: [0.6, 1, 0.6] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                 </td>
-                <td className="px-6 py-4">
+                <td className="table-td">
                   <motion.div
-                    className="h-5 w-44 rounded bg-gray-200 dark:bg-zinc-700"
+                    className="h-5 w-44 rounded bg-zinc-200 dark:bg-zinc-700"
                     animate={{ opacity: [0.6, 1, 0.6] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
@@ -188,6 +169,7 @@ function UsersTableSkeleton() {
 
 export function UsersPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [users, setUsers] = useState([])
   const [roles, setRoles] = useState([])
   const [sectors, setSectors] = useState([])
@@ -225,13 +207,16 @@ export function UsersPage() {
   const activeSelectionSet = useMemo(() => new Set(activeSelections), [activeSelections])
   const controllerRef = useRef(null)
 
+  const assignmentLabels = {
+    SECTOR: t('users.sectors'),
+    DEPOT: t('users.depots'),
+    INDUSTRY: t('users.industries'),
+  }
+
   const loadData = async () => {
-    // Cancel any previous requests
     if (controllerRef.current) {
       controllerRef.current.abort()
     }
-
-    // Create new controller for this request
     const controller = new AbortController()
     controllerRef.current = controller
 
@@ -246,7 +231,6 @@ export function UsersPage() {
         apiInstance.get('/industries', { signal: controller.signal }),
       ])
 
-      // Only update state if request wasn't cancelled
       if (!controller.signal.aborted) {
         setUsers(usersRes.data?.data?.users || [])
         setRoles(rolesRes.data?.data?.roles || [])
@@ -255,10 +239,9 @@ export function UsersPage() {
         setIndustries(industriesRes.data?.data?.industries || [])
       }
     } catch (error) {
-      // Only show error if it's not a cancellation
       if (error.name !== 'CanceledError' && !controller.signal.aborted) {
         setToast({
-          message: getErrorMessage(error, 'Failed to load users and metadata'),
+          message: getErrorMessage(error, t('users.loadError')),
           type: 'error',
         })
       }
@@ -270,12 +253,11 @@ export function UsersPage() {
   useEffect(() => {
     loadData()
     return () => {
-      // Abort requests when component unmounts
       if (controllerRef.current) {
         controllerRef.current.abort()
       }
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (!toast.message) return undefined
@@ -324,14 +306,14 @@ export function UsersPage() {
     const normalizedEmail = form.email.trim().toLowerCase()
 
     if (!normalizedName || !normalizedEmail || !form.password || !form.role) {
-      setToast({ message: 'Name, email, password, and role are required', type: 'error' })
+      setToast({ message: t('users.validationRequired'), type: 'error' })
       return
     }
 
     const { firstName, lastName } = splitName(normalizedName)
 
     if (!firstName || !lastName) {
-      setToast({ message: 'Please provide a valid full name', type: 'error' })
+      setToast({ message: t('users.validationName'), type: 'error' })
       return
     }
 
@@ -347,12 +329,12 @@ export function UsersPage() {
         assignments: buildAssignments(),
       })
 
-      setToast({ message: 'User created successfully', type: 'success' })
+      setToast({ message: t('users.createSuccess'), type: 'success' })
       closePanel()
       await loadData()
     } catch (error) {
       setToast({
-        message: getErrorMessage(error, 'Failed to create user'),
+        message: getErrorMessage(error, t('users.createError')),
         type: 'error',
       })
     } finally {
@@ -370,98 +352,104 @@ export function UsersPage() {
 
       <AnimatedPage>
         <div className="space-y-6">
-        <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Users & Scope Assignment</h1>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Create users, assign roles, and define sector/depot/industry scope.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsCreateOpen(true)}
-            className="btn-primary"
-          >
-            <Plus className="h-4 w-4" />
-            Create user
-          </button>
-        </div>
-
-        {isLoading ? (
-          <UsersTableSkeleton />
-        ) : users.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center dark:border-zinc-700 dark:bg-zinc-900">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-zinc-800">
-              <Users className="h-7 w-7 text-zinc-500" />
+          <div className="page-header">
+            <div>
+              <h1 className="page-title">{t('users.pageTitle')}</h1>
+              <p className="page-subtitle">
+                {t('users.pageSubtitle')}
+              </p>
             </div>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">No users yet</h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Create your first user and assign operational scope.
-            </p>
+
             <button
               type="button"
               onClick={() => setIsCreateOpen(true)}
-              className="mt-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              className="btn-primary"
             >
               <Plus className="h-4 w-4" />
-              Create your first user
+              {t('users.createUserBtn')}
             </button>
           </div>
-        ) : (
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-zinc-800/50">
-                  <tr>
-                    <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">User</th>
-                    <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Role</th>
-                    <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
-                    <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Assignments</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => {
-                    const isActive = String(user.status || '').toLowerCase() === 'active'
 
-                    return (
-                      <tr
-                        key={user.id}
-                        onClick={() => navigate(`/users/${user.id}`)}
-                        className="cursor-pointer border-b border-gray-200 align-top transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/40"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                              {avatarInitials(user.full_name)}
-                            </div>
-                            <div>
-                              <p className="font-medium text-zinc-900 dark:text-zinc-100">{user.full_name || 'Unnamed User'}</p>
-                              <p className="text-xs text-zinc-500 dark:text-zinc-400">{user.email || 'No email'}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={ROLE_BADGE_CLASS}>{displayRoleName(user.role_name || 'UNASSIGNED')}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={isActive ? STATUS_ACTIVE_CLASS : STATUS_INACTIVE_CLASS}>
-                            {isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-zinc-600 dark:text-zinc-300">
-                          {summarizeAssignments(user.assignments)}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+          {isLoading ? (
+            <UsersTableSkeleton t={t} />
+          ) : users.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">
+                <Users className="h-7 w-7 text-zinc-500" />
+              </div>
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t('users.noUsers')}</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                {t('users.noUsersDesc')}
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsCreateOpen(true)}
+                className="btn-secondary mt-6"
+              >
+                <Plus className="h-4 w-4" />
+                {t('users.createFirstUser')}
+              </button>
             </div>
-          </div>
-        )}
-      </div>
-
+          ) : (
+            <DataTable
+              data={users}
+              columns={[
+                {
+                  header: t('users.user'),
+                  accessor: 'full_name',
+                  sortable: true,
+                  render: (row) => (
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                        {avatarInitials(row.full_name)}
+                      </div>
+                      <div>
+                        <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                          {row.full_name || 'Unnamed User'}
+                        </p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {row.email || 'No email'}
+                        </p>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  header: t('users.role'),
+                  accessor: 'role_name',
+                  sortable: true,
+                  render: (row) => (
+                    <span className="badge-blue">
+                      {displayRoleName(row.role_name || 'UNASSIGNED')}
+                    </span>
+                  ),
+                },
+                {
+                  header: t('users.status'),
+                  accessor: 'status',
+                  sortable: true,
+                  render: (row) => {
+                    const isActive = String(row.status || '').toLowerCase() === 'active'
+                    return (
+                      <span className={isActive ? 'badge-green' : 'badge-zinc'}>
+                        {isActive ? t('users.active') : t('users.inactive')}
+                      </span>
+                    )
+                  },
+                },
+                {
+                  header: t('users.assignments'),
+                  accessor: 'assignments',
+                  sortable: false,
+                  render: (row) => summarizeAssignments(row.assignments, t),
+                },
+              ]}
+              searchPlaceholder={t('users.searchPlaceholder', 'Search users...')}
+              onRowClick={(row) => navigate(`/users/${row.id}`)}
+              emptyStateMessage={t('users.noResults', 'No users found matching your search.')}
+            />
+          )}
+        </div>
       </AnimatedPage>
 
       <AnimatePresence>
@@ -483,196 +471,196 @@ export function UsersPage() {
             />
 
             <motion.div
-              className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-gray-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+              className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             >
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Create User</h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  Add identity details, role, and assignment scope.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closePanel}
-                className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form className="mt-6 space-y-6" onSubmit={handleCreateUser}>
-              <section className="space-y-4 rounded-xl border border-gray-200 p-4 dark:border-zinc-800">
-                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Identity</h3>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="md:col-span-2">
-                    <label htmlFor="fullName" className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Name
-                    </label>
-                    <input
-                      id="fullName"
-                      type="text"
-                      value={form.fullName}
-                      onChange={(event) => setField('fullName', event.target.value)}
-                      placeholder="e.g. Oussama Admin"
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none ring-blue-500 transition placeholder:text-zinc-400 focus:border-blue-500 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="email" className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Email
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      value={form.email}
-                      onChange={(event) => setField('email', event.target.value)}
-                      placeholder="name@distrac.com"
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none ring-blue-500 transition placeholder:text-zinc-400 focus:border-blue-500 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="phone" className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Phone
-                    </label>
-                    <input
-                      id="phone"
-                      type="text"
-                      value={form.phone}
-                      onChange={(event) => setField('phone', event.target.value)}
-                      placeholder="+213 ..."
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none ring-blue-500 transition placeholder:text-zinc-400 focus:border-blue-500 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label htmlFor="password" className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Password
-                    </label>
-                    <input
-                      id="password"
-                      type="password"
-                      value={form.password}
-                      onChange={(event) => setField('password', event.target.value)}
-                      placeholder="At least 8 characters"
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none ring-blue-500 transition placeholder:text-zinc-400 focus:border-blue-500 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-4 rounded-xl border border-gray-200 p-4 dark:border-zinc-800">
-                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Role</h3>
+              <div className="flex items-start justify-between">
                 <div>
-                  <label htmlFor="role" className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Select role
-                  </label>
-                  <select
-                    id="role"
-                    value={form.role}
-                    onChange={(event) => setField('role', event.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none ring-blue-500 transition focus:border-blue-500 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                  >
-                    <option value="">Choose a role</option>
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.name}>
-                        {displayRoleName(role.name)}
-                      </option>
-                    ))}
-                  </select>
+                  <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{t('users.createUserTitle')}</h2>
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    {t('users.createUserDesc')}
+                  </p>
                 </div>
-              </section>
-
-              <section className="space-y-4 rounded-xl border border-gray-200 p-4 dark:border-zinc-800">
-                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Scope / Assignments</h3>
-
-                <div>
-                  <label htmlFor="entityType" className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Entity Type
-                  </label>
-                  <select
-                    id="entityType"
-                    value={form.activeEntityType}
-                    onChange={(event) => setField('activeEntityType', event.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none ring-blue-500 transition focus:border-blue-500 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                  >
-                    <option value="SECTOR">Sector</option>
-                    <option value="DEPOT">Depot</option>
-                    <option value="INDUSTRY">Industry</option>
-                  </select>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Select assignments</p>
-                  <div className="max-h-52 space-y-2 overflow-y-auto rounded-xl border border-gray-200 p-3 dark:border-zinc-800">
-                    {activeEntityOptions.length === 0 ? (
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        No {assignmentLabels[form.activeEntityType].toLowerCase()} available.
-                      </p>
-                    ) : (
-                      activeEntityOptions.map((option) => {
-                        const checked = activeSelectionSet.has(option.id)
-                        return (
-                          <label
-                            key={option.id}
-                            className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition ${
-                              checked
-                                ? 'border-blue-200 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10'
-                                : 'border-gray-200 hover:bg-gray-50 dark:border-zinc-700 dark:hover:bg-zinc-900'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleEntitySelection(option.id)}
-                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-zinc-800 dark:text-zinc-200">{option.label}</span>
-                          </label>
-                        )
-                      })
-                    )}
-                  </div>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(form.selectionsByType).map(([type, ids]) => {
-                    if (!ids || ids.length === 0) return null
-                    return (
-                      <span
-                        key={type}
-                        className="inline-flex items-center rounded-full border border-zinc-300 bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                      >
-                        {ids.length} {assignmentLabels[type]}
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
-            </section>
-
-              <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-4 dark:border-zinc-800">
                 <button
                   type="button"
                   onClick={closePanel}
-                  className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="btn-primary disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Create user
+                  <X className="h-5 w-5" />
                 </button>
               </div>
-            </form>
+
+              <form className="mt-6 space-y-6" onSubmit={handleCreateUser}>
+                <section className="space-y-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+                  <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t('users.identity')}</h3>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <label htmlFor="fullName" className="form-label-normal">
+                        {t('users.name')}
+                      </label>
+                      <input
+                        id="fullName"
+                        type="text"
+                        value={form.fullName}
+                        onChange={(event) => setField('fullName', event.target.value)}
+                        placeholder="e.g. Oussama Admin"
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="email" className="form-label-normal">
+                        {t('users.email')}
+                      </label>
+                      <input
+                        id="email"
+                        type="email"
+                        value={form.email}
+                        onChange={(event) => setField('email', event.target.value)}
+                        placeholder="name@distrac.com"
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="phone" className="form-label-normal">
+                        {t('users.phone')}
+                      </label>
+                      <input
+                        id="phone"
+                        type="text"
+                        value={form.phone}
+                        onChange={(event) => setField('phone', event.target.value)}
+                        placeholder="+213 ..."
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label htmlFor="password" className="form-label-normal">
+                        {t('users.password')}
+                      </label>
+                      <input
+                        id="password"
+                        type="password"
+                        value={form.password}
+                        onChange={(event) => setField('password', event.target.value)}
+                        placeholder={t('users.passwordPlaceholder')}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <section className="space-y-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+                  <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t('users.role')}</h3>
+                  <div>
+                    <label htmlFor="role" className="form-label-normal">
+                      {t('users.selectRole')}
+                    </label>
+                    <select
+                      id="role"
+                      value={form.role}
+                      onChange={(event) => setField('role', event.target.value)}
+                      className="form-select"
+                    >
+                      <option value="">{t('users.chooseRole')}</option>
+                      {roles.map((role) => (
+                        <option key={role.id} value={role.name}>
+                          {displayRoleName(role.name)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </section>
+
+                <section className="space-y-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+                  <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t('users.scope')}</h3>
+
+                  <div>
+                    <label htmlFor="entityType" className="form-label-normal">
+                      {t('users.entityType')}
+                    </label>
+                    <select
+                      id="entityType"
+                      value={form.activeEntityType}
+                      onChange={(event) => setField('activeEntityType', event.target.value)}
+                      className="form-select"
+                    >
+                      <option value="SECTOR">{t('users.sector')}</option>
+                      <option value="DEPOT">{t('users.depot')}</option>
+                      <option value="INDUSTRY">{t('users.industry')}</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">{t('users.selectAssignments')}</p>
+                    <div className="max-h-52 space-y-2 overflow-y-auto rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+                      {activeEntityOptions.length === 0 ? (
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                          {t('users.noAvailable', { entity: assignmentLabels[form.activeEntityType].toLowerCase() })}
+                        </p>
+                      ) : (
+                        activeEntityOptions.map((option) => {
+                          const checked = activeSelectionSet.has(option.id)
+                          return (
+                            <label
+                              key={option.id}
+                              className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition ${
+                                checked
+                                  ? 'border-[#ff6b00]/30 bg-orange-50 dark:border-[#ff6b00]/30 dark:bg-[#ff6b00]/10'
+                                  : 'border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleEntitySelection(option.id)}
+                                className="h-4 w-4 rounded border-zinc-300 text-[#ff6b00] focus:ring-[#ff6b00]"
+                              />
+                              <span className="text-sm text-zinc-800 dark:text-zinc-200">{option.label}</span>
+                            </label>
+                          )
+                        })
+                      )}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {Object.entries(form.selectionsByType).map(([type, ids]) => {
+                        if (!ids || ids.length === 0) return null
+                        return (
+                          <span
+                            key={type}
+                            className="badge-zinc"
+                          >
+                            {ids.length} {assignmentLabels[type]}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </section>
+
+                <div className="flex items-center justify-end gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={closePanel}
+                    className="btn-secondary"
+                  >
+                    {t('users.cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="btn-primary"
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    {t('users.createUserSubmit')}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </motion.div>
         )}

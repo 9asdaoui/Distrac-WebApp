@@ -1,11 +1,10 @@
 import {
-  Home,
+  LayoutDashboard,
   Users,
   ShieldCheck,
   Factory,
   Warehouse,
   Map,
-  Globe,
   MapPin,
   Package,
   Tags,
@@ -27,36 +26,10 @@ export function getMenuConfig() {
       title: 'SYSTEM',
       items: [
         {
-          label: 'Home',
-          labelKey: 'sidebar.home',
-          path: '/dashboard',
-          icon: Home,
-          requiredPermission: null,
-        },
-        {
-          label: 'Users',
-          labelKey: 'sidebar.users',
-          path: '/users',
-          icon: Users,
-          requiredPermission: 'manage_users',
-        },
-        {
-          label: 'Roles',
-          labelKey: 'sidebar.roles',
-          path: '/roles',
-          icon: ShieldCheck,
-          requiredPermission: 'manage_roles',
-        },
-      ],
-    },
-    {
-      type: 'group',
-      title: 'LOGISTICS',
-      items: [
-        {
-          label: 'Global Map',
+          label: 'Command Center',
+          labelKey: 'sidebar.commandCenter',
           path: '/global-map',
-          icon: Globe,
+          icon: LayoutDashboard,
           requiredPermission: ['view_logistics_tab', 'manage_logistics'],
           children: [
             {
@@ -96,6 +69,20 @@ export function getMenuConfig() {
               requiredPermission: 'manage_logistics',
             },
           ],
+        },
+        {
+          label: 'Users',
+          labelKey: 'sidebar.users',
+          path: '/users',
+          icon: Users,
+          requiredPermission: 'manage_users',
+        },
+        {
+          label: 'Roles',
+          labelKey: 'sidebar.roles',
+          path: '/roles',
+          icon: ShieldCheck,
+          requiredPermission: 'manage_roles',
         },
       ],
     },

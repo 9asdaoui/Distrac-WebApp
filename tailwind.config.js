@@ -9,13 +9,17 @@ export default {
     extend: {
       colors: {
         distrac: {
-          primary: '#2563eb',
-          secondary: '#1e40af',
-          accent: '#0ea5e9',
-          dark: '#1f2937',
-          light: '#f3f4f6',
+          primary:   '#ff6b00',
+          hover:     '#e55f00',
+          active:    '#cc5400',
+          light:     '#fff3eb',
+          muted:     'rgba(255,107,0,0.12)',
+          ring:      'rgba(255,107,0,0.35)',
         }
-      }
+      },
+      fontFamily: {
+        sans: ['Manrope', 'Segoe UI', 'sans-serif'],
+      },
     },
   },
   plugins: [],

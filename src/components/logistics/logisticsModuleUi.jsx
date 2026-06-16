@@ -76,13 +76,13 @@ export const LOGISTICS_MODULES = {
     label: 'Region',
     plural: 'Regions',
     listPath: '/regions',
-    detailPath: null,
+    detailPath: (id) => `/regions?focus=${id}`,
     mapDeepLink: (id) => `/global-map?type=region&id=${id}`,
     mapFilter: 'regions',
     icon: Map,
     accentDark: 'bg-orange-500/10 text-orange-400 ring-orange-500/30',
     accentLight: 'bg-orange-50 text-orange-600 ring-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:ring-orange-500/30',
-    hasDetailPage: false,
+    hasDetailPage: true,
     nameField: 'region_name',
   },
   vehicle: {
@@ -90,13 +90,13 @@ export const LOGISTICS_MODULES = {
     label: 'Vehicle',
     plural: 'Vehicles',
     listPath: '/vehicles',
-    detailPath: null,
+    detailPath: (id) => `/vehicles?focus=${id}`,
     mapDeepLink: (id) => `/global-map?type=vehicle&id=${id}`,
     mapFilter: 'vehicles',
     icon: Truck,
     accentDark: 'bg-violet-500/10 text-violet-400 ring-violet-500/30',
     accentLight: 'bg-violet-50 text-violet-600 ring-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/30',
-    hasDetailPage: false,
+    hasDetailPage: true,
     nameField: 'plate_number',
   },
 }
@@ -198,7 +198,7 @@ export function EntityMapLink({ moduleKey, entityId, layout = 'page', className 
   return (
     <Link to={mod.mapDeepLink(entityId)} className={linkClass}>
       <Globe className="h-3.5 w-3.5" />
-      {layout === 'panel' ? 'View on map' : 'Open in Global Map'}
+      {layout === 'panel' ? 'View on map' : 'Open in Command Center'}
     </Link>
   )
 }

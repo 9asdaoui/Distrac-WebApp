@@ -20,6 +20,8 @@ import {
   isNearRing,
   ringArcPoints,
 } from '../utils/regionBoundaryTrace'
+import apiInstance from '../api/axiosInstance'
+import { pickRegionBoundaryForTrace } from '../utils/regionTraceApi'
 
 export { isValidSectorPolygon as isValidRegionPolygon }
 
@@ -464,7 +466,7 @@ export function useRegionBoundaryDraw({
     setInteractionMode('free')
   }, [onChange])
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const rawGeometry = geometryFromLatLngPairs(points)
     if (!rawGeometry) return
 
@@ -473,11 +475,23 @@ export function useRegionBoundaryDraw({
       return
     }
 
-    if (geometriesOverlap(rawGeometry, existingForClip)) {
-      setClipNotice(
-        'Boundary overlaps another region. Use Trace neighbor for shared edges, then free draw for open sides.',
-      )
-      return
+    try {
+      const res = await apiInstance.post('/regions/validate-boundary', {
+        boundary: rawGeometry,
+        excludeRegionId: excludeRegionId || undefined,
+      })
+      const validation = res.data?.data
+      if (!validation?.valid) {
+        setClipNotice(validation?.errors?.[0] || 'Boundary validation failed.')
+        return
+      }
+    } catch {
+      if (geometriesOverlap(rawGeometry, existingForClip)) {
+        setClipNotice(
+          'Boundary overlaps another region. Use Trace neighbor for shared edges, then free draw for open sides.',
+        )
+        return
+      }
     }
 
     onChange(rawGeometry)
@@ -487,7 +501,7 @@ export function useRegionBoundaryDraw({
     setTracePreviewArc(null)
     setCursorPosition(null)
     setClipNotice('Boundary saved.')
-  }, [onChange, points, existingForClip])
+  }, [onChange, points, existingForClip, excludeRegionId])
 
   const appendFreePoint = useCallback(
     (placement) => {
@@ -547,9 +561,9 @@ export function useRegionBoundaryDraw({
   )
 
   const handlePointAdd = useCallback(
-    (pair) => {
+    async (pair) => {
       if (interactionMode === 'trace-pick') {
-        const pick = findNearestRegionBoundary(pair[0], pair[1], traceableRegions, {
+        const pick = await pickRegionBoundaryForTrace(pair[0], pair[1], traceableRegions, {
           excludeRegionId,
           onlyRegionId: tracePickRegionId,
         })

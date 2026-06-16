@@ -5,7 +5,6 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Login } from './pages/Login'
-import { DashboardHome } from './pages/DashboardHome'
 import { Unauthorized } from './pages/Unauthorized'
 import { UsersPage } from './pages/UsersPage'
 import { UserProfilePage } from './pages/UserProfilePage'
@@ -62,14 +61,7 @@ function AppRoutes() {
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       {/* Protected Routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardHome />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/dashboard" element={<Navigate to="/global-map" replace />} />
 
       <Route
         path="/users"
@@ -337,8 +329,8 @@ function AppRoutes() {
       />
 
       {/* Fallback */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Navigate to="/global-map" replace />} />
+      <Route path="*" element={<Navigate to="/global-map" replace />} />
     </Routes>
     </AnimatePresence>
   )

@@ -7,7 +7,7 @@ export function DashboardHome() {
   return (
     <DashboardLayout>
       <AnimatedPage>
-        <ExecutiveHomeContent variant="light" />
+        <ExecutiveHomeContent />
       </AnimatedPage>
     </DashboardLayout>
   )

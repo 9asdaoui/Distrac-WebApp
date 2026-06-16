@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronRight, Plus } from 'lucide-react'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
@@ -44,9 +44,12 @@ function RegionsSkeleton() {
 
 export function RegionsPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const focusId = searchParams.get('focus')
   const [regions, setRegions] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const controllerRef = useRef(null)
+  const focusRowRef = useRef(null)
 
   const load = async () => {
     if (controllerRef.current) controllerRef.current.abort()
@@ -69,6 +72,11 @@ export function RegionsPage() {
     load()
     return () => controllerRef.current?.abort()
   }, [])
+
+  useEffect(() => {
+    if (!focusId || isLoading) return
+    focusRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [focusId, isLoading, regions.length])
 
   const openCreate = () => navigate('/global-map?create=region')
 
@@ -112,8 +120,11 @@ export function RegionsPage() {
                     {regions.map((region) => (
                       <tr
                         key={region.id}
+                        ref={focusId === region.id ? focusRowRef : null}
                         onClick={() => region.id && navigate(REGION_MODULE.mapDeepLink(region.id))}
-                        className="group cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                        className={`group cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50 ${
+                          focusId === region.id ? 'bg-orange-500/10 ring-1 ring-inset ring-orange-500/40' : ''
+                        }`}
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">

@@ -3,6 +3,8 @@ import { Loader2, Plus, Shield, ShieldCheck, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DashboardLayout } from '../components/DashboardLayout'
 import { AnimatedPage } from '../components/AnimatedPage'
+import { DataTable } from '../components/DataTable'
+import { useTranslation } from 'react-i18next'
 import apiInstance from '../api/axiosInstance'
 
 const ROLE_BADGE_CLASS =
@@ -107,6 +109,7 @@ export function RolesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [roleName, setRoleName] = useState('')
   const [selectedPermissions, setSelectedPermissions] = useState([])
+  const { t } = useTranslation()
   const [toast, setToast] = useState({ message: '', type: 'success' })
 
   const selectedPermissionSet = useMemo(() => new Set(selectedPermissions), [selectedPermissions])
@@ -226,10 +229,8 @@ export function RolesPage() {
         <div className="space-y-6">
         <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Roles & Permissions</h1>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Define access levels by combining role names with permission sets.
-            </p>
+            <h1 className="page-title">{t('roles.pageTitle')}</h1>
+            <p className="page-subtitle">{t('roles.pageSubtitle')}</p>
           </div>
 
           <button
@@ -238,20 +239,22 @@ export function RolesPage() {
             className="btn-primary"
           >
             <Plus className="h-4 w-4" />
-            Create role
+            {t('roles.createRoleBtn')}
           </button>
         </div>
 
         {isLoading ? (
-          <RolesTableSkeleton />
+          <div className="flex h-32 items-center justify-center rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-zinc-900 dark:border-zinc-100" />
+          </div>
         ) : roles.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center dark:border-zinc-700 dark:bg-zinc-900">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-zinc-800">
               <Shield className="h-7 w-7 text-zinc-500" />
             </div>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">No roles created yet</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t('roles.noRoles')}</h2>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Create your first role to start managing access control.
+              {t('roles.noRolesDesc')}
             </p>
             <button
               type="button"
@@ -259,47 +262,46 @@ export function RolesPage() {
               className="mt-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               <Plus className="h-4 w-4" />
-              Create your first role
+              {t('roles.createFirstRole')}
             </button>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-zinc-800/50">
-                  <tr>
-                    <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Role</th>
-                    <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Permissions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {roles.map((role) => (
-                    <tr key={role.id} className="border-b border-gray-200 align-top dark:border-zinc-800">
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <span className={ROLE_BADGE_CLASS}>{displayRoleName(role.name)}</span>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400">{role.name}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {Array.isArray(role.permissions) && role.permissions.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {role.permissions.map((permission) => (
-                              <span key={`${role.id}-${permission.id || permission.name}`} className={PERMISSION_BADGE_CLASS}>
-                                {permission.name}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-zinc-500 dark:text-zinc-400">No permissions assigned</p>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataTable
+            data={roles}
+            columns={[
+              {
+                header: t('roles.roleName'),
+                accessor: 'name',
+                sortable: true,
+                render: (row) => (
+                  <div className="space-y-1">
+                    <span className={ROLE_BADGE_CLASS}>{displayRoleName(row.name)}</span>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">{row.name}</p>
+                  </div>
+                ),
+              },
+              {
+                header: t('roles.permissions'),
+                accessor: 'permissions',
+                sortable: false,
+                render: (row) => (
+                  Array.isArray(row.permissions) && row.permissions.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {row.permissions.map((permission) => (
+                        <span key={`${row.id}-${permission.id || permission.name}`} className={PERMISSION_BADGE_CLASS}>
+                          {permission.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">No permissions assigned</p>
+                  )
+                ),
+              },
+            ]}
+            searchPlaceholder={t('roles.searchPlaceholder')}
+            emptyStateMessage={t('roles.noResults')}
+          />
         )}
       </div>
 

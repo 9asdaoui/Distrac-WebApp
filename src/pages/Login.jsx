@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { AlertCircle, Eye, EyeOff, Loader2, Truck } from 'lucide-react'
@@ -29,9 +29,9 @@ export function Login() {
 
   const validate = () => {
     const errors = {}
-    if (!email) errors.email = 'Email is required'
-    else if (!/\S+@\S+\.\S+/.test(email)) errors.email = 'Enter a valid email address'
-    if (!password) errors.password = 'Password is required'
+    if (!email) errors.email = t('login.emailRequired')
+    else if (!/\S+@\S+\.\S+/.test(email)) errors.email = t('login.emailInvalid')
+    if (!password) errors.password = t('login.passwordRequired')
     return errors
   }
 
@@ -47,17 +47,17 @@ export function Login() {
 
     try {
       await login(email, password)
-      navigate('/dashboard')
+      navigate('/global-map')
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Login failed')
+      setError(err.response?.data?.message || err.message || t('login.loginFailed'))
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 p-0 md:p-4 dark:bg-zinc-900">
-      <div className="grid min-h-screen grid-cols-1 bg-white md:min-h-[calc(100vh-2rem)] md:grid-cols-2 md:rounded-3xl dark:bg-zinc-950">
+    <div className="min-h-screen bg-zinc-100 p-0 md:p-4 dark:bg-zinc-950">
+      <div className="grid min-h-screen grid-cols-1 bg-white md:min-h-[calc(100vh-2rem)] md:grid-cols-2 md:rounded-3xl dark:bg-zinc-900">
 
         {/* Left: form panel */}
         <div
@@ -67,14 +67,14 @@ export function Login() {
             backgroundSize: '24px 24px',
           }}
         >
-          <div className="pointer-events-none absolute inset-0 bg-white/85 dark:bg-zinc-950/85" />
+          <div className="pointer-events-none absolute inset-0 bg-white/85 dark:bg-zinc-900/90" />
 
           <div className="relative z-10 w-full max-w-sm">
 
             {/* Logo */}
             <div className="mb-10 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 shadow-md dark:bg-zinc-100">
-                <Truck className="h-5 w-5 text-white dark:text-zinc-900" strokeWidth={2} />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#ff6b00] shadow-md">
+                <Truck className="h-5 w-5 text-white" strokeWidth={2} />
               </div>
               <div>
                 <p className="text-sm font-bold tracking-widest text-zinc-900 dark:text-zinc-100">DISTRAC</p>
@@ -92,7 +92,7 @@ export function Login() {
 
             {/* Server error banner */}
             {error && (
-              <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/30">
+              <div className="mb-5 alert-error">
                 <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500 dark:text-red-400" />
                 <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
               </div>
@@ -102,7 +102,7 @@ export function Login() {
 
               {/* Email */}
               <div>
-                <label htmlFor="email" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                <label htmlFor="email" className="form-label">
                   {t('login.email')}
                 </label>
                 <input
@@ -112,11 +112,7 @@ export function Login() {
                   onChange={handleEmailChange}
                   disabled={isLoading}
                   autoComplete="email"
-                  className={`w-full rounded-xl border bg-zinc-50 px-4 py-3 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 placeholder:text-zinc-400 focus:bg-white disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-800/70 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:bg-zinc-800 ${
-                    fieldErrors.email
-                      ? 'border-red-400 focus:ring-red-200 dark:border-red-600 dark:focus:ring-red-900/40'
-                      : 'border-zinc-200 hover:border-zinc-300 focus:border-zinc-300 focus:ring-1 focus:ring-zinc-300/30 dark:border-zinc-700 dark:hover:border-zinc-600 dark:focus:border-zinc-500 dark:focus:ring-1 dark:focus:ring-zinc-500/20'
-                  }`}
+                  className={fieldErrors.email ? 'form-input-error' : 'form-input'}
                   placeholder="you@distrac.com"
                 />
                 {fieldErrors.email && (
@@ -129,15 +125,15 @@ export function Login() {
               {/* Password */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="password" className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  <label htmlFor="password" className="form-label">
                     {t('login.password')}
                   </label>
                   <button
                     type="button"
-                    className="text-xs text-zinc-500 transition hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                    className="text-xs text-zinc-500 transition hover:text-[#ff6b00] dark:text-zinc-400 dark:hover:text-[#ff6b00]"
                     tabIndex={-1}
                   >
-                    Forgot password?
+                    {t('login.forgotPassword')}
                   </button>
                 </div>
                 <div className="relative">
@@ -148,19 +144,15 @@ export function Login() {
                     onChange={handlePasswordChange}
                     disabled={isLoading}
                     autoComplete="current-password"
-                    className={`w-full rounded-xl border bg-zinc-50 px-4 py-3 pr-11 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 placeholder:text-zinc-400 focus:bg-white disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-800/70 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:bg-zinc-800 ${
-                      fieldErrors.password
-                        ? 'border-red-400 focus:ring-red-200 dark:border-red-600 dark:focus:ring-red-900/40'
-                        : 'border-zinc-200 hover:border-zinc-300 focus:border-zinc-300 focus:ring-1 focus:ring-zinc-300/30 dark:border-zinc-700 dark:hover:border-zinc-600 dark:focus:border-zinc-500 dark:focus:ring-1 dark:focus:ring-zinc-500/20'
-                    }`}
-                    placeholder="********"
+                    className={`pr-11 ${fieldErrors.password ? 'form-input-error' : 'form-input'}`}
+                    placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-zinc-400 transition hover:text-zinc-600 dark:hover:text-zinc-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-zinc-400 transition hover:text-[#ff6b00] dark:hover:text-[#ff6b00]"
                     tabIndex={-1}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -176,7 +168,7 @@ export function Login() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-zinc-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white dark:hover:shadow-[0_0_15px_rgba(255,255,255,0.15)]"
+                className="btn-primary btn-primary-block mt-1 py-3"
               >
                 {isLoading ? (
                   <>
@@ -191,7 +183,7 @@ export function Login() {
 
             {/* Footer */}
             <p className="mt-10 border-t border-zinc-100 pt-5 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-500">
-              &copy; 2026 DISTRAC. All rights reserved.
+              &copy; 2026 DISTRAC. {t('login.allRightsReserved')}
             </p>
           </div>
         </div>
@@ -210,11 +202,11 @@ export function Login() {
             <div className="absolute bottom-6 left-6 right-6">
               <div className="rounded-2xl border border-white/10 bg-black/30 p-5 backdrop-blur-md">
                 <p className="text-sm font-medium leading-relaxed text-white">
-                  "Every route optimized. Every delivery traced. Every exception resolved — before the client notices."
+                  "{t('login.heroQuote')}"
                 </p>
                 <div className="mt-3 flex items-center gap-2.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20">
-                    <Truck className="h-3.5 w-3.5 text-white" />
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#ff6b00]/30 border border-[#ff6b00]/40">
+                    <Truck className="h-3.5 w-3.5 text-[#ff6b00]" />
                   </div>
                   <span className="text-xs text-zinc-300">DISTRAC Logistics Intelligence</span>
                 </div>

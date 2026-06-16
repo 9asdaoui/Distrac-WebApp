@@ -11,6 +11,8 @@ import {
   Loader2,
   ChevronRight,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { DataTable } from '../../components/DataTable'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
 import { CreateMissionSlideOver } from './CreateMissionSlideOver'
@@ -88,6 +90,7 @@ function MissionsTableSkeleton() {
 
 export function MissionsPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [depots, setDepots] = useState([])
   const [filterDate, setFilterDate] = useState(localToday)
   const [filterDepotId, setFilterDepotId] = useState('')
@@ -179,17 +182,15 @@ export function MissionsPage() {
                 <Truck className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Mission Command Center</h1>
-                <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-                  Today&apos;s operations across your depots — approve, plan, and track in one place.
-                </p>
+                <h1 className="page-title">{t('missions.pageTitle')}</h1>
+                <p className="page-subtitle">{t('missions.pageSubtitle')}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setIsPlanOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                className="btn-secondary"
               >
                 <Sparkles className="h-4 w-4" />
                 Plan missions
@@ -197,10 +198,10 @@ export function MissionsPage() {
               <button
                 type="button"
                 onClick={() => setIsCreateOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
+                className="btn-primary"
               >
                 <Plus className="h-4 w-4" />
-                Create mission
+                {t('missions.createMissionBtn')}
               </button>
             </div>
           </div>
@@ -278,92 +279,100 @@ export function MissionsPage() {
           )}
 
           {isLoading ? (
-            <MissionsTableSkeleton />
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="bg-gray-50 dark:bg-zinc-800/50">
-                    <tr>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Date</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Depot</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Livreur</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Type</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Stops</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {missions.map((mission, index) => {
-                      const tm = MISSION_TYPE_META[mission.mission_type] || {
-                        label: mission.mission_type,
-                        cls: 'bg-zinc-100 text-zinc-600',
-                      }
-                      const sm = MISSION_STATUS_META[mission.status] || {
-                        label: mission.status,
-                        cls: 'bg-zinc-100 text-zinc-600',
-                      }
-                      return (
-                        <motion.tr
-                          key={mission.id}
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.04, duration: 0.2 }}
-                          onClick={() => navigate(`/missions/${mission.id}`)}
-                          className="cursor-pointer border-b border-gray-200 transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
-                        >
-                          <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{mission.date}</td>
-                          <td className="px-6 py-4 text-zinc-600 dark:text-zinc-300">
-                            {mission.depot?.depot_name || '—'}
-                          </td>
-                          <td className="px-6 py-4 text-zinc-600 dark:text-zinc-300">
-                            {mission.livreur?.full_name || '—'}
-                          </td>
-                          <td className="px-6 py-4">
-                            <Badge label={tm.label} cls={tm.cls} />
-                          </td>
-                          <td className="px-6 py-4">
-                            <Badge label={sm.label} cls={sm.cls} />
-                          </td>
-                          <td className="px-6 py-4 text-zinc-500">{mission.stop_count ?? 0}</td>
-                          <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-2">
-                              {mission.status === 'PROPOSED' && (
-                                <button
-                                  type="button"
-                                  title="Quick approve"
-                                  onClick={(e) => quickApprove(e, mission.id)}
-                                  disabled={approvingId === mission.id}
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300"
-                                >
-                                  {approvingId === mission.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <CheckCircle2 className="h-4 w-4" />
-                                  )}
-                                </button>
-                              )}
-                              <ChevronRight className="h-4 w-4 text-zinc-400" />
-                            </div>
-                          </td>
-                        </motion.tr>
-                      )
-                    })}
-                    {missions.length === 0 && (
-                      <tr>
-                        <td colSpan={7} className="px-6 py-14 text-center text-zinc-500 dark:text-zinc-400">
-                          No missions for {filterDate}
-                          {filterDepotId ? ' in the selected depot' : ''}.
-                          {statusPill !== 'ALL' ? ` Try the "${STATUS_PILLS.find((p) => p.id === statusPill)?.label}" filter or ` : ' '}
-                          Use <strong>Plan missions</strong> to generate proposals.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+            <div className="flex h-32 items-center justify-center rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-zinc-900 dark:border-zinc-100" />
             </div>
+          ) : (
+            <DataTable
+              data={missions}
+              columns={[
+                {
+                  header: t('missions.missionRef') || 'Mission Ref',
+                  accessor: 'id',
+                  sortable: true,
+                  render: (row) => (
+                    <span className="font-mono font-medium text-zinc-900 dark:text-zinc-100">
+                      {row.id.slice(0, 8)}
+                    </span>
+                  ),
+                },
+                {
+                  header: t('missions.date'),
+                  accessor: 'date',
+                  sortable: true,
+                },
+                {
+                  header: 'Depot',
+                  accessor: 'depot',
+                  sortable: false,
+                  render: (row) => row.depot?.depot_name || '—',
+                },
+                {
+                  header: t('missions.driver'),
+                  accessor: 'livreur',
+                  sortable: false,
+                  render: (row) => row.livreur?.full_name || '—',
+                },
+                {
+                  header: 'Type',
+                  accessor: 'mission_type',
+                  sortable: true,
+                  render: (row) => {
+                    const tm = MISSION_TYPE_META[row.mission_type] || {
+                      label: row.mission_type,
+                      cls: 'bg-zinc-100 text-zinc-600',
+                    }
+                    return <Badge label={tm.label} cls={tm.cls} />
+                  },
+                },
+                {
+                  header: t('missions.status'),
+                  accessor: 'status',
+                  sortable: true,
+                  render: (row) => {
+                    const sm = MISSION_STATUS_META[row.status] || {
+                      label: row.status,
+                      cls: 'bg-zinc-100 text-zinc-600',
+                    }
+                    return <Badge label={sm.label} cls={sm.cls} />
+                  },
+                },
+                {
+                  header: 'Stops',
+                  accessor: 'stop_count',
+                  sortable: true,
+                  render: (row) => <span className="text-zinc-500">{row.stop_count ?? 0}</span>,
+                },
+                {
+                  header: 'Actions',
+                  accessor: 'actions',
+                  sortable: false,
+                  render: (row) => (
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      {row.status === 'PROPOSED' && (
+                        <button
+                          type="button"
+                          title="Quick approve"
+                          onClick={(e) => quickApprove(e, row.id)}
+                          disabled={approvingId === row.id}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300"
+                        >
+                          {approvingId === row.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
+                        </button>
+                      )}
+                      <ChevronRight className="h-4 w-4 text-zinc-400" />
+                    </div>
+                  ),
+                },
+              ]}
+              searchPlaceholder={t('missions.searchPlaceholder', 'Search missions...')}
+              onRowClick={(row) => navigate(`/missions/${row.id}`)}
+              emptyStateMessage={t('missions.noMissionsDesc')}
+            />
           )}
         </div>
       </AnimatedPage>

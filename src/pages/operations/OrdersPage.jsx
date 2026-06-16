@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ShoppingCart, Search, ChevronDown, Plus, X, CheckCircle2 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
 import { SlideOverPanel } from '../../components/SlideOverPanel'
 import { CreateOrderForm } from '../../components/operations/CreateOrderForm'
+import { DataTable } from '../../components/DataTable'
 import { useAuth } from '../../context/AuthContext'
 import apiInstance from '../../api/axiosInstance'
 
@@ -89,6 +91,7 @@ const ALL_STATUSES = ['PENDING', 'ESCALATED', 'CONFIRMED', 'READY', 'IN_TRANSIT'
 
 export function OrdersPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { hasPermission } = useAuth()
   const canCreateOrder = hasPermission('create_order')
 
@@ -189,22 +192,19 @@ export function OrdersPage() {
                 <ShoppingCart className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Orders</h1>
-                <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">Track client order lifecycle and delivery status.</p>
+                <h1 className="page-title">{t('orders.pageTitle')}</h1>
+                <p className="page-subtitle">{t('orders.pageSubtitle')}</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              {!isLoading && (
-                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{orders.length} orders</span>
-              )}
               {canCreateOrder && (
                 <button
                   type="button"
                   onClick={openCreate}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                  className="btn-primary"
                 >
                   <Plus className="h-4 w-4" />
-                  Add Order
+                  {t('orders.createOrderBtn')}
                 </button>
               )}
             </div>
@@ -212,125 +212,100 @@ export function OrdersPage() {
 
           {/* Filters bar */}
           <div className="flex flex-wrap gap-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-              <input
-                type="text"
-                placeholder="Search order # or client..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-              />
-            </div>
             <div className="relative">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none rounded-lg border border-gray-200 bg-white py-2.5 pl-4 pr-8 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+                onChange={(e) => {
+                  setStatusFilter(e.target.value)
+                  load({ status: e.target.value, sector: sectorFilter })
+                }}
+                className="form-select"
               >
                 <option value="">All Statuses</option>
                 {ALL_STATUSES.map((s) => (
                   <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             </div>
             {sectors.length > 0 && (
               <div className="relative">
                 <select
                   value={sectorFilter}
-                  onChange={(e) => setSectorFilter(e.target.value)}
-                  className="appearance-none rounded-lg border border-gray-200 bg-white py-2.5 pl-4 pr-8 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+                  onChange={(e) => {
+                    setSectorFilter(e.target.value)
+                    load({ status: statusFilter, sector: e.target.value })
+                  }}
+                  className="form-select"
                 >
                   <option value="">All Sectors</option>
                   {sectors.map((s) => (
                     <option key={s.id} value={s.id}>{s.sector_name || s.name}</option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
               </div>
             )}
-            <button
-              type="button"
-              onClick={applyFilters}
-              className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-            >
-              Filter
-            </button>
           </div>
 
           {/* Table */}
           {isLoading ? (
-            <OrdersSkeleton />
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="bg-gray-50 dark:bg-zinc-800/50">
-                    <tr>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Order #</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Client</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Sector</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Total</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Payment</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
-                      <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((order, i) => {
-                      const orderRef = order.order_number || order.order_id || order.id
-                      return (
-                      <motion.tr
-                        key={order.id || orderRef}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.03 }}
-                        onClick={() => navigate('/orders/' + encodeURIComponent(orderRef))}
-                        className="cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
-                      >
-                        <td className="px-6 py-4 font-mono font-medium text-zinc-900 dark:text-zinc-100">
-                          {order.order_number || order.order_id || order.id?.slice(0, 8)}
-                        </td>
-                        <td className="px-6 py-4 text-zinc-700 dark:text-zinc-300">
-                          {order.client?.name || order.client_name || '—'}
-                        </td>
-                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">
-                          {order.client?.sector_name || order.client?.sector_id || '—'}
-                        </td>
-                        <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">
-                          {order.total_amount != null
-                            ? `${Number(order.total_amount).toLocaleString()} DA`
-                            : '—'}
-                        </td>
-                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400 capitalize">
-                          {order.payment_method || '—'}
-                        </td>
-                        <td className="px-6 py-4">
-                          <StatusBadge status={order.status} />
-                        </td>
-                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">
-                          {order.order_date
-                            ? new Date(order.order_date).toLocaleDateString()
-                            : order.created_at
-                            ? new Date(order.created_at).toLocaleDateString()
-                            : '—'}
-                        </td>
-                      </motion.tr>
-                      )
-                    })}
-                    {orders.length === 0 && (
-                      <tr>
-                        <td className="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400" colSpan={7}>
-                          No orders match the current filters.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+            <div className="flex h-32 items-center justify-center rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-zinc-900 dark:border-zinc-100" />
             </div>
+          ) : (
+            <DataTable
+              data={orders}
+              columns={[
+                {
+                  header: t('orders.orderId'),
+                  accessor: 'order_number',
+                  sortable: true,
+                  render: (row) => (
+                    <span className="font-mono font-medium text-zinc-900 dark:text-zinc-100">
+                      {row.order_number || row.order_id || row.id?.slice(0, 8)}
+                    </span>
+                  ),
+                },
+                {
+                  header: t('orders.client'),
+                  accessor: 'client_name',
+                  sortable: true,
+                  render: (row) => row.client?.name || row.client_name || '—',
+                },
+                {
+                  header: 'Sector',
+                  accessor: 'sector',
+                  sortable: false,
+                  render: (row) => row.client?.sector_name || row.client?.sector_id || '—',
+                },
+                {
+                  header: t('orders.amount'),
+                  accessor: 'total_amount',
+                  sortable: true,
+                  render: (row) => row.total_amount != null ? `${Number(row.total_amount).toLocaleString()} DA` : '—',
+                },
+                {
+                  header: 'Payment',
+                  accessor: 'payment_method',
+                  sortable: false,
+                  render: (row) => <span className="capitalize">{row.payment_method || '—'}</span>,
+                },
+                {
+                  header: t('orders.status'),
+                  accessor: 'status',
+                  sortable: true,
+                  render: (row) => <StatusBadge status={row.status} />,
+                },
+                {
+                  header: t('orders.date'),
+                  accessor: 'created_at',
+                  sortable: true,
+                  render: (row) => row.order_date ? new Date(row.order_date).toLocaleDateString() : row.created_at ? new Date(row.created_at).toLocaleDateString() : '—',
+                },
+              ]}
+              searchPlaceholder={t('orders.searchPlaceholder')}
+              onRowClick={(row) => navigate('/orders/' + encodeURIComponent(row.order_number || row.order_id || row.id))}
+              emptyStateMessage={t('orders.noOrdersDesc')}
+            />
           )}
         </div>
       </AnimatedPage>

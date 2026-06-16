@@ -9,7 +9,9 @@ import {
 
 const CLIENT_MODULE = LOGISTICS_MODULES.client
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { AnimatedPage } from '../components/AnimatedPage'
+import { DataTable } from '../components/DataTable'
 import apiInstance from '../api/axiosInstance'
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -158,6 +160,7 @@ function OpeningHoursScheduler({ value, onChange }) {
 
 export function ClientsPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [clients, setClients] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -293,94 +296,89 @@ export function ClientsPage() {
           <div className="flex min-w-0 items-start gap-3">
             <EntityIconBadge moduleKey="client" />
             <div>
-              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{CLIENT_MODULE.plural}</h1>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Client stores linked to the Global Map and order history.
-              </p>
+              <h1 className="page-title">{t('clients.pageTitle')}</h1>
+              <p className="page-subtitle">{t('clients.pageSubtitle')}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="btn-primary"
           >
             <Plus className="h-4 w-4" />
-            Add Client
+            {t('clients.createClientBtn')}
           </button>
         </div>
 
         {/* Data Table */}
         {isLoading ? (
-          <ClientsSkeleton />
-        ) : (
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-zinc-800/50">
-                  <tr>
-                    <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Name & Store</th>
-                    <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Phone</th>
-                    <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">City</th>
-                    <th className="px-6 py-3 font-medium text-zinc-600 dark:text-zinc-300">Status</th>
-                    <th className="w-10 px-2 py-3" aria-hidden />
-                  </tr>
-                </thead>
-                <tbody>
-                  {clients.map((client) => (
-                    <tr
-                      key={client.id}
-                      onClick={() => navigate(CLIENT_MODULE.detailPath(client.id))}
-                      className="group cursor-pointer border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <EntityIconBadge moduleKey="client" size="sm" />
-                          <div>
-                            <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                              {client.store_name || client.client_name}
-                            </p>
-                            {client.store_name && client.client_name && (
-                              <p className="text-xs text-zinc-500 dark:text-zinc-400">{client.client_name}</p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-zinc-700 dark:text-zinc-300">{client.phone || '-'}</td>
-                      <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{client.city || '-'}</td>
-                      <td className="px-6 py-4">
-                        {client.is_active ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                            <Check className="h-3 w-3" />
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                            <XCircle className="h-3 w-3" />
-                            Inactive
-                          </span>
-                        )}
-                        {client.is_verified === false && client.is_active && (
-                          <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                            Unverified
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-2 py-4 text-zinc-300 group-hover:text-zinc-500 dark:text-zinc-600">
-                        <ChevronRight className="h-4 w-4" />
-                      </td>
-                    </tr>
-                  ))}
-                  {clients.length === 0 && (
-                    <tr>
-                      <td className="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400" colSpan={5}>
-                        No clients available.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          <div className="flex h-32 items-center justify-center rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-zinc-900 dark:border-zinc-100" />
           </div>
+        ) : (
+          <DataTable
+            data={clients}
+            columns={[
+              {
+                header: t('clients.clientName'),
+                accessor: 'client_name',
+                sortable: true,
+                render: (row) => (
+                  <div className="flex items-center gap-3">
+                    <EntityIconBadge moduleKey="client" size="sm" />
+                    <div>
+                      <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                        {row.store_name || row.client_name}
+                      </p>
+                      {row.store_name && row.client_name && (
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">{row.client_name}</p>
+                      )}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                header: 'Phone',
+                accessor: 'phone',
+                sortable: false,
+                render: (row) => row.phone || '-',
+              },
+              {
+                header: 'City',
+                accessor: 'city',
+                sortable: true,
+                render: (row) => row.city || '-',
+              },
+              {
+                header: t('clients.status'),
+                accessor: 'is_active',
+                sortable: true,
+                render: (row) => (
+                  <>
+                    {row.is_active ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                        <Check className="h-3 w-3" />
+                        {t('clients.active', 'Active')}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                        <XCircle className="h-3 w-3" />
+                        {t('clients.inactive', 'Inactive')}
+                      </span>
+                    )}
+                    {row.is_verified === false && row.is_active && (
+                      <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                        Unverified
+                      </span>
+                    )}
+                  </>
+                ),
+              },
+            ]}
+            searchPlaceholder={t('clients.searchPlaceholder', 'Search clients...')}
+            onRowClick={(row) => navigate(CLIENT_MODULE.detailPath(row.id))}
+            emptyStateMessage={t('clients.noClientsDesc', 'No clients found')}
+          />
         )}
       </div>
 
