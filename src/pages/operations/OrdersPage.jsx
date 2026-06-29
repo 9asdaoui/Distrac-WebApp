@@ -9,6 +9,7 @@ import { SlideOverPanel } from '../../components/SlideOverPanel'
 import { CreateOrderForm } from '../../components/operations/CreateOrderForm'
 import { DataTable } from '../../components/DataTable'
 import { useAuth } from '../../context/AuthContext'
+import { PERMISSION_GROUPS } from '../../config/permissions'
 import apiInstance from '../../api/axiosInstance'
 
 function Toast({ message, type = 'success', onClose }) {
@@ -93,7 +94,7 @@ export function OrdersPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { hasPermission } = useAuth()
-  const canCreateOrder = hasPermission('create_order')
+  const canCreateOrder = PERMISSION_GROUPS.createOrder.some((perm) => hasPermission(perm))
 
   const [orders, setOrders] = useState([])
   const [sectors, setSectors] = useState([])

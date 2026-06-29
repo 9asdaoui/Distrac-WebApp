@@ -206,7 +206,7 @@ export function useMapViewport({
     abortRef.current = controller
 
     const bounds = paddedBounds(mapInstance)
-    const zoom = mapInstance.getZoom()
+    const zoom = Math.round(mapInstance.getZoom())
     setMapZoom(zoom)
     const layers = layerListForFilter(mapLayerFilter)
     const layersCsv = layers.join(',')

@@ -37,7 +37,7 @@ import { MapEntityLayer } from './MapEntityLayer'
 import { MapPlacePinLayer } from './MapPlacePinLayer'
 import { MapClusterLayer } from './MapClusterLayer'
 import { MapBoundaryLayer } from './MapBoundaryLayer'
-import { iconForEntity } from './mapEntityIcons'
+import { iconForEntity, resolveVehicleMapIcon } from './mapEntityIcons'
 import { mergeLodWithFilter, resolveLodForZoom } from './mapLod'
 import { MAP_FLY_OPTIONS } from './cameraController'
 import {
@@ -399,7 +399,11 @@ export function MapEngine({
     () =>
       vehicleMarkers.map((marker) => ({
         position: marker.position,
-        icon: marker.isLive ? vehicleLiveIcon : vehicleStaticIcon,
+        icon: resolveVehicleMapIcon({
+          isLive: marker.isLive,
+          ignition: marker.ignition,
+          speed: marker.speed,
+        }),
         popupHtml: `<strong>${marker.name || 'Vehicle'}</strong>`,
         onClick: () => handleEntitySelect({ type: 'vehicle', id: marker.id, name: marker.name }),
       })),
@@ -666,17 +670,6 @@ export function MapEngine({
             />
           ))}
 
-        {show.vehicles && vehicleTrail?.length > 1 && (
-          <Polyline
-            positions={vehicleTrail}
-            pathOptions={{
-              color: '#f97316',
-              weight: 3,
-              opacity: 0.85,
-            }}
-          />
-        )}
-
         {show.vehicles &&
           (useImperativeMarkers && !useVehicleCluster ? (
             <MapEntityLayer
@@ -685,7 +678,12 @@ export function MapEngine({
               markers={vehicleMarkers}
               selectedId={selectedElement?.type === 'vehicle' ? selectedElement.id : null}
               getIcon={(item, isSelected) =>
-                iconForEntity('vehicle', { isLive: item.isLive, isSelected })
+                iconForEntity('vehicle', {
+                  isLive: item.isLive,
+                  isSelected,
+                  ignition: item.ignition,
+                  speed: item.speed,
+                })
               }
               onMarkerClick={handleEntitySelect}
               popupHtmlForMarker={(item) => `<strong>${item.name || 'Vehicle'}</strong>`}
@@ -702,7 +700,12 @@ export function MapEngine({
               key={marker.markerKey || `vehicle-${marker.id}`}
               markerKey={marker.markerKey || `vehicle-${marker.id}`}
               position={marker.position}
-              icon={marker.isLive ? vehicleLiveIcon : vehicleStaticIcon}
+              icon={resolveVehicleMapIcon({
+                isLive: marker.isLive,
+                ignition: marker.ignition,
+                speed: marker.speed,
+                isSelected: isSelected('vehicle', marker.id),
+              })}
               isSelected={isSelected('vehicle', marker.id)}
               onMarkerClick={() =>
                 handleEntitySelect({
@@ -722,6 +725,20 @@ export function MapEngine({
           )
           })
           ))}
+
+        {show.vehicles && vehicleTrail?.length > 1 && (
+          <Polyline
+            key={`vehicle-trail-${vehicleTrail.length}`}
+            positions={vehicleTrail}
+            pathOptions={{
+              color: '#f97316',
+              weight: 4,
+              opacity: 0.9,
+              lineCap: 'round',
+              lineJoin: 'round',
+            }}
+          />
+        )}
 
         {activeRegionDraw && (
           <>

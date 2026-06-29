@@ -709,19 +709,26 @@ export function DetailPanel({
   return (
     <div className="flex h-full w-full flex-col">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 border-b border-zinc-800 px-5 py-4">
+      <div
+        className={`flex items-start justify-between gap-3 border-b border-zinc-800 ${
+          isDepot && !isEditing && details ? 'px-5 py-3' : 'px-5 py-4'
+        }`}
+      >
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           {mod && (
             <EntityBreadcrumb
               moduleKey={moduleKey}
               entityName={
-                !isEditing ? getEntityDisplayName(moduleKey, details, selectedElement.name) : undefined
+                isEditing || (isDepot && details)
+                  ? undefined
+                  : getEntityDisplayName(moduleKey, details, selectedElement.name)
               }
               mode="panel"
               onNavigate={onNavigate}
             />
           )}
-          <div className="flex min-w-0 items-start gap-3">
+          {!(isDepot && !isEditing && details) && (
+            <div className="flex min-w-0 items-start gap-3">
             {mod ? (
               <EntityIconBadge moduleKey={moduleKey} size="md" variant="dark" />
             ) : (
@@ -764,6 +771,7 @@ export function DetailPanel({
               )}
             </div>
           </div>
+          )}
         </div>
         <button
           type="button"
@@ -804,7 +812,11 @@ export function DetailPanel({
       )}
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-5 py-5 no-scrollbar">
+      <div
+        className={`flex-1 overflow-y-auto no-scrollbar ${
+          isDepot && !isEditing ? 'px-0 py-0' : 'px-5 py-5'
+        }`}
+      >
         {editOptionsError && isEditing && (isSector || isDepot || isIndustry) && (
           <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5 text-xs text-amber-200">
             <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />

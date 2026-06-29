@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { PERMISSIONS, PERMISSION_GROUPS } from './config/permissions'
 import { Login } from './pages/Login'
 import { Unauthorized } from './pages/Unauthorized'
 import { UsersPage } from './pages/UsersPage'
@@ -56,17 +57,15 @@ function AppRoutes() {
   return (
     <AnimatePresence mode="wait">
     <Routes location={location} key={location.pathname}>
-      {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Protected Routes */}
       <Route path="/dashboard" element={<Navigate to="/global-map" replace />} />
 
       <Route
         path="/users"
         element={
-          <ProtectedRoute requiredPermission="manage_users">
+          <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_USERS}>
             <UsersPage />
           </ProtectedRoute>
         }
@@ -75,7 +74,7 @@ function AppRoutes() {
       <Route
         path="/roles"
         element={
-          <ProtectedRoute requiredPermission="manage_roles">
+          <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_ROLES}>
             <RolesPage />
           </ProtectedRoute>
         }
@@ -84,7 +83,7 @@ function AppRoutes() {
       <Route
         path="/missions"
         element={
-          <ProtectedRoute requiredPermission={['view_missions', 'approve_missions', 'manage_logistics']}>
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.missions}>
             <MissionsPage />
           </ProtectedRoute>
         }
@@ -93,7 +92,7 @@ function AppRoutes() {
       <Route
         path="/industries"
         element={
-          <ProtectedRoute requiredPermission={['view_industries', 'view_logistics_tab', 'manage_logistics']}>
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.industries}>
             <IndustriesPage />
           </ProtectedRoute>
         }
@@ -102,7 +101,7 @@ function AppRoutes() {
       <Route
         path="/depots"
         element={
-          <ProtectedRoute requiredPermission={['view_depots', 'view_logistics_tab', 'manage_logistics']}>
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.depots}>
             <DepotsPage />
           </ProtectedRoute>
         }
@@ -111,7 +110,7 @@ function AppRoutes() {
       <Route
         path="/global-map"
         element={
-          <ProtectedRoute requiredPermission={['view_logistics_tab', 'manage_logistics']}>
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.commandCenter}>
             <DashboardLayout flush>
               <GlobalMapPage />
             </DashboardLayout>
@@ -131,7 +130,7 @@ function AppRoutes() {
         <Route
           path="/settings"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_SETTINGS}>
               <SettingsPage />
             </ProtectedRoute>
           }
@@ -139,7 +138,7 @@ function AppRoutes() {
         <Route
           path="/industries/:id"
           element={
-            <ProtectedRoute requiredPermission={['view_industries', 'view_logistics_tab', 'manage_logistics']}>
+            <ProtectedRoute requiredPermission={PERMISSION_GROUPS.industries}>
               <IndustryDetailsPage />
             </ProtectedRoute>
           }
@@ -147,7 +146,7 @@ function AppRoutes() {
         <Route
           path="/depots/:id"
           element={
-            <ProtectedRoute requiredPermission={['view_depots', 'view_logistics_tab', 'manage_logistics']}>
+            <ProtectedRoute requiredPermission={PERMISSION_GROUPS.depots}>
               <DepotDetailsPage />
             </ProtectedRoute>
           }
@@ -155,7 +154,7 @@ function AppRoutes() {
         <Route
           path="/orders/:id"
           element={
-            <ProtectedRoute requiredPermission="view_orders_tab">
+            <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ORDERS_TAB}>
               <OrderDetailsPage />
             </ProtectedRoute>
           }
@@ -163,7 +162,7 @@ function AppRoutes() {
         <Route
           path="/missions/:id"
           element={
-            <ProtectedRoute requiredPermission={['view_missions', 'approve_missions', 'manage_logistics']}>
+            <ProtectedRoute requiredPermission={PERMISSION_GROUPS.missions}>
               <MissionDetailsPage />
             </ProtectedRoute>
           }
@@ -171,7 +170,7 @@ function AppRoutes() {
         <Route
           path="/sectors/:id"
           element={
-            <ProtectedRoute requiredPermission={['view_sectors', 'view_logistics_tab', 'manage_logistics']}>
+            <ProtectedRoute requiredPermission={PERMISSION_GROUPS.sectors}>
               <SectorDetailsPage />
             </ProtectedRoute>
           }
@@ -179,7 +178,7 @@ function AppRoutes() {
         <Route
           path="/users/:id"
           element={
-            <ProtectedRoute requiredPermission="manage_users">
+            <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_USERS}>
               <UserProfilePage />
             </ProtectedRoute>
           }
@@ -187,7 +186,7 @@ function AppRoutes() {
         <Route
           path="/clients"
           element={
-            <ProtectedRoute requiredPermission={['view_clients_tab', 'manage_logistics']}>
+            <ProtectedRoute requiredPermission={PERMISSION_GROUPS.clients}>
               <ClientsPage />
             </ProtectedRoute>
           }
@@ -195,7 +194,7 @@ function AppRoutes() {
         <Route
           path="/clients/:id"
           element={
-            <ProtectedRoute requiredPermission={['view_logistics_tab', 'manage_logistics']}>
+            <ProtectedRoute requiredPermission={PERMISSION_GROUPS.clientDetail}>
               <ClientDetailsPage />
             </ProtectedRoute>
           }
@@ -205,7 +204,7 @@ function AppRoutes() {
       <Route
         path="/regions"
         element={
-          <ProtectedRoute requiredPermission={['view_regions', 'view_logistics_tab', 'manage_logistics']}>
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.regions}>
             <RegionsPage />
           </ProtectedRoute>
         }
@@ -214,7 +213,7 @@ function AppRoutes() {
       <Route
         path="/sectors"
         element={
-          <ProtectedRoute requiredPermission={['view_sectors', 'view_logistics_tab', 'manage_logistics']}>
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.sectors}>
             <SectorsPage />
           </ProtectedRoute>
         }
@@ -223,7 +222,7 @@ function AppRoutes() {
       <Route
         path="/vehicles"
         element={
-          <ProtectedRoute requiredPermission="manage_logistics">
+          <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_LOGISTICS}>
             <VehiclesPage />
           </ProtectedRoute>
         }
@@ -232,7 +231,7 @@ function AppRoutes() {
       <Route
         path="/products"
         element={
-          <ProtectedRoute requiredPermission={['view_products', 'manage_products']}>
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.catalogProducts}>
             <ProductsPage />
           </ProtectedRoute>
         }
@@ -241,7 +240,7 @@ function AppRoutes() {
       <Route
         path="/brands"
         element={
-          <ProtectedRoute requiredPermission={['view_brands', 'manage_products']}>
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.catalogBrands}>
             <BrandsPage />
           </ProtectedRoute>
         }
@@ -250,7 +249,7 @@ function AppRoutes() {
       <Route
         path="/categories"
         element={
-          <ProtectedRoute requiredPermission={['view_categories', 'manage_products']}>
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.catalogCategories}>
             <CategoriesPage />
           </ProtectedRoute>
         }
@@ -259,7 +258,7 @@ function AppRoutes() {
       <Route
         path="/orders"
         element={
-          <ProtectedRoute requiredPermission="view_orders_tab">
+          <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ORDERS_TAB}>
             <OrdersPage />
           </ProtectedRoute>
         }
@@ -268,7 +267,7 @@ function AppRoutes() {
       <Route
         path="/exceptions"
         element={
-          <ProtectedRoute requiredPermission="manage_exceptions">
+          <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_EXCEPTIONS}>
             <ExceptionsPage />
           </ProtectedRoute>
         }
@@ -277,7 +276,7 @@ function AppRoutes() {
       <Route
         path="/debt"
         element={
-          <ProtectedRoute requiredPermission={['view_reports_tab', 'view_finance']}>
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.debt}>
             <DebtPage />
           </ProtectedRoute>
         }
@@ -286,7 +285,7 @@ function AppRoutes() {
       <Route
         path="/inventory/stock"
         element={
-          <ProtectedRoute requiredPermission="manage_logistics">
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.stock}>
             <StockPage />
           </ProtectedRoute>
         }
@@ -295,7 +294,7 @@ function AppRoutes() {
       <Route
         path="/inventory/stock/requests/:requestId"
         element={
-          <ProtectedRoute requiredPermission="manage_logistics">
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.stock}>
             <StockRequestDetailPage />
           </ProtectedRoute>
         }
@@ -304,7 +303,7 @@ function AppRoutes() {
       <Route
         path="/inventory/stock/:productId"
         element={
-          <ProtectedRoute requiredPermission="manage_logistics">
+          <ProtectedRoute requiredPermission={PERMISSION_GROUPS.stock}>
             <StockProductDetailPage />
           </ProtectedRoute>
         }
@@ -313,7 +312,7 @@ function AppRoutes() {
       <Route
         path="/inventory/proposals"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_PROPOSALS}>
             <ProposalsPage />
           </ProtectedRoute>
         }
@@ -322,13 +321,12 @@ function AppRoutes() {
       <Route
         path="/inventory/fulfillment"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_FULFILLMENT}>
             <FulfillmentPage />
           </ProtectedRoute>
         }
       />
 
-      {/* Fallback */}
       <Route path="/" element={<Navigate to="/global-map" replace />} />
       <Route path="*" element={<Navigate to="/global-map" replace />} />
     </Routes>

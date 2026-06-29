@@ -62,6 +62,7 @@ export function trackedVehiclesChanged(prev, next) {
     const lngDiff = Math.abs(Number(a.lng) - Number(b.lng))
     if (latDiff > 0.00005 || lngDiff > 0.00005) return true
     if (Number(a.speed ?? 0) !== Number(b.speed ?? 0)) return true
+    if (Boolean(a.ignition) !== Boolean(b.ignition)) return true
   }
   return false
 }

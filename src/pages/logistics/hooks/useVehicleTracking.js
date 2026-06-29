@@ -7,11 +7,30 @@ import {
   mergeVehiclePositionDeltas,
   trackedVehiclesChanged,
   VEHICLE_POSITION_POLL_MS,
+  gpsTrailPointsNear,
 } from './mapUtils'
 import { capTrailRing } from './useSmoothVehicleTrail'
 
-export const VEHICLE_TRAIL_POLL_MS = 60_000
+export const VEHICLE_TRAIL_POLL_MS = VEHICLE_POSITION_POLL_MS
 const TRAIL_HISTORY_HOURS = 6
+
+function appendTrailPoint(setVehicleTrail, lat, lng) {
+  const point = [Number(lat), Number(lng)]
+  if (!hasGpsCoordinates(point[0], point[1])) return
+
+  setVehicleTrail((prev) => {
+    const last = prev?.[prev.length - 1]
+    if (last && gpsTrailPointsNear(last, point)) return prev
+    return capTrailRing([...(prev || []), point])
+  })
+}
+
+function syncTrailFromTrackedRow(trailVehicleIdRef, setVehicleTrail, row) {
+  if (!row?.id || row.id !== trailVehicleIdRef.current) return
+  const { lat, lng } = row.position || {}
+  if (lat == null || lng == null) return
+  appendTrailPoint(setVehicleTrail, lat, lng)
+}
 
 export function useVehicleTracking({
   mapLayerFilter,
@@ -23,6 +42,7 @@ export function useVehicleTracking({
   const [trackedVehicles, setTrackedVehicles] = useState([])
   const [vehicleTrail, setVehicleTrail] = useState([])
   const [followVehicleId, setFollowVehicleId] = useState(null)
+  const trailVehicleId = selectedVehicleId || followVehicleId || null
   const trackedVehiclesRef = useRef([])
   const lastPositionSyncAtRef = useRef(null)
   const lastTrailSyncAtRef = useRef(null)
@@ -48,6 +68,9 @@ export function useVehicleTracking({
         setTrackedVehicles(merged)
         emitMapEvent(MAP_EVENTS.VEHICLE_POSITION, { positions: next, merged })
         recordVehiclePollCommit?.()
+        for (const row of next) {
+          syncTrailFromTrackedRow(trailVehicleIdRef, setVehicleTrail, row)
+        }
       } else {
         if (!trackedVehiclesChanged(trackedVehiclesRef.current, next)) return
         trackedVehiclesRef.current = next
@@ -74,6 +97,9 @@ export function useVehicleTracking({
     trackedVehiclesRef.current = merged
     setTrackedVehicles(merged)
     emitMapEvent(MAP_EVENTS.VEHICLE_POSITION, { positions: deltas, merged })
+    for (const row of deltas) {
+      syncTrailFromTrackedRow(trailVehicleIdRef, setVehicleTrail, row)
+    }
   }, [])
 
   const fetchVehicleTrail = useCallback(
@@ -268,6 +294,9 @@ export function useVehicleTracking({
             setTrackedVehicles(merged)
             emitMapEvent(MAP_EVENTS.VEHICLE_POSITION, { positions: next, merged })
             recordVehiclePollCommit?.()
+            for (const row of next) {
+              syncTrailFromTrackedRow(trailVehicleIdRef, setVehicleTrail, row)
+            }
 
             if (payload?.since) lastPositionSyncAtRef.current = payload.since
           }
@@ -310,25 +339,39 @@ export function useVehicleTracking({
       trailPollRef.current = null
     }
 
-    if (!selectedVehicleId || !showVehicles) {
+    if (!trailVehicleId || !showVehicles) {
       setVehicleTrail([])
       lastTrailSyncAtRef.current = null
       trailVehicleIdRef.current = null
       return undefined
     }
 
+    if (trailVehicleIdRef.current !== trailVehicleId) {
+      setVehicleTrail([])
+      lastTrailSyncAtRef.current = null
+      trailVehicleIdRef.current = trailVehicleId
+    }
+
     const controller = new AbortController()
-    const load = () =>
-      fetchVehicleTrail(selectedVehicleId, {
+    const load = () => {
+      const incremental = Boolean(
+        lastTrailSyncAtRef.current && trailVehicleIdRef.current === trailVehicleId,
+      )
+      return fetchVehicleTrail(trailVehicleId, {
         signal: controller.signal,
-        incremental: true,
+        incremental,
       })
+    }
 
-    lastTrailSyncAtRef.current = null
-    trailVehicleIdRef.current = null
-    fetchVehicleTrail(selectedVehicleId, { signal: controller.signal, incremental: false })
+    fetchVehicleTrail(trailVehicleId, { signal: controller.signal, incremental: false })
 
-    trailPollRef.current = setInterval(load, VEHICLE_TRAIL_POLL_MS)
+    trailPollRef.current = setInterval(() => {
+      load().catch((err) => {
+        if (err.name !== 'CanceledError') {
+          console.warn('[useVehicleTracking] trail poll failed:', err?.message || err)
+        }
+      })
+    }, VEHICLE_TRAIL_POLL_MS)
 
     return () => {
       controller.abort()
@@ -337,7 +380,7 @@ export function useVehicleTracking({
         trailPollRef.current = null
       }
     }
-  }, [selectedVehicleId, mapLayerFilter, fetchVehicleTrail])
+  }, [trailVehicleId, mapLayerFilter, fetchVehicleTrail])
 
   return {
     trackedVehicles,

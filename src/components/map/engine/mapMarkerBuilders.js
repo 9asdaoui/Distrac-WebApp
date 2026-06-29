@@ -88,6 +88,7 @@ export function buildVehicleMarkers(vehicles, depots, vehiclePositionById = {}) 
           isActive: vehicle.is_active !== false,
           isLive: true,
           speed: live?.speed,
+          ignition: live?.ignition,
           gpsTime: live?.gps_time,
           position: [liveLat, liveLng],
           markerKey: `vehicle-${vehicle.id}`,

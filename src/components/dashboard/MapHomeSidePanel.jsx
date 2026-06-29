@@ -20,7 +20,7 @@ export function MapHomeSidePanel() {
           <p className="text-[11px] uppercase tracking-wider text-zinc-500">{t('commandCenter.overview')}</p>
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 scrollbar-thin">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 no-scrollbar">
         <ExecutiveHomeContent compact showIntro={false} variant="dark" />
       </div>
     </div>

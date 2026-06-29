@@ -175,6 +175,22 @@ export function VehicleDetailsContent({
                 <span className="text-zinc-500">{t('commandCenter.vehicleDetails.heading')}</span>
                 <span className="text-zinc-300">{headingLabel(live.heading)}</span>
               </div>
+              {live.ignition != null && (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">{t('commandCenter.vehicleDetails.ignition')}</span>
+                  <span
+                    className={
+                      live.ignition
+                        ? 'font-medium text-emerald-400'
+                        : 'font-medium text-zinc-400'
+                    }
+                  >
+                    {live.ignition
+                      ? t('commandCenter.vehicleDetails.ignitionOn')
+                      : t('commandCenter.vehicleDetails.ignitionOff')}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center justify-between gap-3">
                 <span className="text-zinc-500">{t('commandCenter.vehicleDetails.lastGps')}</span>
                 <span className="text-zinc-300">{formatRelativeTime(live.gps_time)}</span>

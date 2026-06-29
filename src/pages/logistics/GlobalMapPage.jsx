@@ -242,8 +242,7 @@ export function GlobalMapPage() {
     [regions, sectors, industries, depots, clients, vehicles, vehiclePositionById],
   )
 
-  const selectedVehicleIdForTrail =
-    selectedElement?.type === 'vehicle' ? selectedElement.id : null
+  const selectedVehicleIdForTrail = selectedVehicleId || followVehicleId || null
 
   const displayedVehicleTrail = useSmoothVehicleTrail(
     vehicleTrail,

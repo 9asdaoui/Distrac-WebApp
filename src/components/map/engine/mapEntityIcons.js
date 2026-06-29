@@ -29,6 +29,24 @@ export const vehicleLiveMapIcon = L.divIcon({
   popupAnchor: [0, -16],
 })
 
+/** Live GPS, engine on, not moving (idling). */
+export const vehicleIdleEngineMapIcon = L.divIcon({
+  className: 'global-map-marker',
+  html: `<div class="w-7 h-7 flex items-center justify-center rounded-full border-2 border-zinc-900 shadow-md bg-emerald-500 text-white">${TRUCK_SVG}</div>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+  popupAnchor: [0, -16],
+})
+
+/** Live GPS, engine off (parked). */
+export const vehicleEngineOffMapIcon = L.divIcon({
+  className: 'global-map-marker',
+  html: `<div class="w-7 h-7 flex items-center justify-center rounded-full border-2 border-zinc-900 shadow-md bg-slate-500 text-white">${TRUCK_SVG}</div>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+  popupAnchor: [0, -16],
+})
+
 export const vehicleStaticMapIcon = L.divIcon({
   className: 'global-map-marker',
   html: `<div class="w-7 h-7 flex items-center justify-center rounded-full border-2 border-zinc-900 shadow-md bg-zinc-500 text-white">${TRUCK_SVG}</div>`,
@@ -45,13 +63,25 @@ export const vehicleLiveMapIconSelected = L.divIcon({
   popupAnchor: [0, -18],
 })
 
-export function iconForEntity(entityType, { isLive = false, isSelected = false } = {}) {
+export function resolveVehicleMapIcon({ isLive = false, isSelected = false, ignition = null, speed = null } = {}) {
+  if (isSelected) return vehicleLiveMapIconSelected
+  if (!isLive) return vehicleStaticMapIcon
+
+  const moving = Number(speed) > 0
+  if (ignition === true && !moving) return vehicleIdleEngineMapIcon
+  if (ignition === false && !moving) return vehicleEngineOffMapIcon
+  return vehicleLiveMapIcon
+}
+
+export function iconForEntity(
+  entityType,
+  { isLive = false, isSelected = false, ignition = null, speed = null } = {},
+) {
   if (entityType === 'client') {
     return isSelected ? clientMapIconSelected : clientMapIcon
   }
   if (entityType === 'vehicle') {
-    if (isSelected) return vehicleLiveMapIconSelected
-    return isLive ? vehicleLiveMapIcon : vehicleStaticMapIcon
+    return resolveVehicleMapIcon({ isLive, isSelected, ignition, speed })
   }
   return clientMapIcon
 }

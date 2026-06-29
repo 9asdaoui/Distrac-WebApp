@@ -3,13 +3,15 @@ import apiInstance from '../../api/axiosInstance'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
-  MapPin,
   Banknote,
   Box,
+  MapPin,
   Package,
   PackageOpen,
   Users,
   Route,
+  Truck,
+  Warehouse,
 } from 'lucide-react'
 import { LocationMap, hasGpsCoordinates } from '../LocationMap'
 import { LocationMapEmpty } from '../LocationMapEmpty'
@@ -17,8 +19,6 @@ import {
   LOGISTICS_MODULES,
   EntityBreadcrumb,
   EntityConnectedActions,
-  EntityGpsStrip,
-  EntityIconBadge,
   EntityMapLink,
   EntityStatusBadge,
 } from './logisticsModuleUi'
@@ -26,13 +26,306 @@ import {
 const DEPOT_MODULE = LOGISTICS_MODULES.depot
 
 const TABS = [
-  { id: 'stock', label: 'Stock' },
-  { id: 'livreurs', label: 'Assigned Livreurs' },
-  { id: 'missions', label: 'Missions' },
-  { id: 'vendor_loads', label: 'Vendor Loads' },
+  { id: 'stock', label: 'Stock', shortLabel: 'Stock', icon: Package },
+  { id: 'livreurs', label: 'Assigned Livreurs', shortLabel: 'Livreurs', icon: Users },
+  { id: 'missions', label: 'Missions', shortLabel: 'Missions', icon: Route },
+  { id: 'vendor_loads', label: 'Vendor Loads', shortLabel: 'Vendor Loads', icon: Truck },
 ]
 
-function VendorLoadRequestsPanel({ compact = false }) {
+function getTabCount(tabId, depot) {
+  if (!depot) return null
+  if (tabId === 'stock') return depot.stock?.length ?? 0
+  if (tabId === 'livreurs') return depot.livreurs?.length ?? 0
+  if (tabId === 'missions') return depot.missions?.length ?? 0
+  return null
+}
+
+function DepotProfileHero({ depot, compact = false }) {
+  return (
+    <section
+      className={
+        compact
+          ? 'relative overflow-hidden border-b border-zinc-800 bg-zinc-950'
+          : 'relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900'
+      }
+    >
+      <div
+        className={`relative overflow-hidden ${
+          compact ? 'h-32' : 'h-40'
+        } bg-gradient-to-br from-blue-600/50 via-indigo-700/35 to-zinc-950`}
+      >
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.15) 0, transparent 45%), radial-gradient(circle at 80% 0%, rgba(59,130,246,0.35) 0, transparent 40%)',
+          }}
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_40%,rgba(9,9,11,0.85)_100%)]" />
+      </div>
+
+      <div className={`relative ${compact ? 'px-5 pb-5' : 'px-6 pb-6'}`}>
+        <div className={`-mt-12 flex items-end gap-4 ${compact ? 'mb-3' : 'mb-4'}`}>
+          <div
+            className={`flex shrink-0 items-center justify-center rounded-2xl border-4 bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-900/30 ${
+              compact
+                ? 'h-[4.5rem] w-[4.5rem] border-zinc-950'
+                : 'h-20 w-20 border-white dark:border-zinc-900'
+            }`}
+          >
+            <Warehouse className={`text-white ${compact ? 'h-8 w-8' : 'h-9 w-9'}`} strokeWidth={1.75} />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2
+              className={`font-semibold tracking-tight ${
+                compact
+                  ? 'text-xl leading-tight text-zinc-100'
+                  : 'text-2xl text-zinc-900 dark:text-zinc-100'
+              }`}
+            >
+              {depot.depot_name}
+            </h2>
+            {depot.is_central && (
+              <span
+                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                  compact
+                    ? 'border-amber-500/40 bg-amber-500/15 text-amber-200'
+                    : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200'
+                }`}
+              >
+                Central
+              </span>
+            )}
+            <EntityStatusBadge isActive={depot.is_active} compact />
+          </div>
+
+          <p
+            className={`flex items-start gap-2 leading-relaxed ${
+              compact ? 'text-sm text-zinc-300' : 'text-base text-zinc-600 dark:text-zinc-300'
+            }`}
+          >
+            <MapPin
+              className={`mt-0.5 h-4 w-4 shrink-0 ${compact ? 'text-blue-400/80' : 'text-blue-500 dark:text-blue-400/80'}`}
+            />
+            <span>{depot.address?.trim() || 'No address provided.'}</span>
+          </p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function DepotTabNav({ activeTab, onChange, depot, compact = false }) {
+  return (
+    <nav
+      className={`rounded-xl border p-1.5 ${
+        compact
+          ? 'border-zinc-800/90 bg-zinc-900/70'
+          : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/60'
+      }`}
+      aria-label="Depot sections"
+    >
+      <div className={`grid gap-1.5 ${compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'}`}>
+        {TABS.map((tab) => {
+          const Icon = tab.icon
+          const isActive = activeTab === tab.id
+          const count = getTabCount(tab.id, depot)
+          const label = compact ? tab.shortLabel : tab.label
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onChange(tab.id)}
+              className={`group relative flex min-h-[3.25rem] flex-col items-start justify-center rounded-lg px-3 py-2.5 text-left transition-all ${
+                isActive
+                  ? compact
+                    ? 'bg-zinc-800 text-zinc-50 shadow-md ring-1 ring-blue-500/50'
+                    : 'bg-white text-zinc-900 shadow-sm ring-1 ring-blue-500/40 dark:bg-zinc-800 dark:text-zinc-50'
+                  : compact
+                    ? 'text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200'
+                    : 'text-zinc-500 hover:bg-white/80 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200'
+              }`}
+            >
+              <div className="flex w-full items-center justify-between gap-2">
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                    isActive
+                      ? 'bg-blue-500/20 text-blue-300'
+                      : 'bg-zinc-800/50 text-zinc-500 group-hover:text-zinc-300 dark:bg-zinc-800 dark:text-zinc-400'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+                </span>
+                {count != null && (
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                      isActive
+                        ? 'bg-blue-500/20 text-blue-200'
+                        : 'bg-zinc-800 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                )}
+              </div>
+              <span className={`mt-1.5 font-medium leading-tight ${compact ? 'text-xs' : 'text-sm'}`}>
+                {label}
+              </span>
+              {isActive && (
+                <span className="absolute bottom-1 left-3 right-3 h-0.5 rounded-full bg-blue-500/80" />
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}
+
+function KpiStat({ icon: Icon, label, value, hint, compact = false }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex items-start gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+          <Icon className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />
+        </div>
+        <div className="min-w-0">
+          <p className={`font-medium text-zinc-500 dark:text-zinc-400 ${compact ? 'text-[10px]' : 'text-xs'}`}>
+            {label}
+          </p>
+          <p className={`mt-0.5 font-semibold text-zinc-900 dark:text-zinc-100 ${compact ? 'text-sm' : 'text-base'}`}>
+            {value}
+          </p>
+          {hint ? (
+            <p className="mt-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">{hint}</p>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TabKpiRow({ children, compact = false }) {
+  return (
+    <div className={`mb-3 grid gap-2 ${compact ? 'grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
+      {children}
+    </div>
+  )
+}
+
+function StockTabKpis({ depot, compact = false }) {
+  const capacity = depot.capacity_usage || {}
+  const stock = depot.stock || []
+  const stockCount = stock.length
+  const lowStockCount = stock.filter((row) => {
+    const quantity = Number(row.quantity || 0)
+    const minQty = Number(row.min_quantity || 0)
+    return quantity <= minQty
+  }).length
+
+  return (
+    <TabKpiRow compact={compact}>
+      <CapacityCard
+        icon={Banknote}
+        label="Price Capacity"
+        used={capacity.used_price_capacity}
+        total={capacity.total_price_capacity}
+        usedPercentage={capacity.price_used_percentage}
+        formatValue={formatDa}
+        compact={compact}
+      />
+      <CapacityCard
+        icon={Box}
+        label="Volume Capacity"
+        used={capacity.used_volume_capacity}
+        total={capacity.total_volume_capacity}
+        usedPercentage={capacity.volume_used_percentage}
+        formatValue={formatVolume}
+        compact={compact}
+      />
+      <KpiStat icon={Package} label="Unique Products" value={stockCount.toLocaleString()} hint="SKUs in stock" compact={compact} />
+      <KpiStat
+        icon={PackageOpen}
+        label="Low Stock"
+        value={lowStockCount.toLocaleString()}
+        hint={lowStockCount > 0 ? 'At or below minimum' : 'All above minimum'}
+        compact={compact}
+      />
+    </TabKpiRow>
+  )
+}
+
+function LivreursTabKpis({ livreurs, compact = false }) {
+  const list = livreurs || []
+  const activeCount = list.filter((row) => row.status === 'active').length
+  const withVehicleCount = list.filter((row) => row.vehicle).length
+
+  return (
+    <TabKpiRow compact={compact}>
+      <KpiStat icon={Users} label="Assigned" value={list.length.toLocaleString()} compact={compact} />
+      <KpiStat icon={Users} label="Active" value={activeCount.toLocaleString()} compact={compact} />
+      <KpiStat
+        icon={Truck}
+        label="With Vehicle"
+        value={withVehicleCount.toLocaleString()}
+        hint="Checked-in vehicle linked"
+        compact={compact}
+      />
+      <KpiStat
+        icon={Users}
+        label="Unassigned Vehicle"
+        value={Math.max(list.length - withVehicleCount, 0).toLocaleString()}
+        compact={compact}
+      />
+    </TabKpiRow>
+  )
+}
+
+function MissionsTabKpis({ missions, compact = false }) {
+  const list = missions || []
+  const inProgress = list.filter((row) => row.status === 'IN_PROGRESS').length
+  const completed = list.filter((row) => row.status === 'COMPLETED').length
+  const scheduled = list.filter((row) => ['PROPOSED', 'APPROVED'].includes(row.status)).length
+
+  return (
+    <TabKpiRow compact={compact}>
+      <KpiStat icon={Route} label="Total Missions" value={list.length.toLocaleString()} compact={compact} />
+      <KpiStat icon={Route} label="In Progress" value={inProgress.toLocaleString()} compact={compact} />
+      <KpiStat icon={Route} label="Completed" value={completed.toLocaleString()} compact={compact} />
+      <KpiStat icon={Route} label="Scheduled" value={scheduled.toLocaleString()} hint="Proposed or approved" compact={compact} />
+    </TabKpiRow>
+  )
+}
+
+function VendorLoadsTabKpis({ requests, compact = false }) {
+  const totalValue = requests.reduce((sum, row) => sum + Number(row.total_value || 0), 0)
+  const totalWeight = requests.reduce((sum, row) => sum + Number(row.total_weight_kg || 0), 0)
+
+  return (
+    <TabKpiRow compact={compact}>
+      <KpiStat icon={Package} label="Pending" value={requests.length.toLocaleString()} compact={compact} />
+      <KpiStat icon={Banknote} label="Total Value" value={formatDa(totalValue)} compact={compact} />
+      <KpiStat
+        icon={Box}
+        label="Total Weight"
+        value={`${totalWeight.toLocaleString()} kg`}
+        compact={compact}
+      />
+      <KpiStat
+        icon={Users}
+        label="Vendors"
+        value={new Set(requests.map((row) => row.vendor_id).filter(Boolean)).size.toLocaleString()}
+        compact={compact}
+      />
+    </TabKpiRow>
+  )
+}
+
+function VendorLoadRequestsPanel({ depotId, compact = false }) {
   const [requests, setRequests] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -50,7 +343,11 @@ function VendorLoadRequestsPanel({ compact = false }) {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [depotId])
+
+  const filteredRequests = depotId
+    ? requests.filter((row) => String(row.depot_id) === String(depotId))
+    : requests
 
   const handleReview = async (requestId, action) => {
     try {
@@ -62,44 +359,56 @@ function VendorLoadRequestsPanel({ compact = false }) {
   }
 
   if (isLoading) {
-    return <div className="h-24 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
-  }
-
-  if (requests.length === 0) {
-    return <p className="text-sm text-zinc-500">No pending vendor load requests.</p>
+    return (
+      <div className="space-y-3">
+        <div className={`grid gap-2 ${compact ? 'grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+          ))}
+        </div>
+        <div className="h-24 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+      </div>
+    )
   }
 
   const cellPad = compact ? 'px-3 py-2.5' : 'px-6 py-4'
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-800">
-      <table className="min-w-full text-left text-sm">
-        <thead className="bg-gray-50 dark:bg-zinc-800/50">
-          <tr>
-            <th className={`${cellPad} font-medium text-zinc-600`}>Vendor</th>
-            <th className={`${cellPad} font-medium text-zinc-600`}>Date</th>
-            <th className={`${cellPad} font-medium text-zinc-600`}>Value</th>
-            <th className={`${cellPad} font-medium text-zinc-600`}>Weight (kg)</th>
-            <th className={`${cellPad} font-medium text-zinc-600`}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {requests.map((request) => (
-            <tr key={request.id} className="border-t border-gray-200 dark:border-zinc-800">
-              <td className={cellPad}>{request.vendor?.full_name || '—'}</td>
-              <td className={cellPad}>{request.mission_date || '—'}</td>
-              <td className={cellPad}>{Number(request.total_value || 0).toLocaleString()} MAD</td>
-              <td className={cellPad}>{Number(request.total_weight_kg || 0).toLocaleString()}</td>
-              <td className={cellPad}>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => handleReview(request.id, 'approve')} className="rounded-lg border border-emerald-200 px-2 py-1 text-xs font-semibold text-emerald-700">Approve</button>
-                  <button type="button" onClick={() => handleReview(request.id, 'reject')} className="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700">Reject</button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-3">
+      <VendorLoadsTabKpis requests={filteredRequests} compact={compact} />
+      {filteredRequests.length === 0 ? (
+        <p className="text-sm text-zinc-500">No pending vendor load requests.</p>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-800">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-gray-50 dark:bg-zinc-800/50">
+              <tr>
+                <th className={`${cellPad} font-medium text-zinc-600`}>Vendor</th>
+                <th className={`${cellPad} font-medium text-zinc-600`}>Date</th>
+                <th className={`${cellPad} font-medium text-zinc-600`}>Value</th>
+                <th className={`${cellPad} font-medium text-zinc-600`}>Weight (kg)</th>
+                <th className={`${cellPad} font-medium text-zinc-600`}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRequests.map((request) => (
+                <tr key={request.id} className="border-t border-gray-200 dark:border-zinc-800">
+                  <td className={cellPad}>{request.vendor?.full_name || '—'}</td>
+                  <td className={cellPad}>{request.mission_date || '—'}</td>
+                  <td className={cellPad}>{Number(request.total_value || 0).toLocaleString()} MAD</td>
+                  <td className={cellPad}>{Number(request.total_weight_kg || 0).toLocaleString()}</td>
+                  <td className={cellPad}>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => handleReview(request.id, 'approve')} className="rounded-lg border border-emerald-200 px-2 py-1 text-xs font-semibold text-emerald-700">Approve</button>
+                      <button type="button" onClick={() => handleReview(request.id, 'reject')} className="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700">Reject</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
@@ -114,12 +423,48 @@ function formatVolume(value) {
 }
 
 function DepotDetailsSkeleton({ compact = false }) {
+  if (compact) {
+    return (
+      <div className="space-y-4">
+        <div className="border-b border-zinc-800 bg-zinc-950">
+          <div className="h-32 animate-pulse bg-zinc-900" />
+          <div className="space-y-3 px-5 pb-5">
+            <div className="-mt-12 h-[4.5rem] w-[4.5rem] animate-pulse rounded-2xl bg-zinc-800" />
+            <div className="h-6 w-3/4 animate-pulse rounded bg-zinc-800" />
+            <div className="h-4 w-full animate-pulse rounded bg-zinc-800/80" />
+          </div>
+        </div>
+        <div className="px-5">
+          <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-zinc-800 p-1.5">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-14 animate-pulse rounded-lg bg-zinc-800/80" />
+            ))}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-16 animate-pulse rounded-xl bg-zinc-800/80" />
+            ))}
+          </div>
+          <div className="mt-4 h-40 animate-pulse rounded-xl bg-zinc-800/80" />
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className={compact ? 'space-y-4' : 'space-y-6'}>
+    <div className="space-y-6">
       <div className="h-8 w-48 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" />
-      <div className={`grid gap-3 ${compact ? 'grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
+      <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
+        <div className="h-40 animate-pulse bg-zinc-200 dark:bg-zinc-800" />
+        <div className="space-y-3 p-6">
+          <div className="h-20 w-20 animate-pulse rounded-2xl bg-zinc-200 dark:bg-zinc-700" />
+          <div className="h-7 w-2/3 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+          <div className="h-4 w-full animate-pulse rounded bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-zinc-200 p-1.5 dark:border-zinc-800">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-24 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
+          <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-200 dark:bg-zinc-800" />
         ))}
       </div>
       <div className="h-48 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-800" />
@@ -381,36 +726,11 @@ export function DepotDetailsContent({
     )
   }
 
-  const capacity = depot.capacity_usage || {}
-  const stockCount = depot.stock?.length ?? 0
-
   return (
-    <div className={compact ? 'space-y-4' : 'space-y-8'}>
+    <div className={compact ? '' : 'space-y-8'}>
       {layout === 'page' && (
         <header className="space-y-4">
           <EntityBreadcrumb moduleKey="depot" entityName={depot.depot_name} mode="page" />
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex min-w-0 gap-3">
-              <EntityIconBadge moduleKey="depot" size="lg" />
-              <div className="min-w-0 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                    {depot.depot_name}
-                  </h1>
-                  {depot.is_central && (
-                    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-                      Central
-                    </span>
-                  )}
-                  <EntityStatusBadge isActive={depot.is_active} />
-                </div>
-                {depot.address && (
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">{depot.address}</p>
-                )}
-              </div>
-            </div>
-            <EntityConnectedActions moduleKey="depot" entityId={depot.id} layout="page" />
-          </div>
           <Link
             to={backTo}
             className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -421,68 +741,46 @@ export function DepotDetailsContent({
         </header>
       )}
 
-      {layout === 'panel' && (
-        <div className="space-y-2">
-          {depot.is_central && (
-            <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-300">
-              Central Depot
-            </span>
+      <div className={compact ? 'space-y-4' : 'space-y-6'}>
+        <DepotProfileHero depot={depot} compact={compact} />
+
+        <div className={compact ? 'space-y-4 px-5 pb-5' : 'space-y-6'}>
+          {layout === 'page' && (
+            <div className="flex justify-end">
+              <EntityConnectedActions moduleKey="depot" entityId={depot.id} layout="page" />
+            </div>
           )}
-          <EntityGpsStrip moduleKey="depot" record={depot} layout="panel" extra={depot.address || 'No address'} />
-        </div>
-      )}
 
-      <div className={`grid gap-3 ${compact ? 'grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
-              <MapPin className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Location</p>
-              <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{depot.address || '—'}</p>
-            </div>
-          </div>
-        </div>
+          <DepotTabNav activeTab={activeTab} onChange={setActiveTab} depot={depot} compact={compact} />
 
-        <CapacityCard
-          icon={Banknote}
-          label="Price Capacity"
-          used={capacity.used_price_capacity}
-          total={capacity.total_price_capacity}
-          usedPercentage={capacity.price_used_percentage}
-          formatValue={formatDa}
-          compact={compact}
-        />
-
-        <CapacityCard
-          icon={Box}
-          label="Volume Capacity"
-          used={capacity.used_volume_capacity}
-          total={capacity.total_volume_capacity}
-          usedPercentage={capacity.volume_used_percentage}
-          formatValue={formatVolume}
-          compact={compact}
-        />
-
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
-              <Package className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Unique Products</p>
-              <p className="mt-1 text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                {stockCount.toLocaleString()}
-              </p>
-              <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">SKUs in stock</p>
-            </div>
+          <div className={compact ? '' : ''}>
+            {activeTab === 'stock' && (
+              <>
+                <StockTabKpis depot={depot} compact={compact} />
+                <StockTable stock={depot.stock} compact={compact} />
+              </>
+            )}
+            {activeTab === 'livreurs' && (
+              <>
+                <LivreursTabKpis livreurs={depot.livreurs} compact={compact} />
+                <LivreursTable livreurs={depot.livreurs} compact={compact} />
+              </>
+            )}
+            {activeTab === 'missions' && (
+              <>
+                <MissionsTabKpis missions={depot.missions} compact={compact} />
+                <MissionsTable missions={depot.missions} compact={compact} />
+              </>
+            )}
+            {activeTab === 'vendor_loads' && (
+              <VendorLoadRequestsPanel depotId={depot.id} compact={compact} />
+            )}
           </div>
         </div>
       </div>
 
       {showMap && (
-        <section>
+        <section className={compact ? 'px-5' : ''}>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Location Map</h2>
             {depot.id && <EntityMapLink moduleKey="depot" entityId={depot.id} className="text-blue-600 dark:text-blue-400" />}
@@ -499,35 +797,6 @@ export function DepotDetailsContent({
           )}
         </section>
       )}
-
-      <div>
-        <nav className={`flex gap-4 border-b border-gray-200 dark:border-zinc-800 ${compact ? '' : 'gap-8'}`}>
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`relative pb-2.5 text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'text-zinc-900 dark:text-zinc-100'
-                  : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
-              }`}
-            >
-              {tab.label}
-              {activeTab === tab.id && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-zinc-900 dark:bg-zinc-100" />
-              )}
-            </button>
-          ))}
-        </nav>
-
-        <div className={compact ? 'mt-4' : 'mt-6'}>
-          {activeTab === 'stock' && <StockTable stock={depot.stock} compact={compact} />}
-          {activeTab === 'livreurs' && <LivreursTable livreurs={depot.livreurs} compact={compact} />}
-          {activeTab === 'missions' && <MissionsTable missions={depot.missions} compact={compact} />}
-          {activeTab === 'vendor_loads' && <VendorLoadRequestsPanel compact={compact} />}
-        </div>
-      </div>
     </div>
   )
 }

@@ -13,6 +13,7 @@ import {
 } from '../../components/inventory/StockRequestVisuals'
 import apiInstance from '../../api/axiosInstance'
 import { useAuth } from '../../context/AuthContext'
+import { PERMISSIONS } from '../../config/permissions'
 import { useScopedDepots } from '../../hooks/useScopedDepots'
 
 const REQUEST_STATUS_LABELS = {
@@ -163,7 +164,8 @@ export function StockPage() {
   const [activeTab, setActiveTab] = useState('stock')
   const [isRequestPanelOpen, setIsRequestPanelOpen] = useState(false)
 
-  const canApproveStock = hasPermission('approve_stock')
+  const canApproveStock = hasPermission(PERMISSIONS.APPROVE_STOCK)
+  const canManageStock = hasPermission(PERMISSIONS.MANAGE_STOCK) || hasPermission(PERMISSIONS.MANAGE_LOGISTICS)
 
   useEffect(() => {
     const urlDepotId = new URLSearchParams(window.location.search).get('depotId')
@@ -604,6 +606,7 @@ export function StockPage() {
                       <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Stock requests</h2>
                       <p className="mt-1 text-sm text-zinc-500">Replenishment requests for this depot.</p>
                     </div>
+                    {canManageStock && (
                     <button
                       type="button"
                       onClick={() => setIsRequestPanelOpen(true)}
@@ -612,6 +615,7 @@ export function StockPage() {
                       <Truck className="h-4 w-4" />
                       New request
                     </button>
+                    )}
                   </div>
                   <div className="mt-4 space-y-3">
                     {requests.length === 0 ? (
