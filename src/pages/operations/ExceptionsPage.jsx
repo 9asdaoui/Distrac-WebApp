@@ -1,11 +1,50 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, X, CheckCircle2, XCircle } from 'lucide-react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useParams, useSearchParams } from 'react-router-dom'
+import { AlertTriangle, X, CheckCircle2, XCircle, Package, Truck, RotateCcw, CreditCard, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DashboardLayout } from '../../components/DashboardLayout'
-import { AnimatedPage } from '../../components/AnimatedPage'
+import { DepotCcPageShell } from '../../components/dashboard/depotOps/DepotCcPageShell'
+import { getAuthRoleName } from '../../components/map/ccPanelRegistry'
+import { useAuth } from '../../context/AuthContext'
 import apiInstance from '../../api/axiosInstance'
 
+// Role-based header messages
+const ROLE_HEADER_CONFIG = {
+  GENERAL_MANAGEMENT: {
+    title: 'Exception Control Room',
+    subtitle: 'Platform-wide exception management & oversight.',
+  },
+  DEPOT_SUPERVISOR: {
+    title: 'Depot Exception Inbox',
+    subtitle: 'Manage operational exceptions for your depot.',
+  },
+  DEPOT_MANAGER: {
+    title: 'Depot Exception Inbox',
+    subtitle: 'Review and resolve exceptions for your depot operations.',
+  },
+  SUPERVISOR: {
+    title: 'Operations Exception Inbox',
+    subtitle: 'Oversee exceptions across all depots.',
+  },
+  default: {
+    title: 'Exception Inbox',
+    subtitle: 'Review and resolve operational exceptions.',
+  },
+}
+
+// Exception type mapper: to KPI categories
+const EXCEPTION_TYPE_MAP = {
+  VENDOR_LOAD: 'VENDOR_LOAD',
+  LIVREUR_MISSION: 'LIVREUR_MISSION',
+  RETURN: 'RETURN',
+  PAYMENT_CHANGE: 'PAYMENT_CHANGE',
+}
+
 const TYPE_META = {
+  VENDOR_LOAD: { label: 'Vendor Loads',    cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
+  LIVREUR_MISSION: { label: 'Livreur Missions', cls: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+  RETURN: { label: 'Returns',         cls: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+  PAYMENT_CHANGE: { label: 'Payment Changes', cls: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
   CLIENT_REFUSAL: { label: 'Client Refusal',    cls: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
   CREDIT_REQUEST: { label: 'Credit Request',    cls: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
   CHECK_REQUEST:  { label: 'Check Approval',    cls: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
@@ -13,9 +52,9 @@ const TYPE_META = {
 }
 
 const STATUS_META = {
-  PENDING:  { label: 'Pending',  cls: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
-  APPROVED: { label: 'Approved', cls: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
-  REJECTED: { label: 'Rejected', cls: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+  PENDING:  { label: 'Pending',  cls: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', color: 'yellow' },
+  APPROVED: { label: 'Approved', cls: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', color: 'green' },
+  REJECTED: { label: 'Rejected', cls: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', color: 'red' },
 }
 
 const SEV_META = {
@@ -28,9 +67,52 @@ function Badge({ label, cls }) {
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{label}</span>
 }
 
+function KpiCard({ icon: Icon, label, count, color = 'blue' }) {
+  const bgColor = {
+    amber: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800',
+    blue: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+    green: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
+    purple: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
+  }[color]
+
+  const textColor = {
+    amber: 'text-amber-600 dark:text-amber-400',
+    blue: 'text-blue-600 dark:text-blue-400',
+    green: 'text-green-600 dark:text-green-400',
+    purple: 'text-purple-600 dark:text-purple-400',
+  }[color]
+
+  const iconColor = {
+    amber: 'text-amber-500 dark:text-amber-400',
+    blue: 'text-blue-500 dark:text-blue-400',
+    green: 'text-green-500 dark:text-green-400',
+    purple: 'text-purple-500 dark:text-purple-400',
+  }[color]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`rounded-xl border-2 ${bgColor} p-4 transition hover:shadow-md`}
+    >
+      <div className="flex items-center gap-3">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${bgColor}`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+        </div>
+        <div className="flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+            {label}
+          </p>
+          <p className={`mt-1 text-2xl font-bold ${textColor}`}>{count}</p>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 function ExceptionsSkeleton() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -109,7 +191,7 @@ function ResolvePanel({ exception, onClose, onResolved }) {
       </div>
 
       {/* Exception details */}
-      <div className="mb-6 rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="mb-6 rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3 dark:border-zinc-800 dark:bg-cc-surface">
         <div className="flex flex-wrap gap-2">
           {(() => {
             const tm = TYPE_META[exception.exception_type] || { label: exception.exception_type, cls: 'bg-zinc-100 text-zinc-500' }
@@ -167,7 +249,7 @@ function ResolvePanel({ exception, onClose, onResolved }) {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="e.g. Called client on 05/18 at 14:30. Client confirmed refusal due to product damage. Approved return."
-          className="w-full resize-none rounded-lg border border-gray-200 bg-white p-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+          className="w-full resize-none rounded-lg border border-gray-200 bg-white p-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
         />
         {error && <p className="text-xs text-red-500">{error}</p>}
       </div>
@@ -191,25 +273,37 @@ function ResolvePanel({ exception, onClose, onResolved }) {
 }
 
 export function ExceptionsPage() {
-  const [exceptions, setExceptions] = useState([])
+  const [searchParams] = useSearchParams()
+  const params = useParams()
+  const deepLinkId = searchParams.get('id') || params.id || null
+  const [allExceptions, setAllExceptions] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState('PENDING')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [search, setSearch] = useState('')
   const [selectedEx, setSelectedEx] = useState(null)
   const controllerRef = useRef(null)
+  const deepLinkHandledRef = useRef(null)
+    const { user } = useAuth()
 
-  const load = async (status = statusFilter) => {
+    // Get role-based header config
+    const headerConfig = useMemo(() => {
+      const userRole = getAuthRoleName(user)
+      return ROLE_HEADER_CONFIG[userRole] || ROLE_HEADER_CONFIG.default
+    }, [user])
+
+  const load = async () => {
     if (controllerRef.current) controllerRef.current.abort()
     const controller = new AbortController()
     controllerRef.current = controller
     setIsLoading(true)
     try {
-      const params = status ? `?status=${status}` : ''
-      const res = await apiInstance.get(`/exceptions${params}`, { signal: controller.signal })
+      const res = await apiInstance.get(`/exceptions`, { signal: controller.signal })
       if (!controller.signal.aborted) {
-        setExceptions(res.data?.data?.exceptions || [])
+        setAllExceptions(res.data?.data?.exceptions || [])
       }
     } catch (error) {
-      if (error.name !== 'CanceledError') setExceptions([])
+      if (error.name !== 'CanceledError') setAllExceptions([])
     } finally {
       setIsLoading(false)
     }
@@ -220,54 +314,165 @@ export function ExceptionsPage() {
     return () => controllerRef.current?.abort()
   }, [])
 
-  const handleStatusChange = (s) => {
-    setStatusFilter(s)
-    load(s)
+  useEffect(() => {
+    if (!deepLinkId || isLoading) return
+    if (deepLinkHandledRef.current === deepLinkId) return
+    const match = allExceptions.find((ex) => String(ex.id) === String(deepLinkId))
+    if (match) {
+      deepLinkHandledRef.current = deepLinkId
+      setSelectedEx(match)
+    }
+  }, [deepLinkId, allExceptions, isLoading])
+
+  // Filter exceptions based on tabs + text search
+  const filteredExceptions = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    return allExceptions.filter((ex) => {
+      if (statusFilter && ex.exception_status !== statusFilter) return false
+      if (typeFilter && ex.exception_type !== typeFilter) return false
+      if (!term) return true
+      const typeLabel = TYPE_META[ex.exception_type]?.label || ex.exception_type || ''
+      const statusLabel = STATUS_META[ex.exception_status]?.label || ex.exception_status || ''
+      const haystack = [
+        typeLabel,
+        statusLabel,
+        ex.id,
+        ex.raiser?.full_name,
+        ex.raised_by,
+        ex.severity,
+        ex.notes,
+        ex.reason,
+        ex.description,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(term)
+    })
+  }, [allExceptions, statusFilter, typeFilter, search])
+
+  // Count KPI metrics
+  const kpiCounts = {
+    VENDOR_LOAD: allExceptions.filter((e) => e.exception_type === 'VENDOR_LOAD').length,
+    LIVREUR_MISSION: allExceptions.filter((e) => e.exception_type === 'LIVREUR_MISSION').length,
+    RETURN: allExceptions.filter((e) => e.exception_type === 'RETURN').length,
+    PAYMENT_CHANGE: allExceptions.filter((e) => e.exception_type === 'PAYMENT_CHANGE').length,
   }
 
   return (
     <DashboardLayout>
-      <AnimatedPage>
+      <DepotCcPageShell
+        title={headerConfig.title}
+        subtitle={headerConfig.subtitle}
+        icon={AlertTriangle}
+        actions={
+          !isLoading ? (
+            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+              {filteredExceptions.length} records
+            </span>
+          ) : null
+        }
+      >
         <div className="space-y-6">
-          {/* Header */}
-          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20">
-                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Exception Inbox</h1>
-                <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">Supervisor control room — review and resolve operational exceptions.</p>
-              </div>
+          {/* KPI Cards */}
+          {!isLoading && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <KpiCard 
+                icon={Package}
+                label="Vendor Loads"
+                count={kpiCounts.VENDOR_LOAD}
+                color="amber"
+              />
+              <KpiCard 
+                icon={Truck}
+                label="Livreur Missions"
+                count={kpiCounts.LIVREUR_MISSION}
+                color="blue"
+              />
+              <KpiCard 
+                icon={RotateCcw}
+                label="Returns"
+                count={kpiCounts.RETURN}
+                color="green"
+              />
+              <KpiCard 
+                icon={CreditCard}
+                label="Payment Changes"
+                count={kpiCounts.PAYMENT_CHANGE}
+                color="purple"
+              />
             </div>
-            {!isLoading && (
-              <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{exceptions.length} records</span>
-            )}
-          </div>
+          )}
 
-          {/* Status tabs */}
-          <div className="flex gap-2">
-            {['', 'PENDING', 'APPROVED', 'REJECTED'].map((s) => (
+          {/* Exception Type Tabs */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">Filter by Type</p>
+            <div className="flex flex-wrap gap-2">
               <button
-                key={s}
                 type="button"
-                onClick={() => handleStatusChange(s)}
+                onClick={() => setTypeFilter('')}
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                  statusFilter === s
+                  typeFilter === ''
                     ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
                     : 'border border-gray-200 text-zinc-600 hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800'
                 }`}
               >
-                {s === '' ? 'All' : STATUS_META[s]?.label || s}
+                All Types
               </button>
-            ))}
+              {Object.entries(EXCEPTION_TYPE_MAP).map(([key]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTypeFilter(key)}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                    typeFilter === key
+                      ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                      : 'border border-gray-200 text-zinc-600 hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  {TYPE_META[key]?.label || key}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Status Filter Tabs */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">Filter by Status</p>
+            <div className="flex flex-wrap gap-2">
+              {['', 'PENDING', 'APPROVED', 'REJECTED'].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStatusFilter(s)}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                    statusFilter === s
+                      ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                      : 'border border-gray-200 text-zinc-600 hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  {s === '' ? 'All' : STATUS_META[s]?.label || s}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Table */}
           {isLoading ? (
             <ExceptionsSkeleton />
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search type, status, raiser, or id…"
+                  className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                />
+              </div>
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -281,7 +486,7 @@ export function ExceptionsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {exceptions.map((ex, i) => {
+                    {filteredExceptions.map((ex, i) => {
                       const tm = TYPE_META[ex.exception_type] || { label: ex.exception_type, cls: 'bg-zinc-100 text-zinc-500' }
                       const sm = STATUS_META[ex.exception_status] || { label: ex.exception_status, cls: 'bg-zinc-100 text-zinc-500' }
                       const sev = SEV_META[ex.severity] || { label: ex.severity, cls: 'bg-zinc-100 text-zinc-500' }
@@ -291,7 +496,8 @@ export function ExceptionsPage() {
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: i * 0.04 }}
-                          className="border-b border-gray-200 dark:border-zinc-800"
+                          className="border-b border-gray-200 dark:border-zinc-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/50"
+                          onClick={() => setSelectedEx(ex)}
                         >
                           <td className="px-6 py-4"><Badge label={tm.label} cls={tm.cls} /></td>
                           <td className="px-6 py-4 text-zinc-700 dark:text-zinc-300">
@@ -306,7 +512,10 @@ export function ExceptionsPage() {
                             {ex.exception_status === 'PENDING' && (
                               <button
                                 type="button"
-                                onClick={() => setSelectedEx(ex)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedEx(ex)
+                                }}
                                 className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                               >
                                 Resolve
@@ -316,7 +525,7 @@ export function ExceptionsPage() {
                         </motion.tr>
                       )
                     })}
-                    {exceptions.length === 0 && (
+                    {filteredExceptions.length === 0 && (
                       <tr>
                         <td className="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400" colSpan={6}>
                           No exceptions found.
@@ -327,11 +536,12 @@ export function ExceptionsPage() {
                 </table>
               </div>
             </div>
+            </div>
           )}
         </div>
-      </AnimatedPage>
+      </DepotCcPageShell>
 
-      {/* Resolve slide-over — outside AnimatedPage to avoid transform clipping */}
+      {/* Resolve slide-over — outside shell to avoid transform clipping */}
       <AnimatePresence>
         {selectedEx && (
           <motion.div
