@@ -30,7 +30,7 @@ export function getMenuConfig() {
         {
           label: 'Command Center',
           labelKey: 'sidebar.commandCenter',
-          path: '/global-map',
+          path: '/',
           icon: LayoutDashboard,
           requiredPermission: PERMISSION_GROUPS.commandCenter,
           children: [
@@ -65,10 +65,16 @@ export function getMenuConfig() {
               requiredPermission: PERMISSION_GROUPS.clients,
             },
             {
+              label: 'Store categories',
+              path: '/clients/store-categories',
+              icon: Tags,
+              requiredPermission: PERMISSIONS.MANAGE_CLIENTS,
+            },
+            {
               label: 'Vehicles',
               path: '/vehicles',
               icon: QrCode,
-              requiredPermission: PERMISSIONS.MANAGE_LOGISTICS,
+              requiredPermission: [PERMISSIONS.VIEW_LOGISTICS_TAB, PERMISSIONS.MANAGE_LOGISTICS],
             },
           ],
         },
@@ -77,7 +83,7 @@ export function getMenuConfig() {
           labelKey: 'sidebar.users',
           path: '/users',
           icon: Users,
-          requiredPermission: PERMISSIONS.MANAGE_USERS,
+          requiredPermission: [PERMISSIONS.VIEW_USERS_TAB, PERMISSIONS.MANAGE_USERS],
         },
         {
           label: 'Roles',
@@ -132,6 +138,13 @@ export function getMenuConfig() {
           requiredPermission: PERMISSION_GROUPS.missions,
         },
         {
+          label: 'Custom stop templates',
+          labelKey: 'sidebar.customStopTemplates',
+          path: '/missions/custom-stop-templates',
+          icon: ClipboardList,
+          requiredPermission: [PERMISSIONS.MANAGE_MISSIONS, PERMISSIONS.MANAGE_LOGISTICS],
+        },
+        {
           label: 'Exceptions',
           labelKey: 'sidebar.exceptions',
           path: '/exceptions',
@@ -145,8 +158,8 @@ export function getMenuConfig() {
       title: 'FINANCE',
       items: [
         {
-          label: 'Debt Summary',
-          path: '/debt',
+          label: 'Revenue',
+          path: '/revenue',
           icon: DollarSign,
           requiredPermission: PERMISSION_GROUPS.debt,
         },
@@ -175,7 +188,7 @@ export function getMenuConfig() {
           requiredPermission: PERMISSIONS.VIEW_PROPOSALS,
         },
         {
-          label: 'Fulfillment Tracking',
+          label: 'Industry restock',
           path: '/inventory/fulfillment',
           icon: PackageCheck,
           requiredPermission: PERMISSIONS.VIEW_FULFILLMENT,

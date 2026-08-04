@@ -15,7 +15,7 @@ const resources = {
         orders: 'Orders',
         reports: 'Reports',
         finances: 'Finances',
-        exceptions: 'Exceptions',
+        exceptions: 'Approvals',
         settings: 'Settings',
         logistics: 'Logistics',
         catalog: 'Product Catalog',
@@ -55,6 +55,13 @@ const resources = {
           depot: 'Depot',
           client: 'Client',
           draggableCorner: 'Draggable corner',
+        },
+        timeline: {
+          title: 'Operations Timeline',
+          live: 'Live',
+          empty: 'No activity yet',
+          viewAll: 'View all ({{count}})',
+          drawerSubtitle: 'All activity for the selected depot and date',
         },
         popup: {
           unassigned: 'Unassigned',
@@ -371,6 +378,10 @@ const resources = {
         createUserSubmit: 'Create User',
         searchPlaceholder: 'Search users...',
         noResults: 'No users found matching your search.',
+        filterByRole: 'Filter by role',
+        filterAllRoles: 'All roles',
+        filterVendor: 'Vendor',
+        filterSeller: 'Seller',
       },
       roles: {
         pageTitle: 'Role Management',
@@ -453,7 +464,7 @@ const resources = {
         orders: 'Commandes',
         reports: 'Rapports',
         finances: 'Finances',
-        exceptions: 'Exceptions',
+        exceptions: 'Approbations',
         settings: 'Paramètres',
         logistics: 'Logistique',
         catalog: 'Catalogue',
@@ -493,6 +504,13 @@ const resources = {
           depot: 'Dépôt',
           client: 'Client',
           draggableCorner: 'Sommet déplaçable',
+        },
+        timeline: {
+          title: 'Journal des opérations',
+          live: 'En direct',
+          empty: 'Aucune activité pour le moment',
+          viewAll: 'Voir tout ({{count}})',
+          drawerSubtitle: 'Toute l’activité pour le dépôt et la date sélectionnés',
         },
         popup: {
           unassigned: 'Non assigné',
@@ -809,6 +827,10 @@ const resources = {
         createUserSubmit: 'Créer l\'utilisateur',
         searchPlaceholder: 'Rechercher des utilisateurs...',
         noResults: 'Aucun utilisateur ne correspond à votre recherche.',
+        filterByRole: 'Filtrer par rôle',
+        filterAllRoles: 'Tous les rôles',
+        filterVendor: 'Vendeur',
+        filterSeller: 'Prévendeur',
       },
       roles: {
         pageTitle: 'Gestion des Rôles',
@@ -875,6 +897,168 @@ const resources = {
         loadError: 'Échec du chargement des missions',
         noMissions: 'Aucune mission trouvée',
         noMissionsDesc: 'Il n\'y a actuellement aucune mission active.',
+      },
+    },
+  },
+}
+
+resources.en.translation.commandCenter = {
+  ...resources.en.translation.commandCenter,
+  notifications: {
+    title: 'Notifications',
+    subtitle: 'Recent activity and approvals that need your attention.',
+    previewTitle: 'Alerts & Notifications',
+    seeAll: 'See all',
+    markAllRead: 'Mark all read',
+    close: 'Close notifications',
+    loading: 'Loading notifications…',
+    loadError: 'Failed to load notifications.',
+    retry: 'Retry',
+    emptyTitle: 'No notifications yet',
+    emptyBody: 'New mission, exception, vendor-load, and credit updates will appear here.',
+    noFallbackAlerts: 'No alerts',
+    fallbackTitle: 'Notification',
+    unknownType: 'unknown',
+    kinds: {
+      missionApproved: {
+        title: 'Mission approved',
+        body: 'Assigned to {{name}}',
+      },
+      exceptionRaised: {
+        title: 'Exception raised: {{type}}',
+      },
+      exceptionApproved: {
+        title: 'Exception approved',
+      },
+      exceptionRejected: {
+        title: 'Exception rejected',
+      },
+      vendorLoadApproved: {
+        title: 'Vendor load request approved',
+        body: 'Vendor: {{name}}',
+      },
+      vendorLoadRejected: {
+        title: 'Vendor load request rejected',
+        body: 'Reason: {{reason}}',
+      },
+      creditApprovalRequested: {
+        title: 'Credit approval requested',
+        body: 'Reason: {{reason}}',
+      },
+      creditApprovalApproved: {
+        title: 'Credit approval approved',
+      },
+      creditApprovalRejected: {
+        title: 'Credit approval rejected',
+      },
+    },
+  },
+}
+
+resources.fr.translation.commandCenter = {
+  ...resources.fr.translation.commandCenter,
+  notifications: {
+    title: 'Notifications',
+    subtitle: 'Activite recente et validations qui demandent votre attention.',
+    previewTitle: 'Alertes et notifications',
+    seeAll: 'Voir tout',
+    markAllRead: 'Tout marquer comme lu',
+    close: 'Fermer les notifications',
+    loading: 'Chargement des notifications…',
+    loadError: 'Echec du chargement des notifications.',
+    retry: 'Reessayer',
+    emptyTitle: 'Aucune notification pour le moment',
+    emptyBody: 'Les mises a jour missions, exceptions, chargements fournisseur et credits apparaitront ici.',
+    noFallbackAlerts: 'Aucune alerte',
+    fallbackTitle: 'Notification',
+    unknownType: 'inconnu',
+    kinds: {
+      missionApproved: {
+        title: 'Mission approuvee',
+        body: 'Affectee a {{name}}',
+      },
+      exceptionRaised: {
+        title: 'Exception signalee : {{type}}',
+      },
+      exceptionApproved: {
+        title: 'Exception approuvee',
+      },
+      exceptionRejected: {
+        title: 'Exception rejetee',
+      },
+      vendorLoadApproved: {
+        title: 'Demande de chargement fournisseur approuvee',
+        body: 'Fournisseur : {{name}}',
+      },
+      vendorLoadRejected: {
+        title: 'Demande de chargement fournisseur rejetee',
+        body: 'Motif : {{reason}}',
+      },
+      creditApprovalRequested: {
+        title: 'Approbation de credit demandee',
+        body: 'Motif : {{reason}}',
+      },
+      creditApprovalApproved: {
+        title: 'Approbation de credit acceptee',
+      },
+      creditApprovalRejected: {
+        title: 'Approbation de credit rejetee',
+      },
+    },
+  },
+}
+
+resources.ar = {
+  translation: {
+    commandCenter: {
+      notifications: {
+        title: 'الاشعارات',
+        subtitle: 'اخر التحديثات والطلبات التي تحتاج انتباهك.',
+        previewTitle: 'التنبيهات والاشعارات',
+        seeAll: 'عرض الكل',
+        markAllRead: 'تحديد الكل كمقروء',
+        close: 'اغلاق الاشعارات',
+        loading: 'جاري تحميل الاشعارات...',
+        loadError: 'فشل تحميل الاشعارات.',
+        retry: 'اعادة المحاولة',
+        emptyTitle: 'لا توجد اشعارات حاليا',
+        emptyBody: 'ستظهر هنا تحديثات المهام والاستثناءات وطلبات التحميل وطلبات الائتمان.',
+        noFallbackAlerts: 'لا توجد تنبيهات',
+        fallbackTitle: 'اشعار',
+        unknownType: 'غير معروف',
+        kinds: {
+          missionApproved: {
+            title: 'تمت الموافقة على المهمة',
+            body: 'تم اسنادها الى {{name}}',
+          },
+          exceptionRaised: {
+            title: 'تم تسجيل استثناء: {{type}}',
+          },
+          exceptionApproved: {
+            title: 'تمت الموافقة على الاستثناء',
+          },
+          exceptionRejected: {
+            title: 'تم رفض الاستثناء',
+          },
+          vendorLoadApproved: {
+            title: 'تمت الموافقة على طلب تحميل المورد',
+            body: 'المورد: {{name}}',
+          },
+          vendorLoadRejected: {
+            title: 'تم رفض طلب تحميل المورد',
+            body: 'السبب: {{reason}}',
+          },
+          creditApprovalRequested: {
+            title: 'تم طلب موافقة ائتمان',
+            body: 'السبب: {{reason}}',
+          },
+          creditApprovalApproved: {
+            title: 'تمت الموافقة على طلب الائتمان',
+          },
+          creditApprovalRejected: {
+            title: 'تم رفض طلب الائتمان',
+          },
+        },
       },
     },
   },

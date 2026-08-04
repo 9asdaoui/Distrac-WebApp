@@ -1,6 +1,6 @@
 /**
  * Canonical permission names — keep in sync with V34_PERMISSIONS_SYNC.sql
- * and docs/PERMISSIONS_CATALOG.md
+ * and docs/product/permissions.md
  */
 export const PERMISSIONS = {
   VIEW_ORDERS_TAB: 'view_orders_tab',
@@ -20,6 +20,7 @@ export const PERMISSIONS = {
   VIEW_FINANCE: 'view_finance',
   VIEW_PROPOSALS: 'view_proposals',
   VIEW_FULFILLMENT: 'view_fulfillment',
+  VIEW_USERS_TAB: 'view_users_tab',
   CREATE_ORDER: 'create_order',
   MANAGE_ORDERS: 'manage_orders',
   CONFIRM_ORDERS: 'confirm_orders',

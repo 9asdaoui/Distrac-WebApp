@@ -15,7 +15,7 @@ export function ProtectedRoute({ children, requiredPermission = null }) {
 
   if (isAuthLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-900">
+      <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-cc-bg">
         <div className="text-center">
           <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-zinc-900 dark:border-zinc-100"></div>
           <p className="text-zinc-700 dark:text-zinc-300">Loading...</p>

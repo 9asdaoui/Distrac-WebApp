@@ -1,53 +1,48 @@
 import React from 'react'
 import { Plus, X } from 'lucide-react'
+import { DepotCcPageShell } from '../dashboard/depotOps/DepotCcPageShell'
+import { PanelEmbedContext } from './panelEmbedContext'
 import { ccFormInputClass as railInputClass } from './CommandCenterForm'
 
 export { railInputClass, ccFormInputClass } from './CommandCenterForm'
 
+/**
+ * Map-admin list chrome — reuses DepotCcPageShell + `.cc-panel-host` padding so the
+ * Home/title card sits in the exact same place as Missions / Stock / etc.
+ */
 export function MapRailShell({
   title,
   subtitle,
-  icon: Icon,
-  iconAccentClass = 'bg-zinc-800 text-zinc-300 ring-zinc-700',
+  icon,
+  iconAccentClass: _iconAccentClass,
   onAdd,
   addLabel = 'Add',
   children,
   overlay,
 }) {
-  return (
-    <div className="relative flex h-full w-full flex-col">
-      <div className="shrink-0 border-b border-zinc-800 px-4 py-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3">
-            {Icon && (
-              <span
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 ${iconAccentClass}`}
-              >
-                <Icon className="h-4 w-4" />
-              </span>
-            )}
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-zinc-100">{title}</p>
-              {subtitle && <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">{subtitle}</p>}
-            </div>
-          </div>
-          {onAdd && (
-            <button
-              type="button"
-              onClick={onAdd}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-900 transition hover:bg-white"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              {addLabel}
-            </button>
-          )}
-        </div>
-      </div>
+  const actions = onAdd ? (
+    <button
+      type="button"
+      onClick={onAdd}
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-distrac-primary px-3 py-2 text-xs font-semibold text-white transition hover:bg-distrac-hover"
+    >
+      <Plus className="h-3.5 w-3.5" />
+      {addLabel}
+    </button>
+  ) : null
 
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4">{children}</div>
+  return (
+    <div className="relative flex h-full w-full flex-col bg-cc-bg text-cc-primary">
+      <PanelEmbedContext.Provider value={true}>
+        <div className="cc-panel-host h-full min-h-0 overflow-auto">
+          <DepotCcPageShell title={title} subtitle={subtitle} icon={icon} actions={actions}>
+            {children}
+          </DepotCcPageShell>
+        </div>
+      </PanelEmbedContext.Provider>
 
       {overlay && (
-        <div className="absolute inset-0 z-20 flex flex-col overflow-hidden bg-[#141416]/95 backdrop-blur-md">
+        <div className="absolute inset-0 z-20 flex flex-col overflow-hidden bg-cc-bg/95 backdrop-blur-md">
           {overlay}
         </div>
       )}
@@ -55,70 +50,77 @@ export function MapRailShell({
   )
 }
 
-export function MapRailCreateOverlay({ title, subtitle, onClose, children, footer, accent = 'amber' }) {
+export function MapRailCreateOverlay({ title, subtitle, onClose, children, footer, accent = 'blue' }) {
   const accentBar = {
     amber: 'via-amber-500',
-    orange: 'via-orange-500',
+    orange: 'via-cc-accent',
     rose: 'via-rose-500',
-    blue: 'via-blue-500',
+    blue: 'via-cc-accent',
     emerald: 'via-emerald-500',
-  }[accent] || 'via-amber-500'
+  }[accent] || 'via-cc-accent'
 
   return (
     <>
-      <div className="relative shrink-0 border-b border-zinc-800/90 px-4 py-4">
+      <div className="relative shrink-0 border-b border-cc-border-subtle px-4 py-4">
         <div
           className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent ${accentBar} to-transparent`}
         />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 pr-2">
-            <h2 className="text-sm font-bold tracking-tight text-zinc-100">{title}</h2>
-            {subtitle && <p className="mt-1 text-xs leading-relaxed text-zinc-500">{subtitle}</p>}
+            <h2 className="text-sm font-bold tracking-tight text-cc-primary">{title}</h2>
+            {subtitle && <p className="mt-1 text-xs leading-relaxed text-cc-tertiary">{subtitle}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-2 text-zinc-400 transition hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-200"
+            className="rounded-lg p-1.5 text-cc-tertiary transition hover:bg-cc-surface-hover hover:text-cc-primary"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
-      {footer && (
-        <div className="shrink-0 border-t border-zinc-800/90 bg-zinc-950/60 px-4 py-3 backdrop-blur-sm">
-          {footer}
-        </div>
-      )}
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4">{children}</div>
+      {footer ? (
+        <div className="shrink-0 border-t border-cc-border-subtle px-4 py-3">{footer}</div>
+      ) : null}
     </>
   )
 }
 
 export function MapRailTable({ columns, isEmpty, emptyMessage = 'No records.', children }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-800">
-      {isEmpty ? (
-        <p className="px-3 py-8 text-center text-xs text-zinc-500">{emptyMessage}</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-xs">
-            <thead className="bg-zinc-900/80">
+    <div className="overflow-hidden rounded-xl border border-cc-border-subtle bg-cc-surface">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[480px] border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-cc-border-subtle bg-cc-surface-alt/80">
+              {columns.map((col) => (
+                <th
+                  key={col}
+                  className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-cc-tertiary"
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {isEmpty ? (
               <tr>
-                {columns.map((col) => (
-                  <th
-                    key={col}
-                    className="whitespace-nowrap px-3 py-2.5 font-medium text-zinc-400"
-                  >
-                    {col}
-                  </th>
-                ))}
+                <td
+                  colSpan={columns.length}
+                  className="px-3 py-10 text-center text-sm text-cc-tertiary"
+                >
+                  {emptyMessage}
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800">{children}</tbody>
-          </table>
-        </div>
-      )}
+            ) : (
+              children
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -127,18 +129,9 @@ export function MapRailRow({ children, onClick }) {
   return (
     <tr
       onClick={onClick}
-      onKeyDown={
-        onClick
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                onClick(e)
-              }
-            }
-          : undefined
-      }
-      tabIndex={onClick ? 0 : undefined}
-      className={onClick ? 'cursor-pointer transition hover:bg-zinc-800/60' : undefined}
+      className={`border-b border-cc-border-subtle/80 last:border-0 ${
+        onClick ? 'cursor-pointer transition hover:bg-cc-surface-hover/60' : ''
+      }`}
     >
       {children}
     </tr>
@@ -146,14 +139,14 @@ export function MapRailRow({ children, onClick }) {
 }
 
 export function MapRailCell({ children, className = '' }) {
-  return <td className={`px-3 py-2.5 text-zinc-300 ${className}`}>{children}</td>
+  return <td className={`px-3 py-2.5 text-cc-secondary ${className}`}>{children}</td>
 }
 
 export function MapRailLoading() {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" aria-busy="true" aria-label="Loading">
       {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="h-10 animate-pulse rounded-lg bg-zinc-800/80" />
+        <div key={i} className="h-10 animate-pulse rounded-lg bg-zinc-800/60" />
       ))}
     </div>
   )

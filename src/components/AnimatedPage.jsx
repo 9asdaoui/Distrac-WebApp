@@ -1,7 +1,14 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import { usePanelEmbed } from './map/panelEmbedContext'
 
 export function AnimatedPage({ children, className = '' }) {
+  const embedded = usePanelEmbed()
+
+  if (embedded) {
+    return <div className={className}>{children}</div>
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}

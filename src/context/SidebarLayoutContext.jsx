@@ -16,6 +16,7 @@ export function useSidebarLayout() {
       showDesktopSidebar: () => {},
       hideDesktopSidebar: () => {},
       toggleDesktopSidebar: () => {},
+      toggleSidebar: () => {},
       flush: false,
     }
   )

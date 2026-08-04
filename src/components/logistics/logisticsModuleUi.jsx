@@ -21,7 +21,7 @@ export const LOGISTICS_MODULES = {
     plural: 'Industries',
     listPath: '/industries',
     detailPath: (id) => `/industries/${id}`,
-    mapDeepLink: (id) => `/global-map?type=industry&id=${id}`,
+    mapDeepLink: (id) => `/industries/${id}`,
     mapFilter: 'industries',
     icon: Factory,
     accentDark: 'bg-rose-500/10 text-rose-400 ring-rose-500/30',
@@ -35,11 +35,11 @@ export const LOGISTICS_MODULES = {
     plural: 'Depots',
     listPath: '/depots',
     detailPath: (id) => `/depots/${id}`,
-    mapDeepLink: (id) => `/global-map?type=depot&id=${id}`,
+    mapDeepLink: (id) => `/depots/${id}`,
     mapFilter: 'depots',
     icon: Warehouse,
-    accentDark: 'bg-blue-500/10 text-blue-400 ring-blue-500/30',
-    accentLight: 'bg-blue-50 text-blue-600 ring-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30',
+    accentDark: 'bg-cc-accent/15 text-cc-accent ring-cc-accent/30',
+    accentLight: 'bg-cc-accent/10 text-cc-accent ring-cc-accent/25 dark:bg-cc-accent/15 dark:text-cc-accent-hover dark:ring-cc-accent/30',
     hasDetailPage: true,
     nameField: 'depot_name',
   },
@@ -49,7 +49,7 @@ export const LOGISTICS_MODULES = {
     plural: 'Sectors',
     listPath: '/sectors',
     detailPath: (id) => `/sectors/${id}`,
-    mapDeepLink: (id) => `/global-map?type=sector&id=${id}`,
+    mapDeepLink: (id) => `/sectors/${id}`,
     mapFilter: 'sectors',
     icon: Building2,
     accentDark: 'bg-amber-500/10 text-amber-400 ring-amber-500/30',
@@ -63,7 +63,7 @@ export const LOGISTICS_MODULES = {
     plural: 'Clients',
     listPath: '/clients',
     detailPath: (id) => `/clients/${id}`,
-    mapDeepLink: (id) => `/global-map?type=client&id=${id}`,
+    mapDeepLink: (id) => `/clients/${id}`,
     mapFilter: 'clients',
     icon: Store,
     accentDark: 'bg-zinc-100/10 text-zinc-200 ring-zinc-400/30',
@@ -76,12 +76,12 @@ export const LOGISTICS_MODULES = {
     label: 'Region',
     plural: 'Regions',
     listPath: '/regions',
-    detailPath: (id) => `/regions?focus=${id}`,
-    mapDeepLink: (id) => `/global-map?type=region&id=${id}`,
+    detailPath: (id) => `/regions/${id}`,
+    mapDeepLink: (id) => `/regions/${id}`,
     mapFilter: 'regions',
     icon: Map,
-    accentDark: 'bg-orange-500/10 text-orange-400 ring-orange-500/30',
-    accentLight: 'bg-orange-50 text-orange-600 ring-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:ring-orange-500/30',
+    accentDark: 'bg-cc-accent/15 text-cc-accent ring-cc-accent/30',
+    accentLight: 'bg-cc-accent/10 text-cc-accent ring-cc-accent/25 dark:bg-cc-accent/15 dark:text-cc-accent-hover dark:ring-cc-accent/30',
     hasDetailPage: true,
     nameField: 'region_name',
   },
@@ -90,8 +90,8 @@ export const LOGISTICS_MODULES = {
     label: 'Vehicle',
     plural: 'Vehicles',
     listPath: '/vehicles',
-    detailPath: (id) => `/vehicles?focus=${id}`,
-    mapDeepLink: (id) => `/global-map?type=vehicle&id=${id}`,
+    detailPath: (id) => `/vehicles/${id}`,
+    mapDeepLink: (id) => `/vehicles/${id}`,
     mapFilter: 'vehicles',
     icon: Truck,
     accentDark: 'bg-violet-500/10 text-violet-400 ring-violet-500/30',
@@ -220,7 +220,7 @@ export function EntityConnectedActions({ moduleKey, entityId, layout = 'page' })
       </Link>
       {mod.hasDetailPage && layout === 'panel' && (
         <Link
-          to={mod.detailPath(entityId)}
+          to={mod.mapDeepLink(entityId)}
           className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-900 transition hover:bg-white"
         >
           <ExternalLink className="h-3.5 w-3.5" />
@@ -245,7 +245,7 @@ export function EntityGpsStrip({ moduleKey, record, layout = 'panel', extra }) {
       className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 ${
         layout === 'panel'
           ? 'border-zinc-800 bg-zinc-900/40'
-          : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/40'
+          : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-cc-surface/40'
       }`}
     >
       <div className="flex min-w-0 items-center gap-2">
@@ -262,7 +262,7 @@ export function EntityGpsStrip({ moduleKey, record, layout = 'panel', extra }) {
 export function EntitySegmentedControl({ value, onChange, options, variant = 'light' }) {
   const isDark = variant === 'dark'
   return (
-    <div className={`flex w-full rounded-lg p-1 ${isDark ? 'bg-zinc-900' : 'bg-zinc-100 dark:bg-zinc-900'}`}>
+    <div className={`flex w-full rounded-lg p-1 ${isDark ? 'bg-zinc-900' : 'bg-zinc-100 dark:bg-cc-surface'}`}>
       {options.map((opt) => {
         const selected = value === opt.value
         return (
