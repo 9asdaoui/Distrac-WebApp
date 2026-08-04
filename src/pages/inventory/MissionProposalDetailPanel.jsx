@@ -233,7 +233,7 @@ export function MissionProposalDetailPanel({
               <select
                 value={livreurId}
                 onChange={(e) => setLivreurId(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               >
                 {livreurs.map((l) => (
                   <option key={l.id} value={l.id}>
@@ -257,7 +257,7 @@ export function MissionProposalDetailPanel({
                 {stops.map((stop, index) => (
                   <div
                     key={stop.id || `${stop.stop_type}-${stop.entity_id}-${index}`}
-                    className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-zinc-800 dark:bg-zinc-900"
+                    className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-zinc-800 dark:bg-cc-surface"
                   >
                     <GripVertical className="h-4 w-4 shrink-0 text-zinc-400" />
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold dark:bg-zinc-800">
@@ -314,7 +314,7 @@ export function MissionProposalDetailPanel({
                   <select
                     value={orderToAdd}
                     onChange={(e) => setOrderToAdd(e.target.value)}
-                    className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                    className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-cc-surface"
                   >
                     <option value="">Select order…</option>
                     {addableOrders.map((order) => {

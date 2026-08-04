@@ -1,10 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
-import { AlertTriangle, CheckCircle2, ChevronRight, Package, Search, Truck } from 'lucide-react'
+import { AlertTriangle, Boxes, CheckCircle2, ChevronRight, Package, Search, Truck } from 'lucide-react'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
+import { DepotCcPageShell } from '../../components/dashboard/depotOps/DepotCcPageShell'
 import { StockRequestSlideOver } from '../../components/inventory/StockRequestSlideOver'
+import { ProposalsInboxPanel } from '../../components/inventory/ProposalsInboxPanel'
+import { usePanelEmbed } from '../../components/map/CcPanelHost'
+import { useCcNavigation } from '../../hooks/useCcNavigation'
 import { FilterNavButton, FilterSectionLabel } from '../../components/inventory/CatalogFilterNav'
 import {
   IndustryAvatar,
@@ -45,7 +49,7 @@ function StatusBadge({ status }) {
 function StockMetric({ label, value, valueClassName = 'text-zinc-700 dark:text-zinc-300', className = '' }) {
   return (
     <div className={`rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60 ${className}`}>
-      <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">{label}</p>
+      <p className="text-cc-label font-medium uppercase tracking-wide text-zinc-500">{label}</p>
       <p className={`mt-0.5 text-sm ${valueClassName}`}>{value}</p>
     </div>
   )
@@ -84,7 +88,7 @@ function DepotStockCard({ row, onSelect }) {
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ layout: { duration: 0.22, ease: 'easeInOut' }, duration: 0.18 }}
       onClick={() => onSelect(row.product_id)}
-      className="flex w-full flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 text-left transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+      className="flex w-full flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 text-left transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-cc-surface dark:hover:border-zinc-700"
     >
       <div className="flex items-start justify-between gap-3">
         {product.image_url ? (
@@ -137,7 +141,7 @@ function StockSkeleton() {
       {[1, 2, 3, 4, 5, 6].map((row) => (
         <div
           key={row}
-          className="h-44 animate-pulse rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900"
+          className="h-44 animate-pulse rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-cc-surface"
         />
       ))}
     </div>
@@ -146,6 +150,8 @@ function StockSkeleton() {
 
 export function StockPage() {
   const navigate = useNavigate()
+  const { openPanel } = useCcNavigation()
+  const embedded = usePanelEmbed()
   const { hasPermission } = useAuth()
   const { depots, isLoading: depotsLoading, error: depotsError } = useScopedDepots()
   const [selectedDepotId, setSelectedDepotId] = useState('')
@@ -163,9 +169,34 @@ export function StockPage() {
   const [actionMessage, setActionMessage] = useState('')
   const [activeTab, setActiveTab] = useState('stock')
   const [isRequestPanelOpen, setIsRequestPanelOpen] = useState(false)
+  const [pendingProposalCount, setPendingProposalCount] = useState(0)
+  const [requestStatusFilter, setRequestStatusFilter] = useState('ALL')
+  const [receivingId, setReceivingId] = useState(null)
 
   const canApproveStock = hasPermission(PERMISSIONS.APPROVE_STOCK)
+  const canReceiveStock = hasPermission(PERMISSIONS.RECEIVE_STOCK)
   const canManageStock = hasPermission(PERMISSIONS.MANAGE_STOCK) || hasPermission(PERMISSIONS.MANAGE_LOGISTICS)
+  const canViewProposals = hasPermission(PERMISSIONS.VIEW_PROPOSALS)
+
+  const handleProposalPendingCount = useCallback((count) => {
+    setPendingProposalCount(Number(count) || 0)
+  }, [])
+
+  const openStockProduct = (productId) => {
+    if (embedded) {
+      openPanel('stock', productId)
+      return
+    }
+    navigate(`/inventory/stock/${productId}?depotId=${selectedDepotId}`)
+  }
+
+  const openStockRequest = (requestId) => {
+    if (embedded) {
+      openPanel('stock', requestId, 'request')
+      return
+    }
+    navigate(`/inventory/stock/requests/${requestId}?depotId=${selectedDepotId}`)
+  }
 
   useEffect(() => {
     const urlDepotId = new URLSearchParams(window.location.search).get('depotId')
@@ -370,14 +401,73 @@ export function StockPage() {
     }
   }
 
+  const handleReceive = async (requestId) => {
+    setActionMessage('')
+    setReceivingId(requestId)
+    try {
+      await apiInstance.patch(`/stock/requests/${requestId}/receive`)
+      setActionMessage('Receipt confirmed — sellable depot stock was credited.')
+      await loadRequests(selectedDepotId)
+      if (selectedDepotId) {
+        const res = await apiInstance.get(`/depots/${selectedDepotId}`)
+        const depot = res.data?.data?.depot || {}
+        setDepotMeta(depot)
+        setStock(depot.stock || [])
+      }
+    } catch (err) {
+      setActionMessage(err.response?.data?.message || 'Failed to confirm receipt')
+    } finally {
+      setReceivingId(null)
+    }
+  }
+
   const isLoading = depotsLoading || isLoadingStock
   const pendingRequestCount = requests.filter((r) => r.status === 'PENDING_MANAGEMENT').length
+  const shippedRequestCount = requests.filter((r) => r.status === 'SHIPPED').length
+  const filteredRequests =
+    requestStatusFilter === 'ALL'
+      ? requests
+      : requests.filter((r) => r.status === requestStatusFilter)
 
   return (
     <DashboardLayout>
       <AnimatedPage>
+        <DepotCcPageShell
+          title="Depot Stock"
+          subtitle="View depot stock levels and submit replenishment requests."
+          icon={Boxes}
+          actions={
+            embedded ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsRequestPanelOpen(true)}
+                  disabled={!selectedDepotId}
+                  className="btn-primary"
+                >
+                  <Truck className="h-4 w-4" />
+                  Request stock
+                </button>
+                {depots.length > 1 && (
+                  <select
+                    value={selectedDepotId}
+                    onChange={(e) => setSelectedDepotId(e.target.value)}
+                    className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                  >
+                    {depots.map((depot) => (
+                      <option key={depot.id} value={depot.id}>
+                        {depot.depot_name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            ) : null
+          }
+        >
         <div className="space-y-6">
-          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
+          {!embedded ? (
+          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Depot Stock</h1>
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -409,6 +499,7 @@ export function StockPage() {
               )}
             </div>
           </div>
+          ) : null}
 
           {depotsError && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
@@ -425,16 +516,16 @@ export function StockPage() {
           {depots.length > 0 && (
             <>
               <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-cc-surface">
                   <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">SKUs in depot</p>
                   <p className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{summary.skuCount}</p>
                   <p className="mt-1 text-xs text-zinc-500">{depotMeta?.depot_name || 'Selected depot'}</p>
                 </div>
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-cc-surface">
                   <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Low stock lines</p>
                   <p className="mt-2 text-2xl font-semibold text-red-600 dark:text-red-400">{summary.lowCount}</p>
                 </div>
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-cc-surface">
                   <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Stock value</p>
                   <p className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{formatDa(summary.totalValue)}</p>
                 </div>
@@ -447,6 +538,17 @@ export function StockPage() {
                     id: 'requests',
                     label: pendingRequestCount > 0 ? `Requests (${pendingRequestCount} pending)` : 'Requests',
                   },
+                  ...(canViewProposals
+                    ? [
+                        {
+                          id: 'proposals',
+                          label:
+                            pendingProposalCount > 0
+                              ? `Proposals (${pendingProposalCount} pending)`
+                              : 'Proposals',
+                        },
+                      ]
+                    : []),
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -454,8 +556,8 @@ export function StockPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-all ${
                       activeTab === tab.id
-                        ? 'border-[#ff6b00] bg-[#ff6b00] text-white shadow-sm'
-                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800'
+                        ? 'border-distrac-primary bg-distrac-primary text-white shadow-sm'
+                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800'
                     }`}
                   >
                     {tab.label}
@@ -564,7 +666,7 @@ export function StockPage() {
                         )}
 
                         {filteredStock.length === 0 ? (
-                          <div className="flex min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-12 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
+                          <div className="flex min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-12 text-center dark:border-zinc-700 dark:bg-cc-surface/40">
                             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-200 text-zinc-500 dark:bg-zinc-800">
                               <Package className="h-6 w-6" />
                             </div>
@@ -586,7 +688,7 @@ export function StockPage() {
                                   <DepotStockCard
                                     key={row.id}
                                     row={row}
-                                    onSelect={(productId) => navigate(`/inventory/stock/${productId}?depotId=${selectedDepotId}`)}
+                                    onSelect={openStockProduct}
                                   />
                                 ))}
                               </AnimatePresence>
@@ -600,7 +702,7 @@ export function StockPage() {
               )}
 
               {activeTab === 'requests' && (
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Stock requests</h2>
@@ -617,25 +719,51 @@ export function StockPage() {
                     </button>
                     )}
                   </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {[
+                      { id: 'ALL', label: 'All' },
+                      { id: 'SHIPPED', label: `Awaiting depot receive (${shippedRequestCount})` },
+                      { id: 'PENDING_MANAGEMENT', label: `Pending approval (${pendingRequestCount})` },
+                    ].map((chip) => (
+                      <button
+                        key={chip.id}
+                        type="button"
+                        onClick={() => setRequestStatusFilter(chip.id)}
+                        className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                          requestStatusFilter === chip.id
+                            ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                            : 'border border-zinc-300 text-zinc-600 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300'
+                        }`}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="mt-4 space-y-3">
-                    {requests.length === 0 ? (
-                      <p className="text-sm text-zinc-500">No stock requests for this depot yet.</p>
+                    {filteredRequests.length === 0 ? (
+                      <p className="text-sm text-zinc-500">No stock requests for this filter.</p>
                     ) : (
-                      requests.map((request) => {
+                      filteredRequests.map((request) => {
                         const requestIndustries = uniqueIndustriesFromItems(request.items)
                         return (
                         <div
                           key={request.id}
                           role="button"
                           tabIndex={0}
-                          onClick={() => navigate(`/inventory/stock/requests/${request.id}?depotId=${selectedDepotId}`)}
+                          onClick={() => openStockRequest(request.id)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault()
-                              navigate(`/inventory/stock/requests/${request.id}?depotId=${selectedDepotId}`)
+                              openStockRequest(request.id)
                             }
                           }}
-                          className="cursor-pointer rounded-xl border border-gray-200 p-4 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/40"
+                          className={`cursor-pointer rounded-xl border p-4 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/40 ${
+                            request.status === 'SHIPPED'
+                              ? 'border-indigo-300 bg-indigo-50/40 dark:border-indigo-800 dark:bg-indigo-950/20'
+                              : 'border-gray-200 dark:border-zinc-800'
+                          }`}
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <StatusBadge status={request.status} />
@@ -699,6 +827,20 @@ export function StockPage() {
                                 Approve
                               </button>
                             )}
+                            {canReceiveStock && request.status === 'SHIPPED' && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleReceive(request.id)
+                                }}
+                                disabled={receivingId === request.id}
+                                className="btn-primary-sm"
+                              >
+                                <Package className="h-3.5 w-3.5" />
+                                {receivingId === request.id ? 'Confirming…' : 'Confirm received'}
+                              </button>
+                            )}
                           </div>
                         </div>
                         )
@@ -707,9 +849,21 @@ export function StockPage() {
                   </div>
                 </div>
               )}
+
+              {canViewProposals && (
+                <div className={activeTab === 'proposals' ? 'block' : 'hidden'}>
+                  <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface">
+                    <ProposalsInboxPanel
+                      showIntro
+                      onPendingCountChange={handleProposalPendingCount}
+                    />
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
+        </DepotCcPageShell>
 
         <StockRequestSlideOver
           isOpen={isRequestPanelOpen}

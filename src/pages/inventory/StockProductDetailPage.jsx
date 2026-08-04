@@ -130,7 +130,7 @@ export function StockProductDetailPage() {
           ) : (
             <>
               <div className="grid gap-6 lg:grid-cols-3">
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-2">
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface lg:col-span-2">
                   <div className="flex gap-5">
                     {product?.image_url ? (
                       <img src={product.image_url} alt="" className="h-24 w-24 rounded-2xl object-cover" />
@@ -160,7 +160,7 @@ export function StockProductDetailPage() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface">
                   <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Depot situation</p>
                   <p className="mt-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                     {selectedDepot?.depot_name || depotMeta?.depot_name || 'Depot'}
@@ -207,7 +207,7 @@ export function StockProductDetailPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface">
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Replenishment history</h2>
                 <p className="mt-1 text-sm text-zinc-500">Stock requests for this depot that include this product.</p>
                 <div className="mt-4 space-y-3">

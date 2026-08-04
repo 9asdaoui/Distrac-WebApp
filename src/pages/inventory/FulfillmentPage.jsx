@@ -2,6 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { PackageCheck } from 'lucide-react'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
+import { DepotCcPageShell } from '../../components/dashboard/depotOps/DepotCcPageShell'
+import { usePanelEmbed } from '../../components/map/CcPanelHost'
+import { useCcMissionFilters } from '../../components/map/CcMissionFiltersContext'
+import { filterByCreatedAt } from '../../utils/filterByCreatedAt'
 import apiInstance from '../../api/axiosInstance'
 
 const STATUS_META = {
@@ -18,7 +22,7 @@ function StatusBadge({ status }) {
 
 function FulfillmentSkeleton() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -46,6 +50,8 @@ function FulfillmentSkeleton() {
 }
 
 export function FulfillmentPage() {
+  const embedded = usePanelEmbed()
+  const ccFilters = useCcMissionFilters()
   const [orders, setOrders] = useState([])
   const [statusFilter, setStatusFilter] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -79,41 +85,53 @@ export function FulfillmentPage() {
   }, [])
 
   const visibleOrders = useMemo(() => {
-    if (!statusFilter) return orders
-    return orders.filter((o) => o.status === statusFilter)
-  }, [orders, statusFilter])
+    const ranged =
+      embedded && ccFilters?.dateFrom && ccFilters?.dateTo
+        ? filterByCreatedAt(orders, ccFilters.dateFrom, ccFilters.dateTo)
+        : orders
+    if (!statusFilter) return ranged
+    return ranged.filter((o) => o.status === statusFilter)
+  }, [orders, statusFilter, embedded, ccFilters?.dateFrom, ccFilters?.dateTo])
 
-  return (
-    <DashboardLayout>
-      <AnimatedPage>
-        <div className="space-y-6">
-          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
-                <PackageCheck className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Fulfillment Tracking</h1>
-                <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">Track how system-split fulfillment orders are progressing by source and product line.</p>
-              </div>
+  const statusFilterControl = (
+    <div className="flex items-center gap-2">
+      <select
+        value={statusFilter}
+        onChange={(e) => setStatusFilter(e.target.value)}
+        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-200"
+      >
+        <option value="">All Statuses</option>
+        <option value="PENDING">Pending</option>
+        <option value="READY">Ready</option>
+        <option value="SHIPPED">Shipped</option>
+        <option value="APPROVED">Approved</option>
+      </select>
+      {!isLoading && (
+        <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{visibleOrders.length} orders</span>
+      )}
+    </div>
+  )
+
+  const pageBody = (
+    <>
+      {!embedded ? (
+        <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
+              <PackageCheck className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
             </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-              >
-                <option value="">All Statuses</option>
-                <option value="PENDING">Pending</option>
-                <option value="READY">Ready</option>
-                <option value="SHIPPED">Shipped</option>
-                <option value="APPROVED">Approved</option>
-              </select>
-              {!isLoading && <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{visibleOrders.length} orders</span>}
+            <div>
+              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Industry restock</h1>
+              <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+                Track restock shipments from industry to your depot.
+              </p>
             </div>
           </div>
+          {statusFilterControl}
+        </div>
+      ) : null}
 
-          {error && (
+      {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
               {error}
             </div>
@@ -122,7 +140,7 @@ export function FulfillmentPage() {
           {isLoading ? (
             <FulfillmentSkeleton />
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -163,7 +181,26 @@ export function FulfillmentPage() {
               </div>
             </div>
           )}
-        </div>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <DepotCcPageShell
+        title="Industry restock"
+        subtitle="Track restock shipments from industry to your depot"
+        icon={PackageCheck}
+        actions={statusFilterControl}
+      >
+        <div className="space-y-6">{pageBody}</div>
+      </DepotCcPageShell>
+    )
+  }
+
+  return (
+    <DashboardLayout>
+      <AnimatedPage>
+        <div className="space-y-6">{pageBody}</div>
       </AnimatedPage>
     </DashboardLayout>
   )

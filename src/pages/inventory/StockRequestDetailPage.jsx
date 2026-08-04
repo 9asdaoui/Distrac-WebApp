@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, Factory } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Factory, Package } from 'lucide-react'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
 import {
@@ -15,6 +15,7 @@ import {
 } from '../../components/inventory/StockRequestVisuals'
 import apiInstance from '../../api/axiosInstance'
 import { useAuth } from '../../context/AuthContext'
+import { PERMISSIONS } from '../../config/permissions'
 
 const REQUEST_STATUS_LABELS = {
   PENDING_MANAGEMENT: 'Awaiting management approval',
@@ -58,12 +59,14 @@ export function StockRequestDetailPage() {
   const depotId = searchParams.get('depotId') || ''
   const navigate = useNavigate()
   const { hasPermission } = useAuth()
-  const canApproveStock = hasPermission('approve_stock')
+  const canApproveStock = hasPermission(PERMISSIONS.APPROVE_STOCK)
+  const canReceiveStock = hasPermission(PERMISSIONS.RECEIVE_STOCK)
 
   const [request, setRequest] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionMessage, setActionMessage] = useState('')
+  const [isReceiving, setIsReceiving] = useState(false)
 
   const backUrl = `/inventory/stock${depotId ? `?depotId=${depotId}` : ''}`
 
@@ -102,6 +105,20 @@ export function StockRequestDetailPage() {
     }
   }
 
+  const handleReceive = async () => {
+    setActionMessage('')
+    setIsReceiving(true)
+    try {
+      await apiInstance.patch(`/stock/requests/${requestId}/receive`)
+      setActionMessage('Receipt confirmed — sellable depot stock was credited.')
+      await loadRequest()
+    } catch (err) {
+      setActionMessage(err.response?.data?.message || 'Failed to confirm receipt')
+    } finally {
+      setIsReceiving(false)
+    }
+  }
+
   return (
     <DashboardLayout>
       <AnimatedPage>
@@ -125,7 +142,7 @@ export function StockRequestDetailPage() {
             <p className="text-sm text-zinc-500">Stock request not found.</p>
           ) : (
             <>
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Stock request</h1>
@@ -204,9 +221,21 @@ export function StockRequestDetailPage() {
                     Approve for industry
                   </button>
                 )}
+
+                {canReceiveStock && request.status === 'SHIPPED' && (
+                  <button
+                    type="button"
+                    onClick={handleReceive}
+                    disabled={isReceiving}
+                    className="btn-primary mt-4"
+                  >
+                    <Package className="h-4 w-4" />
+                    {isReceiving ? 'Confirming…' : 'Confirm received at depot'}
+                  </button>
+                )}
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
                 <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                   <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Requested products</h2>
                   <p className="mt-1 text-sm text-zinc-500">
@@ -262,7 +291,7 @@ export function StockRequestDetailPage() {
               </div>
 
               {(request.fulfillment_orders || []).length > 0 && (
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface">
                   <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Fulfillment orders</h2>
                   <p className="mt-1 text-sm text-zinc-500">
                     Split by supplying industry after submission.
