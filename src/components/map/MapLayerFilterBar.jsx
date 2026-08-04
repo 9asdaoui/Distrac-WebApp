@@ -1,42 +1,42 @@
+/**
+ * @deprecated Import from `./mapLayerVisibility` instead.
+ * Thin re-export so older imports keep resolving during the uncouple.
+ */
+import {
+  MAP_LAYER_IDS,
+  visibilityFromLegacyFilter,
+  readMapLayerVisibility,
+} from './mapLayerVisibility'
+
+export {
+  MAP_LAYER_IDS,
+  DEFAULT_MAP_LAYER_VISIBILITY,
+  MAP_LAYER_VISIBILITY_STORAGE_KEY,
+  LEGACY_MAP_LAYER_FILTER_STORAGE_KEY,
+  readMapLayerVisibility,
+  writeMapLayerVisibility,
+  visibilityFromLegacyFilter,
+  toggleMapLayerVisibility,
+  isLayerVisible,
+  viewportLayersFromVisibility,
+} from './mapLayerVisibility'
+
+/** @deprecated Use multi-toggle visibility; single-select filter is gone. */
 export const MAP_FILTER_ALL = 'all'
-
-export const MAP_LAYER_IDS = ['industries', 'depots', 'regions', 'sectors', 'clients', 'vehicles']
-
 export const DEFAULT_MAP_LAYER_FILTER = MAP_FILTER_ALL
 
-export const DEFAULT_MAP_LAYER_VISIBILITY = Object.fromEntries(
-  MAP_LAYER_IDS.map((id) => [id, true]),
-)
-
-/** Single layer id, or all layers at once. */
+/** @deprecated Prefer readMapLayerVisibility. */
 export function visibilityFromFilter(filter) {
-  if (filter === MAP_FILTER_ALL) {
-    return { ...DEFAULT_MAP_LAYER_VISIBILITY }
-  }
-  if (MAP_LAYER_IDS.includes(filter)) {
-    return Object.fromEntries(MAP_LAYER_IDS.map((id) => [id, id === filter]))
-  }
-  return { ...DEFAULT_MAP_LAYER_VISIBILITY }
+  return visibilityFromLegacyFilter(filter)
 }
 
-export function readMapLayerFilter(storageKey) {
-  if (typeof window === 'undefined') return DEFAULT_MAP_LAYER_FILTER
-  try {
-    const raw = localStorage.getItem(storageKey)
-    if (!raw) return DEFAULT_MAP_LAYER_FILTER
-
-    const parsed = JSON.parse(raw)
-    if (parsed === MAP_FILTER_ALL || MAP_LAYER_IDS.includes(parsed)) {
-      return parsed
-    }
-
-    if (parsed && typeof parsed === 'object') {
-      const on = MAP_LAYER_IDS.filter((id) => parsed[id])
-      if (on.length === MAP_LAYER_IDS.length) return MAP_FILTER_ALL
-      if (on.length === 1) return on[0]
-    }
-  } catch {
-    /* ignore */
-  }
-  return DEFAULT_MAP_LAYER_FILTER
+/** @deprecated Prefer readMapLayerVisibility. */
+export function readMapLayerFilter() {
+  const vis = readMapLayerVisibility()
+  const on = Object.entries(vis)
+    .filter(([, v]) => v)
+    .map(([k]) => k)
+  if (on.length === MAP_LAYER_IDS.length || on.length === 0) return MAP_FILTER_ALL
+  if (on.length === 1) return on[0]
+  return MAP_FILTER_ALL
 }

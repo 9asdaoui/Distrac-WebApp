@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   MapContainer,
   TileLayer,
@@ -8,6 +8,7 @@ import {
   useMap,
 } from 'react-leaflet'
 import L from 'leaflet'
+import { BookOpen, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   DARK_TILE_URL as TILE_URL,
@@ -19,8 +20,8 @@ import { DepotMapPopupCard } from '../popups/DepotMapPopupCard'
 import { IndustryMapPopupCard } from '../popups/IndustryMapPopupCard'
 import { ClientMapPopupCard } from '../popups/ClientMapPopupCard'
 import { MapMarkerClusterLayer, shouldClusterMarkers } from '../MapMarkerClusterLayer'
-import { GlobalMapCommandBar } from '../GlobalMapCommandBar'
 import { MapFollowHud } from '../MapFollowHud'
+import { MapLayerVisibilityControl } from '../MapLayerVisibilityControl'
 import {
   RegionBoundaryDraftLayers,
   RegionBoundaryDrawControls,
@@ -45,6 +46,7 @@ import {
   DEFAULT_ZOOM,
   MAP_HUD_GLASS,
 } from './mapEngineConstants'
+import { CC_COLORS } from '../../../styles/designTokens'
 import {
   buildDepotColorMap,
   getSectorColor,
@@ -128,57 +130,170 @@ export function MapCanvasResizeSync({ mapInstance, containerRef }) {
 
 export function FloatingLegend({ depotColorEntries = [], isEditing = false }) {
   const { t } = useTranslation()
+  const rootRef = useRef(null)
+  const [open, setOpen] = useState(false)
+  const legendLabel = t('commandCenter.legend.title')
+  const rowOffset = depotColorEntries.length > 0 ? depotColorEntries.length + 1 : 0
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onPointerDown = (e) => {
+      if (!rootRef.current?.contains(e.target)) setOpen(false)
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    // Use click (not mousedown): closing on mousedown collapses this panel and
+    // shifts the filter button before its click fires, so the filter never opens.
+    document.addEventListener('click', onPointerDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('click', onPointerDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
   return (
-    <div className="pointer-events-none absolute bottom-4 right-4 z-[1000]">
-      <div className={`pointer-events-auto px-3 py-2.5 ${MAP_HUD_GLASS}`}>
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-          {t('commandCenter.legend.title')}
-        </p>
-        <div className="flex flex-col gap-1.5">
-          {depotColorEntries.length > 0 && (
-            <>
-              <p className="text-[10px] font-medium text-zinc-500">{t('commandCenter.legend.sectorsByDepot')}</p>
-              {depotColorEntries.map(({ depotName, style }) => (
-                <span key={depotName} className="inline-flex items-center gap-2 text-xs text-zinc-400">
-                  <span
-                    className="h-2.5 w-5 rounded-sm border-2"
-                    style={{
-                      borderColor: style.color,
-                      backgroundColor: `${style.fillColor}26`,
-                    }}
-                  />
-                  {depotName}
-                </span>
-              ))}
-            </>
+      <div
+        ref={rootRef}
+        className={`map-legend pointer-events-auto ${MAP_HUD_GLASS}${open ? ' map-legend--open' : ''}`}
+      >
+        <div className="map-legend__chrome">
+          {open ? (
+            <p className="map-legend__title text-[10px] font-semibold uppercase tracking-wider text-cc-muted">
+              {legendLabel}
+            </p>
+          ) : (
+            <span className="sr-only">{legendLabel}</span>
           )}
-          <span className="inline-flex items-center gap-2 text-xs text-zinc-400">
-            <span className="h-3 w-3 rounded-full border-2 border-zinc-900 bg-rose-500" />
-            {t('commandCenter.legend.industry')}
-          </span>
-          <span className="inline-flex items-center gap-2 text-xs text-zinc-400">
-            <span className="h-3 w-3 rounded-full border-2 border-zinc-900 bg-amber-500" />
-            {t('commandCenter.legend.central')}
-          </span>
-          <span className="inline-flex items-center gap-2 text-xs text-zinc-400">
-            <span className="h-3 w-3 rounded-full border-2 border-zinc-900 bg-blue-500" />
-            {t('commandCenter.legend.depot')}
-          </span>
-          <span className="inline-flex items-center gap-2 text-xs text-zinc-400">
-            <span className="h-3.5 w-3.5 rounded-full border-2 border-zinc-950 bg-zinc-100 ring-2 ring-zinc-400/50 shadow-md" />
-            {t('commandCenter.legend.client')}
-          </span>
-          {isEditing && (
-            <span className="mt-1 inline-flex items-center gap-2 text-xs font-medium text-amber-300">
-              <span className="h-3 w-3 rounded-full bg-white shadow-[0_0_0_2px_rgba(245,158,11,0.5)]" />
-              {t('commandCenter.legend.draggableCorner')}
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="map-legend__toggle"
+            aria-label={legendLabel}
+            aria-expanded={open}
+            title={legendLabel}
+          >
+            <span className="relative flex h-4 w-4 items-center justify-center">
+              <BookOpen
+                className={`absolute h-4 w-4 transition-all duration-200 ease-out ${
+                  open ? 'scale-50 rotate-90 opacity-0' : 'scale-100 rotate-0 opacity-100'
+                }`}
+                strokeWidth={2}
+              />
+              <X
+                className={`absolute h-4 w-4 transition-all duration-200 ease-out ${
+                  open ? 'scale-100 rotate-0 opacity-100' : 'scale-50 -rotate-90 opacity-0'
+                }`}
+                strokeWidth={2}
+              />
             </span>
-          )}
+          </button>
+        </div>
+
+        <div className="map-legend__body" aria-hidden={!open}>
+          <div className="flex flex-col gap-1.5 pt-1">
+            {depotColorEntries.length > 0 && (
+              <>
+                <p className="map-legend__row text-[10px] font-medium text-cc-muted" style={{ '--i': 0 }}>
+                  {t('commandCenter.legend.sectorsByDepot')}
+                </p>
+                {depotColorEntries.map(({ depotName, style }, index) => (
+                  <span
+                    key={depotName}
+                    className="map-legend__row inline-flex items-center gap-2 text-xs text-cc-secondary"
+                    style={{ '--i': index + 1 }}
+                  >
+                    <span
+                      className="h-2.5 w-5 rounded-sm border-2"
+                      style={{
+                        borderColor: style.color,
+                        backgroundColor: `${style.fillColor}26`,
+                      }}
+                    />
+                    {depotName}
+                  </span>
+                ))}
+              </>
+            )}
+            <span
+              className="map-legend__row inline-flex items-center gap-2 text-xs text-cc-secondary"
+              style={{ '--i': rowOffset }}
+            >
+              <span className="h-3 w-3 rounded-full border-2 border-zinc-900 bg-rose-500" />
+              {t('commandCenter.legend.industry')}
+            </span>
+            <span
+              className="map-legend__row inline-flex items-center gap-2 text-xs text-cc-secondary"
+              style={{ '--i': rowOffset + 1 }}
+            >
+              <span className="h-3 w-3 rounded-full border-2 border-zinc-900 bg-amber-500" />
+              {t('commandCenter.legend.central')}
+            </span>
+            <span
+              className="map-legend__row inline-flex items-center gap-2 text-xs text-cc-secondary"
+              style={{ '--i': rowOffset + 2 }}
+            >
+              <span className="h-3 w-3 rounded-full border-2 border-zinc-900 bg-blue-500" />
+              {t('commandCenter.legend.depot')}
+            </span>
+            <span
+              className="map-legend__row inline-flex items-center gap-2 text-xs text-cc-secondary"
+              style={{ '--i': rowOffset + 3 }}
+            >
+              <span className="h-3.5 w-3.5 rounded-full border-2 border-zinc-950 bg-zinc-100 ring-2 ring-zinc-400/50 shadow-md" />
+              {t('commandCenter.legend.client')}
+            </span>
+            {isEditing && (
+              <span
+                className="map-legend__row mt-1 inline-flex items-center gap-2 text-xs font-medium text-amber-300"
+                style={{ '--i': rowOffset + 4 }}
+              >
+                <span className="h-3 w-3 rounded-full bg-white shadow-[0_0_0_2px_rgba(245,158,11,0.5)]" />
+                {t('commandCenter.legend.draggableCorner')}
+              </span>
+            )}
+          </div>
         </div>
       </div>
-    </div>
   )
 }
+
+function missionStopIcon(sequence) {
+  return L.divIcon({
+    className: 'route-stop-marker',
+    html: `<div class="route-stop-marker__badge">${sequence}</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -26],
+  })
+}
+
+const missionDepotIcon = L.divIcon({
+  className: 'route-depot-marker',
+  html: '<div class="route-depot-marker__badge" title="Depot">⌂</div>',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -28],
+})
+
+function FitFocusedMissionBounds({ positions }) {
+  const map = useMap()
+  const key = positions.map((p) => p.join(',')).join('|')
+
+  useEffect(() => {
+    if (!positions?.length) return
+    if (positions.length === 1) {
+      map.setView(positions[0], 13)
+      return
+    }
+    const bounds = L.latLngBounds(positions)
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
+  }, [map, key])
+
+  return null
+}
+
 export function MapEngine({
   sectors,
   regions,
@@ -189,9 +304,14 @@ export function MapEngine({
   vehiclePositionById,
   vehicleTrail,
   missionRoutes = [],
+  showMissionRoutes = null,
+  focusedMissionId = null,
+  focusedMissionDetail = null,
+  suppressVehicleLayer = false,
   layerVisibility,
-  mapLayerFilter,
-  onMapLayerFilterChange,
+  mapLayerVisibility,
+  onMapLayerVisibilityChange,
+  mapLayerSearchScope = null,
   mapLayerSearch,
   onMapLayerSearchChange,
   onSelect,
@@ -247,7 +367,7 @@ export function MapEngine({
   const activeRegionDraw = regionCreateDraw || regionEditDraw
   const mapData = useMemo(
     () =>
-      applyMapLayerSearch(mapLayerFilter, mapLayerSearch, {
+      applyMapLayerSearch(mapLayerSearchScope, mapLayerSearch, {
         regions,
         sectors,
         depots,
@@ -255,7 +375,7 @@ export function MapEngine({
         clients,
         vehicles,
       }),
-    [mapLayerFilter, mapLayerSearch, regions, sectors, depots, industries, clients, vehicles],
+    [mapLayerSearchScope, mapLayerSearch, regions, sectors, depots, industries, clients, vehicles],
   )
 
   const depotColorMap = useMemo(() => {
@@ -427,22 +547,73 @@ export function MapEngine({
       industries: mapLod.showIndustries,
       depots: mapLod.showDepots,
       clients: mapLod.showClients,
-      vehicles: mapLod.showVehicles,
+      vehicles: suppressVehicleLayer ? false : mapLod.showVehicles,
     }),
-    [mapLod],
+    [mapLod, suppressVehicleLayer],
   )
+
+  const routesVisible = showMissionRoutes != null ? showMissionRoutes : show.vehicles
+
+  const focusedStopMarkers = useMemo(() => {
+    const detail = focusedMissionDetail
+    if (!detail) return []
+    const stops = [...(detail.stops || [])]
+      .sort((a, b) => (a.sequence_number || 0) - (b.sequence_number || 0))
+      .map((stop, index) => {
+        const lat = stop.location?.lat ?? stop.location?.latitude
+        const lon = stop.location?.lon ?? stop.location?.longitude
+        if (!hasGpsCoordinates(lat, lon)) return null
+        return {
+          id: stop.id || `focus-stop-${index}`,
+          sequence: stop.sequence_number || index + 1,
+          title: stop.location?.name || stop.custom_description || `Stop ${index + 1}`,
+          label: stop.stop_type || stop.stopType || '',
+          position: [Number(lat), Number(lon)],
+        }
+      })
+      .filter(Boolean)
+    return stops
+  }, [focusedMissionDetail])
+
+  const focusedDepotPoint = useMemo(() => {
+    const origin = focusedMissionDetail?.depot_origin || focusedMissionDetail?.depotOrigin
+    if (!origin) return null
+    const lat = origin.lat ?? origin.latitude
+    const lon = origin.lon ?? origin.longitude
+    if (!hasGpsCoordinates(lat, lon)) return null
+    return {
+      position: [Number(lat), Number(lon)],
+      name: origin.name || 'Depot',
+      address: origin.address || null,
+    }
+  }, [focusedMissionDetail])
+
+  /* Never draw other missions behind a focused route — selected mission only. */
+  const backgroundRoutes = useMemo(() => {
+    if (!missionRoutes?.length) return []
+    if (focusedMissionId) return []
+    return missionRoutes
+  }, [missionRoutes, focusedMissionId])
+
+  const overlayFocusedRoute = useMemo(() => {
+    if (!focusedMissionId || !missionRoutes?.length) return null
+    return missionRoutes.find((route) => route.mission_id === focusedMissionId) || null
+  }, [focusedMissionId, missionRoutes])
+
+  const focusedPolyline = useMemo(() => {
+    if (focusedMissionDetail?.points?.length >= 2) return focusedMissionDetail.points
+    const pts = []
+    if (focusedDepotPoint) pts.push(focusedDepotPoint.position)
+    for (const stop of focusedStopMarkers) pts.push(stop.position)
+    if (pts.length >= 2) return pts
+    if (overlayFocusedRoute?.points?.length >= 2) return overlayFocusedRoute.points
+    return pts
+  }, [focusedMissionDetail, focusedDepotPoint, focusedStopMarkers, overlayFocusedRoute])
 
 
   /* Bounds from full layer data — not search-filtered — so the viewport stays stable while typing. */
   const fitPositions = useMemo(() => {
-    const fullData = applyMapLayerSearch(mapLayerFilter, '', {
-      regions,
-      sectors,
-      depots,
-      industries,
-      clients,
-      vehicles,
-    })
+    const fullData = { regions, sectors, depots, industries, clients, vehicles }
     const points = []
 
     if (show.regions) {
@@ -485,7 +656,7 @@ export function MapEngine({
       }
     }
     return points
-  }, [show, mapLayerFilter, regions, sectors, depots, industries, clients, vehicles])
+  }, [show, regions, sectors, depots, industries, clients, vehicles])
 
   return (
     <div
@@ -656,19 +827,53 @@ export function MapEngine({
         })
           ))}
 
-        {show.vehicles && missionRoutes?.length > 0 &&
-          missionRoutes.map((route) => (
+        {routesVisible &&
+          backgroundRoutes.map((route) => (
             <Polyline
               key={`mission-route-${route.mission_id}`}
               positions={route.points}
               pathOptions={{
-                color: '#38bdf8',
+                color: CC_COLORS.routeBg,
                 weight: 2,
                 opacity: 0.55,
                 dashArray: '6 8',
               }}
             />
           ))}
+
+        {routesVisible && focusedMissionId && (focusedPolyline.length > 1 || focusedStopMarkers.length > 0 || focusedDepotPoint) && (
+          <>
+            {focusedPolyline.length > 1 ? (
+              <>
+                <Polyline
+                  key={`mission-route-focus-${focusedMissionId || 'detail'}`}
+                  positions={focusedPolyline}
+                  pathOptions={{
+                    color: CC_COLORS.routeFocus,
+                    weight: 3,
+                    opacity: 0.9,
+                  }}
+                />
+                <FitFocusedMissionBounds positions={focusedPolyline} />
+              </>
+            ) : null}
+            {focusedDepotPoint ? (
+              <Marker
+                position={focusedDepotPoint.position}
+                icon={missionDepotIcon}
+                zIndexOffset={1000}
+              />
+            ) : null}
+            {focusedStopMarkers.map((stop) => (
+              <Marker
+                key={stop.id}
+                position={stop.position}
+                icon={missionStopIcon(stop.sequence)}
+                zIndexOffset={900}
+              />
+            ))}
+          </>
+        )}
 
         {show.vehicles &&
           (useImperativeMarkers && !useVehicleCluster ? (
@@ -728,7 +933,7 @@ export function MapEngine({
 
         {show.vehicles && vehicleTrail?.length > 1 && (
           <Polyline
-            key={`vehicle-trail-${vehicleTrail.length}`}
+            key={`vehicle-trail-${followVehicleId || selectedElement?.id || 'active'}`}
             positions={vehicleTrail}
             pathOptions={{
               color: '#f97316',
@@ -806,22 +1011,17 @@ export function MapEngine({
         />
       )}
 
-      <GlobalMapCommandBar
-        hudOffsetClass={hudOffsetClass}
-        filter={mapLayerFilter}
-        onFilterChange={onMapLayerFilterChange}
-        searchQuery={mapLayerSearch}
-        onSearchChange={onMapLayerSearchChange}
-        searchDisabled={isCreatingRegion || isCreatingIndustry}
-        onRefresh={onRefreshMap}
-        showWialonStatus={showWialonStatus}
-        wialonPulseNonce={wialonPulseNonce}
-        modeHint={interactionMode?.hint || ''}
-        modeBadge={interactionMode?.badge}
-      />
-      {show.sectors && (
-        <FloatingLegend depotColorEntries={depotColorEntries} isEditing={isEditingMap} />
-      )}
+      <div className={`map-legend-stack pointer-events-none absolute flex flex-col items-end gap-2`}>
+        {show.sectors ? (
+          <FloatingLegend depotColorEntries={depotColorEntries} isEditing={isEditingMap} />
+        ) : null}
+        {mapLayerVisibility && onMapLayerVisibilityChange ? (
+          <MapLayerVisibilityControl
+            visibility={mapLayerVisibility}
+            onChange={onMapLayerVisibilityChange}
+          />
+        ) : null}
+      </div>
 
       {selectedElement?.type === 'vehicle' && (
         <MapFollowHud

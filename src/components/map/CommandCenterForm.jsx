@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 
 const ACCENT_BAR = {
   amber: 'via-amber-500',
-  orange: 'via-orange-500',
+  orange: 'via-cc-accent',
   rose: 'via-rose-500',
-  blue: 'via-blue-500',
+  blue: 'via-cc-info',
   emerald: 'via-emerald-500',
   sky: 'via-sky-500',
   violet: 'via-violet-500',
@@ -14,16 +14,16 @@ const ACCENT_BAR = {
 
 const ACCENT_TEXT = {
   amber: 'text-amber-400',
-  orange: 'text-orange-400',
+  orange: 'text-cc-accent',
   rose: 'text-rose-400',
-  blue: 'text-blue-400',
+  blue: 'text-cc-info',
   emerald: 'text-emerald-400',
   sky: 'text-sky-400',
   violet: 'text-violet-400',
 }
 
 export const ccFormInputClass =
-  'w-full rounded-xl border border-zinc-700/80 bg-zinc-950/70 px-3.5 py-2.5 text-sm text-zinc-100 shadow-inner shadow-black/20 placeholder:text-zinc-600 outline-none transition focus:border-orange-500/50 focus:bg-zinc-950 focus:ring-2 focus:ring-orange-500/15 disabled:cursor-not-allowed disabled:opacity-50'
+  'w-full rounded-xl border border-cc-border bg-cc-bg/70 px-3.5 py-2.5 text-sm text-cc-primary shadow-inner shadow-black/20 placeholder:text-[#6b7382] outline-none transition focus:border-cc-accent/50 focus:bg-cc-bg focus:ring-2 focus:ring-cc-accent/15 disabled:cursor-not-allowed disabled:opacity-50'
 
 export const ccFormSelectClass = `${ccFormInputClass} appearance-none bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-10`
 
@@ -40,7 +40,7 @@ export function FormIntro({ accent = 'amber', title, description, badge }) {
       />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${ACCENT_TEXT[accent] || ACCENT_TEXT.amber}`}>
+          <p className={`text-cc-label font-bold uppercase tracking-[0.14em] ${ACCENT_TEXT[accent] || ACCENT_TEXT.amber}`}>
             {title}
           </p>
           {description && (
@@ -61,7 +61,7 @@ export function FormSection({ title, description, children, className = '' }) {
       {(title || description) && (
         <div className="border-b border-zinc-800/80 px-4 py-3">
           {title && <p className="text-xs font-semibold text-zinc-200">{title}</p>}
-          {description && <p className="mt-0.5 text-[11px] text-zinc-500">{description}</p>}
+          {description && <p className="mt-0.5 text-cc-caption text-zinc-500">{description}</p>}
         </div>
       )}
       <div className="space-y-1 p-2">{children}</div>
@@ -91,12 +91,12 @@ export function FormField({
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-semibold text-zinc-200">{label}</p>
             {required && (
-              <span className="shrink-0 rounded-full bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-300">
+              <span className="shrink-0 rounded-full bg-cc-accent/10 px-2 py-0.5 text-cc-label font-semibold uppercase tracking-wide text-cc-accent-hover">
                 Required
               </span>
             )}
           </div>
-          {hint && <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-500">{hint}</p>}
+          {hint && <p className="mt-0.5 text-cc-caption leading-relaxed text-zinc-500">{hint}</p>}
           <div className="mt-2">{children}</div>
         </div>
       </div>
@@ -129,7 +129,7 @@ export function FormToggle({ checked, onChange, labelOn = 'On', labelOff = 'Off'
   const onClass =
     accent === 'emerald'
       ? 'border-emerald-500/40 bg-emerald-500/20'
-      : 'border-orange-500/40 bg-orange-500/20'
+      : 'border-cc-accent/40 bg-cc-accent/20'
 
   return (
     <div className="flex items-center gap-3">
@@ -181,20 +181,25 @@ export function FormSegmented({ value, onChange, options }) {
 export function FormTip({ icon: Icon, title, children, variant = 'amber' }) {
   const borderClass = {
     amber: 'border-amber-500/25 bg-amber-500/[0.06]',
-    orange: 'border-orange-500/25 bg-orange-500/[0.06]',
+    orange: 'border-cc-accent/25 bg-cc-accent/[0.06]',
     rose: 'border-rose-500/25 bg-rose-500/[0.06]',
-    blue: 'border-blue-500/25 bg-blue-500/[0.06]',
+    blue: 'border-cc-info/25 bg-cc-info/[0.06]',
     emerald: 'border-emerald-500/25 bg-emerald-500/[0.06]',
   }[variant] || 'border-amber-500/25 bg-amber-500/[0.06]'
 
-  const titleClass = ACCENT_TEXT[variant] || ACCENT_TEXT.amber
+  const titleClass =
+    variant === 'orange'
+      ? 'text-cc-accent'
+      : variant === 'blue'
+        ? 'text-cc-info'
+        : ACCENT_TEXT[variant] || ACCENT_TEXT.amber
 
   return (
     <div className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 ${borderClass}`}>
       {Icon && <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${titleClass}`} />}
       <div className="min-w-0">
         {title && (
-          <p className={`text-[10px] font-bold uppercase tracking-wider ${titleClass}`}>{title}</p>
+          <p className={`text-cc-label font-bold uppercase tracking-wider ${titleClass}`}>{title}</p>
         )}
         <div className="mt-1 text-xs leading-relaxed text-zinc-400">{children}</div>
       </div>

@@ -103,7 +103,7 @@ export function SectorBoundaryPreview({
   return (
     <div className={`overflow-hidden rounded-xl border border-gray-200 shadow-sm dark:border-zinc-800 ${className}`}>
       {clientMarkers.length > 0 && (
-        <div className="flex items-center gap-4 border-b border-gray-200 bg-zinc-50 px-4 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-400">
+        <div className="flex items-center gap-4 border-b border-gray-200 bg-zinc-50 px-4 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-cc-surface/80 dark:text-zinc-400">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
             Sector boundary

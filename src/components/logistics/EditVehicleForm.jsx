@@ -27,7 +27,7 @@ export function EditVehicleForm({ form, onChange, depots = [] }) {
           icon={Hash}
           label={t('commandCenter.rail.form.plate')}
           required
-          iconAccent="text-orange-300 bg-orange-500/10 ring-orange-500/20"
+          iconAccent="text-cc-accent-hover bg-cc-accent/15 ring-cc-accent/25"
         >
           <FormInput
             type="text"

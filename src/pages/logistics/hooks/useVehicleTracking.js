@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import apiInstance from '../../../api/axiosInstance'
-import { MAP_FILTER_ALL } from '../../../components/map/MapLayerFilterBar'
+import { isLayerVisible } from '../../../components/map/mapLayerVisibility'
 import { hasGpsCoordinates } from '../../../components/LocationMap'
 import { emitMapEvent, MAP_EVENTS } from '../../../components/map/engine/mapEventBus'
 import {
@@ -33,7 +33,7 @@ function syncTrailFromTrackedRow(trailVehicleIdRef, setVehicleTrail, row) {
 }
 
 export function useVehicleTracking({
-  mapLayerFilter,
+  mapLayerVisibility,
   isLoading,
   selectedVehicleId = null,
   onTrailLoaded,
@@ -175,7 +175,7 @@ export function useVehicleTracking({
   )
 
   useEffect(() => {
-    const showVehicles = mapLayerFilter === MAP_FILTER_ALL || mapLayerFilter === 'vehicles'
+    const showVehicles = isLayerVisible(mapLayerVisibility, 'vehicles')
     if (!showVehicles || isLoading) {
       if (positionPollRef.current) {
         clearInterval(positionPollRef.current)
@@ -329,10 +329,10 @@ export function useVehicleTracking({
         sseAbortRef.current = null
       }
     }
-  }, [mapLayerFilter, isLoading, fetchVehiclePositions])
+  }, [mapLayerVisibility, isLoading, fetchVehiclePositions])
 
   useEffect(() => {
-    const showVehicles = mapLayerFilter === MAP_FILTER_ALL || mapLayerFilter === 'vehicles'
+    const showVehicles = isLayerVisible(mapLayerVisibility, 'vehicles')
 
     if (trailPollRef.current) {
       clearInterval(trailPollRef.current)
@@ -380,7 +380,7 @@ export function useVehicleTracking({
         trailPollRef.current = null
       }
     }
-  }, [trailVehicleId, mapLayerFilter, fetchVehicleTrail])
+  }, [trailVehicleId, mapLayerVisibility, fetchVehicleTrail])
 
   return {
     trackedVehicles,

@@ -23,7 +23,7 @@ export const EMPTY_INDUSTRY_FORM = {
 }
 
 const LIGHT_INPUT =
-  'w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-500/20'
+  'w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-500/20'
 
 const LIGHT_LABEL = 'mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400'
 
@@ -33,7 +33,7 @@ export function IndustrySegmentedControl({ value, onChange, options, variant = '
     return <FormSegmented value={value} onChange={onChange} options={options} />
   }
   return (
-    <div className="flex w-full rounded-lg p-1 bg-zinc-100 dark:bg-zinc-900">
+    <div className="flex w-full rounded-lg p-1 bg-zinc-100 dark:bg-cc-surface">
       {options.map((opt) => {
         const selected = value === opt.value
         return (

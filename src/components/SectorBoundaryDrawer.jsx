@@ -132,7 +132,7 @@ function FloatingMapControls({
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[1000]">
-      <div className="pointer-events-auto absolute right-4 top-4 w-[168px] overflow-hidden rounded-xl border border-zinc-200/90 bg-white/95 shadow-xl shadow-black/10 backdrop-blur-md dark:border-zinc-700/90 dark:bg-zinc-900/95">
+      <div className="pointer-events-auto absolute right-4 top-4 w-[168px] overflow-hidden rounded-xl border border-zinc-200/90 bg-white/95 shadow-xl shadow-black/10 backdrop-blur-md dark:border-zinc-700/90 dark:bg-cc-surface/95">
         <div className="border-b border-zinc-200/80 px-3 py-2 dark:border-zinc-800">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Draw boundary

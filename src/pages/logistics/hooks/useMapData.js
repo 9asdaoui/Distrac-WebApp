@@ -4,23 +4,31 @@ import { dedupeById, normalizeDepotForMap } from './mapUtils'
 
 const REFRESH_DEBOUNCE_MS = 300
 
-export function useMapData(mapLayerFilter) {
+export function useMapData() {
   const controllerRef = useRef(null)
   const refreshTimerRef = useRef(null)
+  const hasLoadedOnceRef = useRef(false)
   const [sectors, setSectors] = useState([])
   const [depots, setDepots] = useState([])
   const [industries, setIndustries] = useState([])
   const [regions, setRegions] = useState([])
   const [clients, setClients] = useState([])
   const [vehicles, setVehicles] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [loadError, setLoadError] = useState('')
 
   const refreshMapDataNow = useCallback(async () => {
     controllerRef.current?.abort()
     const controller = new AbortController()
     controllerRef.current = controller
-    setIsLoading(true)
+
+    const isFirstLoad = !hasLoadedOnceRef.current
+    if (isFirstLoad) {
+      setIsInitialLoading(true)
+    } else {
+      setIsRefreshing(true)
+    }
     setLoadError('')
 
     try {
@@ -41,17 +49,23 @@ export function useMapData(mapLayerFilter) {
       setIndustries(industriesRes.data?.data?.industries || [])
       setRegions(regionsRes.data?.data?.regions || [])
       setVehicles(vehiclesRes.data?.data?.vehicles || [])
+      hasLoadedOnceRef.current = true
     } catch (error) {
       if (error.name === 'CanceledError' || controller.signal.aborted) return
       setLoadError(error.response?.data?.message || error.message || 'Failed to load map data')
-      setSectors([])
-      setDepots([])
-      setIndustries([])
-      setRegions([])
-      setVehicles([])
-      setClients([])
+      if (isFirstLoad) {
+        setSectors([])
+        setDepots([])
+        setIndustries([])
+        setRegions([])
+        setVehicles([])
+        setClients([])
+      }
     } finally {
-      if (!controller.signal.aborted) setIsLoading(false)
+      if (!controller.signal.aborted) {
+        setIsInitialLoading(false)
+        setIsRefreshing(false)
+      }
     }
   }, [])
 
@@ -70,6 +84,9 @@ export function useMapData(mapLayerFilter) {
     }
   }, [refreshMapDataNow])
 
+  // Back-compat alias: treat as "blocking" only on first paint
+  const isLoading = isInitialLoading
+
   return {
     sectors,
     depots,
@@ -78,6 +95,8 @@ export function useMapData(mapLayerFilter) {
     clients,
     vehicles,
     isLoading,
+    isInitialLoading,
+    isRefreshing,
     loadError,
     refreshMapData,
     refreshMapDataNow,
@@ -85,5 +104,7 @@ export function useMapData(mapLayerFilter) {
     setRegions,
     setVehicles,
     setSectors,
+    setDepots,
+    setIndustries,
   }
 }

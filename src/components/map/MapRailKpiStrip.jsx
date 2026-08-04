@@ -14,16 +14,16 @@ const TONE = {
     label: 'text-amber-200/70',
   },
   blue: {
-    card: 'from-blue-500/[0.14] via-blue-500/[0.04] to-transparent ring-blue-500/25',
-    icon: 'bg-blue-500/20 text-blue-300 ring-blue-400/30',
-    bar: 'bg-blue-400',
-    label: 'text-blue-200/70',
+    card: 'from-cc-accent/[0.18] via-cc-accent/[0.05] to-transparent ring-cc-accent/30',
+    icon: 'bg-cc-accent/20 text-cc-accent-hover ring-cc-accent/35',
+    bar: 'bg-cc-accent',
+    label: 'text-cc-accent-hover/80',
   },
   sky: {
-    card: 'from-sky-500/[0.14] via-sky-500/[0.04] to-transparent ring-sky-500/25',
-    icon: 'bg-sky-500/20 text-sky-300 ring-sky-400/30',
-    bar: 'bg-sky-400',
-    label: 'text-sky-200/70',
+    card: 'from-cc-accent/[0.14] via-cc-accent/[0.04] to-transparent ring-cc-accent/25',
+    icon: 'bg-cc-accent/20 text-cc-accent-hover ring-cc-accent/30',
+    bar: 'bg-cc-accent-hover',
+    label: 'text-cc-accent-hover/70',
   },
   rose: {
     card: 'from-rose-500/[0.14] via-rose-500/[0.04] to-transparent ring-rose-500/25',
@@ -38,10 +38,10 @@ const TONE = {
     label: 'text-violet-200/70',
   },
   orange: {
-    card: 'from-orange-500/[0.14] via-orange-500/[0.04] to-transparent ring-orange-500/25',
-    icon: 'bg-orange-500/20 text-orange-300 ring-orange-400/30',
-    bar: 'bg-orange-400',
-    label: 'text-orange-200/70',
+    card: 'from-cc-accent/[0.14] via-cc-accent/[0.04] to-transparent ring-cc-accent/25',
+    icon: 'bg-cc-accent/20 text-cc-accent-hover ring-cc-accent/30',
+    bar: 'bg-cc-accent',
+    label: 'text-cc-accent-hover/70',
   },
 }
 
@@ -84,7 +84,7 @@ function MapRailKpiCard({ label, value, subtitle, icon: Icon, tone = 'blue', pro
       </div>
 
       {subtitle && (
-        <p className="relative mt-2 line-clamp-2 text-[10px] leading-snug text-zinc-500">{subtitle}</p>
+        <p className="relative mt-2 line-clamp-2 text-cc-label leading-snug text-zinc-500">{subtitle}</p>
       )}
 
       {showBar && (

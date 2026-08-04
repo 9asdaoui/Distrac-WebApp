@@ -11,7 +11,7 @@ export function buildEditFormFromSector(sector) {
   }
 }
 
-const EMPTY_REGION_EDIT_FORM = {
+export const EMPTY_REGION_EDIT_FORM = {
   regionName: '',
   code: '',
   isActive: true,
@@ -27,7 +27,7 @@ export function buildEditFormFromRegion(region) {
 }
 
 /* Client edit form helpers */
-const EMPTY_CLIENT_EDIT_FORM = {
+export const EMPTY_CLIENT_EDIT_FORM = {
   storeName: '',
   clientName: '',
   phone: '',
@@ -50,7 +50,7 @@ export function buildEditFormFromClient(client) {
   }
 }
 
-const EMPTY_DEPOT_EDIT_FORM = {
+export const EMPTY_DEPOT_EDIT_FORM = {
   depotName: '',
   address: '',
   totalPriceCapacity: '',
@@ -73,7 +73,7 @@ export function buildEditFormFromDepot(depot) {
   }
 }
 
-const EMPTY_INDUSTRY_EDIT_FORM = {
+export const EMPTY_INDUSTRY_EDIT_FORM = {
   industryName: '',
   description: '',
   isInternal: false,
@@ -94,7 +94,7 @@ export function buildEditFormFromIndustry(industry) {
   }
 }
 
-const EMPTY_VEHICLE_EDIT_FORM = {
+export const EMPTY_VEHICLE_EDIT_FORM = {
   plateNumber: '',
   model: '',
   tonnage: '',

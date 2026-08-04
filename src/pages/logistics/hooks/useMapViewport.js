@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import apiInstance from '../../../api/axiosInstance'
-import { MAP_FILTER_ALL } from '../../../components/map/MapLayerFilterBar'
+import { viewportLayersFromVisibility } from '../../../components/map/mapLayerVisibility'
 
 export const USE_MAP_VIEWPORT_BUNDLE = true
 const BBOX_DEBOUNCE_MS = 400
@@ -52,6 +52,7 @@ function pinsToClients(pins) {
     gps_longitude: pin.lng,
     sector_id: pin.sectorId,
     is_active: pin.isActive !== false,
+    created_at: pin.createdAt || pin.created_at || null,
   }))
 }
 
@@ -69,12 +70,8 @@ function pinsToVehiclePositions(pins) {
   return map
 }
 
-function layerListForFilter(mapLayerFilter) {
-  const layers = []
-  if (mapLayerFilter === MAP_FILTER_ALL || mapLayerFilter === 'clients') layers.push('clients')
-  if (mapLayerFilter === MAP_FILTER_ALL || mapLayerFilter === 'vehicles') layers.push('vehicles')
-  if (mapLayerFilter === MAP_FILTER_ALL || mapLayerFilter === 'depots') layers.push('depots')
-  return layers
+function layerListForVisibility(visibility) {
+  return viewportLayersFromVisibility(visibility)
 }
 
 /**
@@ -82,7 +79,7 @@ function layerListForFilter(mapLayerFilter) {
  */
 export function useMapViewport({
   mapInstance,
-  mapLayerFilter,
+  mapLayerVisibility,
   isLoading,
   setClients,
   onVehiclePins,
@@ -208,7 +205,7 @@ export function useMapViewport({
     const bounds = paddedBounds(mapInstance)
     const zoom = Math.round(mapInstance.getZoom())
     setMapZoom(zoom)
-    const layers = layerListForFilter(mapLayerFilter)
+    const layers = layerListForVisibility(mapLayerVisibility)
     const layersCsv = layers.join(',')
 
     const cacheKey = boundsCacheKey(bounds, layersCsv)
@@ -236,7 +233,7 @@ export function useMapViewport({
       .finally(() => {
         if (!controller.signal.aborted) setIsViewportLoading(false)
       })
-  }, [mapInstance, enabled, mapLayerFilter, applyViewportData, fetchViewport, prefetchRing])
+  }, [mapInstance, enabled, mapLayerVisibility, applyViewportData, fetchViewport, prefetchRing])
 
   const scheduleLoad = useCallback(() => {
     recordMoveEndStart?.()
@@ -247,12 +244,8 @@ export function useMapViewport({
   useEffect(() => {
     if (!enabled) return undefined
 
-    const needsData =
-      !isLoading &&
-      (mapLayerFilter === MAP_FILTER_ALL ||
-        mapLayerFilter === 'clients' ||
-        mapLayerFilter === 'vehicles' ||
-        mapLayerFilter === 'depots')
+    const layers = layerListForVisibility(mapLayerVisibility)
+    const needsData = !isLoading && layers.length > 0
 
     if (!needsData || !mapInstance) return undefined
 
@@ -269,7 +262,7 @@ export function useMapViewport({
       if (abortRef.current) abortRef.current.abort()
       if (prefetchAbortRef.current) prefetchAbortRef.current.abort()
     }
-  }, [enabled, mapInstance, mapLayerFilter, isLoading, loadViewport, scheduleLoad])
+  }, [enabled, mapInstance, mapLayerVisibility, isLoading, loadViewport, scheduleLoad])
 
   return {
     isViewportLoading,

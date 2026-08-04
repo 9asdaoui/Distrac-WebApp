@@ -4,8 +4,12 @@ import {
   FOLLOW_EASE_DURATION,
   applyEntityFlyTarget,
   easeMapTo,
+  flyToLatLng as cameraFlyToLatLng,
   resolveEntityFlyTarget,
 } from '../../../components/map/engine/cameraController'
+
+/** Default zoom when flying to a geocoded city. */
+export const CITY_FLY_ZOOM = 12
 
 /**
  * Command Center camera — eased fly-to on select, smooth follow pan.
@@ -44,6 +48,19 @@ export function useMapCamera(mapInstance) {
     [mapInstance, guardProgrammaticMove],
   )
 
+  const flyToLatLng = useCallback(
+    (lat, lng, zoom = CITY_FLY_ZOOM) => {
+      if (!mapInstance || lat == null || lng == null) return false
+      const latN = Number(lat)
+      const lngN = Number(lng)
+      if (!Number.isFinite(latN) || !Number.isFinite(lngN)) return false
+      guardProgrammaticMove()
+      cameraFlyToLatLng(mapInstance, [latN, lngN], zoom)
+      return true
+    },
+    [mapInstance, guardProgrammaticMove],
+  )
+
   const easeFollowTo = useCallback(
     (lat, lng) => {
       if (!mapInstance || lat == null || lng == null) return
@@ -56,6 +73,7 @@ export function useMapCamera(mapInstance) {
 
   return {
     flyToEntity,
+    flyToLatLng,
     easeFollowTo,
     programmaticMapMoveRef,
     programmaticMapMoveTimerRef,

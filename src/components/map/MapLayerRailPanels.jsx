@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Building2,
@@ -18,7 +18,8 @@ import { SectorBoundaryDrawer, isValidSectorPolygon } from '../SectorBoundaryDra
 import { hasGpsCoordinates } from '../LocationMap'
 import apiInstance from '../../api/axiosInstance'
 import { MapHomeSidePanel } from '../dashboard/MapHomeSidePanel'
-import { MAP_FILTER_ALL } from './MapLayerFilterBar'
+import { useCcMissionFilters } from './CcMissionFiltersContext'
+import { filterByCreatedAt } from '../../utils/filterByCreatedAt'
 import {
   MapRailCell,
   MapRailCreateOverlay,
@@ -508,7 +509,7 @@ function SectorsMapRail({ sectors, regions, isLoading, onRefresh, onSelectItem, 
                   label="Boundary"
                   required
                   hint="Click corners on the mini-map to outline the sector polygon."
-                  iconAccent="text-orange-300 bg-orange-500/10 ring-orange-500/20"
+                  iconAccent="text-cc-accent-hover bg-cc-accent/15 ring-cc-accent/25"
                 >
                   <div className="overflow-hidden rounded-xl border border-zinc-800">
                     <SectorBoundaryDrawer
@@ -805,7 +806,7 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, onSelectItem,
     setIsSubmitting(true)
     setFormError('')
     try {
-      await apiInstance.post('/logistics/vehicles', {
+      const res = await apiInstance.post('/logistics/vehicles', {
         plate_number: form.plate_number.trim(),
         model: form.model.trim(),
         depot_id: form.depot_id,
@@ -814,6 +815,14 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, onSelectItem,
       })
       setIsCreateOpen(false)
       onRefresh?.()
+      const created = res.data?.data?.vehicle || res.data?.data
+      if (created?.id) {
+        onSelectItem?.({
+          type: 'vehicle',
+          id: created.id,
+          name: created.plate_number || form.plate_number.trim(),
+        })
+      }
     } catch (err) {
       setFormError(err?.response?.data?.message || t('commandCenter.rail.vehicles.createFailed'))
     } finally {
@@ -856,7 +865,7 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, onSelectItem,
                 description={t('commandCenter.rail.vehicles.subtitle')}
               />
               <FormSection title={t('commandCenter.vehicleDetails.assignment')}>
-                <FormField icon={Hash} label={t('commandCenter.rail.form.plate')} required iconAccent="text-orange-300 bg-orange-500/10 ring-orange-500/20">
+                <FormField icon={Hash} label={t('commandCenter.rail.form.plate')} required iconAccent="text-cc-accent-hover bg-cc-accent/15 ring-cc-accent/25">
                   <FormInput
                     value={form.plate_number}
                     onChange={(e) => setForm({ ...form, plate_number: e.target.value })}
@@ -958,14 +967,15 @@ function VehiclesMapRail({ vehicles, depots, isLoading, onRefresh, onSelectItem,
   )
 }
 
-export function MapLayerRailRouter({
-  filter,
+export function MapAdminRailPanel({
+  panelKey,
   isLoading,
   onRefresh,
   onSelectItem,
   onStartRegionCreate,
   onStartIndustryCreate,
   canManageLogistics = false,
+  canCreateMapEntity = true,
   searchQuery = '',
   regions,
   sectors,
@@ -974,17 +984,42 @@ export function MapLayerRailRouter({
   clients,
   vehicles,
 }) {
-  if (filter === MAP_FILTER_ALL) {
-    return <MapHomeSidePanel />
-  }
+  const canCreate = Boolean(canManageLogistics && canCreateMapEntity)
+  const shared = { isLoading, onRefresh, onSelectItem, searchQuery, canManageLogistics: canCreate }
+  const filters = useCcMissionFilters()
+  const dateFrom = filters?.dateFrom
+  const dateTo = filters?.dateTo
 
-  const shared = { isLoading, onRefresh, onSelectItem, searchQuery, canManageLogistics }
+  const regionsScoped = useMemo(
+    () => filterByCreatedAt(regions, dateFrom, dateTo),
+    [regions, dateFrom, dateTo],
+  )
+  const sectorsScoped = useMemo(
+    () => filterByCreatedAt(sectors, dateFrom, dateTo),
+    [sectors, dateFrom, dateTo],
+  )
+  const depotsScoped = useMemo(
+    () => filterByCreatedAt(depots, dateFrom, dateTo),
+    [depots, dateFrom, dateTo],
+  )
+  const industriesScoped = useMemo(
+    () => filterByCreatedAt(industries, dateFrom, dateTo),
+    [industries, dateFrom, dateTo],
+  )
+  const clientsScoped = useMemo(
+    () => filterByCreatedAt(clients, dateFrom, dateTo),
+    [clients, dateFrom, dateTo],
+  )
+  const vehiclesScoped = useMemo(
+    () => filterByCreatedAt(vehicles, dateFrom, dateTo),
+    [vehicles, dateFrom, dateTo],
+  )
 
-  switch (filter) {
+  switch (panelKey) {
     case 'regions':
       return (
         <RegionsMapRail
-          regions={regions}
+          regions={regionsScoped}
           sectors={sectors}
           {...shared}
           onStartRegionCreate={onStartRegionCreate}
@@ -993,20 +1028,26 @@ export function MapLayerRailRouter({
     case 'industries':
       return (
         <IndustriesMapRail
-          industries={industries}
+          industries={industriesScoped}
           {...shared}
           onStartIndustryCreate={onStartIndustryCreate}
         />
       )
     case 'depots':
-      return <DepotsMapRail depots={depots} {...shared} />
+      return <DepotsMapRail depots={depotsScoped} {...shared} />
     case 'sectors':
-      return <SectorsMapRail sectors={sectors} regions={regions} {...shared} />
+      return <SectorsMapRail sectors={sectorsScoped} regions={regions} {...shared} />
     case 'clients':
-      return <ClientsMapRail clients={clients} {...shared} />
+      return <ClientsMapRail clients={clientsScoped} {...shared} />
     case 'vehicles':
-      return <VehiclesMapRail vehicles={vehicles} depots={depots} {...shared} />
+      return <VehiclesMapRail vehicles={vehiclesScoped} depots={depots} {...shared} />
     default:
       return <MapHomeSidePanel />
   }
+}
+
+/** @deprecated Use MapAdminRailPanel + MapHomeSidePanel */
+export function MapLayerRailRouter({ filter, ...rest }) {
+  if (!filter || filter === 'all') return <MapHomeSidePanel />
+  return <MapAdminRailPanel panelKey={filter} {...rest} />
 }

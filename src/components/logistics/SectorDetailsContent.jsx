@@ -66,7 +66,7 @@ function SidebarRow({ icon: Icon, label, children, compact = false }) {
 
 function EmptyTab({ icon: Icon, title, description }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-zinc-900/40">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-cc-surface/40">
       <Icon className="mb-3 h-8 w-8 text-zinc-400 dark:text-zinc-500" />
       <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{title}</p>
       <p className="mt-1 max-w-sm text-center text-xs text-zinc-500 dark:text-zinc-400">{description}</p>
@@ -89,7 +89,7 @@ function ClientsTable({ clients, compact = false }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -155,7 +155,7 @@ function StaffTable({ staff, compact = false }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -192,7 +192,7 @@ function formatDate(value) {
 
 function AboutSectorCard({ sector, clients, staff, compact = false }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-cc-surface">
       <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">About this sector</h2>
       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Operational context for this coverage area.</p>
 
@@ -360,7 +360,7 @@ export function SectorDetailsContent({
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
             {showMap && (
-              <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-cc-surface">
                 <div className="border-b border-gray-200 px-6 py-4 dark:border-zinc-800">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">

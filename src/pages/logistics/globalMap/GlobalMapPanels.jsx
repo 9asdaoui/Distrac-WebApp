@@ -84,9 +84,9 @@ export function RegionCreateRail({
   const boundaryReady = isValidRegionPolygon(form.boundary)
 
   return (
-    <div className="flex h-full w-full flex-col bg-[#141416]/95">
-      <div className="relative shrink-0 border-b border-zinc-800/90 px-5 py-4">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500 to-transparent" />
+    <div className="flex h-full w-full flex-col bg-cc-bg">
+      <div className="relative shrink-0 border-b border-cc-border-subtle px-5 py-4">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cc-accent to-transparent" />
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-start gap-3">
             <EntityIconBadge moduleKey="region" size="md" variant="dark" />
@@ -117,7 +117,7 @@ export function RegionCreateRail({
               icon={MapIcon}
               label="Region name"
               required
-              iconAccent="text-orange-300 bg-orange-500/10 ring-orange-500/20"
+              iconAccent="text-cc-accent-hover bg-cc-accent/15 ring-cc-accent/25"
             >
               <FormInput
                 type="text"
@@ -176,8 +176,8 @@ export function RegionCreateRail({
             </div>
           </FormSection>
 
-          <FormTip icon={MapIcon} variant="orange" title="Map toolbar">
-            Trace shared borders with neighboring regions, or free-draw open sides. Drag orange handles to adjust corners.
+          <FormTip icon={MapIcon} variant="blue" title="Map toolbar">
+            Trace shared borders with neighboring regions, or free-draw open sides. Drag blue handles to adjust corners.
           </FormTip>
 
           {clipNotice && (
@@ -219,7 +219,7 @@ export function IndustryCreateRail({
   const { t } = useTranslation()
 
   return (
-    <div className="flex h-full w-full flex-col bg-[#141416]/95">
+    <div className="flex h-full w-full flex-col bg-cc-bg">
       <div className="relative shrink-0 border-b border-zinc-800/90 px-5 py-4">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-rose-500 to-transparent" />
         <div className="flex items-start justify-between gap-3">
@@ -305,7 +305,7 @@ const ENTITY_META = {
   region: {
     label: 'Region',
     icon: MapIcon,
-    accent: 'text-orange-400 bg-orange-500/10 ring-orange-500/30',
+    accent: 'text-cc-accent bg-cc-accent/15 ring-cc-accent/30',
     detailPath: null,
   },
 }
@@ -354,7 +354,7 @@ function EditRegionForm({ form, onChange, clipNotice = '' }) {
   return (
     <div className="space-y-4">
       <FormIntro
-        accent="orange"
+        accent="blue"
         title="Editing Region"
         description="Use the map toolbar to trace shared edges or free-draw open sides. Drag corners or click a boundary line to add a new one."
       />
@@ -364,7 +364,7 @@ function EditRegionForm({ form, onChange, clipNotice = '' }) {
           icon={MapIcon}
           label="Region Name"
           required
-          iconAccent="text-orange-300 bg-orange-500/10 ring-orange-500/20"
+          iconAccent="text-cc-accent-hover bg-cc-accent/15 ring-cc-accent/25"
         >
           <FormInput
             type="text"
@@ -393,9 +393,9 @@ function EditRegionForm({ form, onChange, clipNotice = '' }) {
         </EditFormField>
       </FormSection>
 
-      <FormTip icon={MapIcon} variant="orange" title="Map editing">
+      <FormTip icon={MapIcon} variant="blue" title="Map editing">
         <span className="text-zinc-300">Trace neighbor</span> for shared borders,{' '}
-        <span className="text-zinc-300">Free draw</span> for open sides, drag orange handles to move corners,
+        <span className="text-zinc-300">Free draw</span> for open sides, drag blue handles to move corners,
         or click a line segment to insert a new corner.
       </FormTip>
 
@@ -673,6 +673,8 @@ export function DetailPanel({
   editOptionsLoading,
   editOptionsError,
   canManageLogistics,
+  canEditMapEntity,
+  canUpdateClientCredit,
   onClose,
   onNavigate,
   onEnterEdit,
@@ -694,6 +696,11 @@ export function DetailPanel({
   const isClient = selectedElement.type === 'client'
   const isDepot = selectedElement.type === 'depot'
   const isVehicle = selectedElement.type === 'vehicle'
+
+  const canEditSelected =
+    canManageLogistics &&
+    details &&
+    (canEditMapEntity ? canEditMapEntity(selectedElement.type, details) : true)
   const isRegion = selectedElement.type === 'region'
   const moduleKey = selectedElement.type
   const mod = getLogisticsModule(moduleKey)
@@ -707,10 +714,10 @@ export function DetailPanel({
     editForm?.regionName
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="flex h-full w-full flex-col bg-cc-bg text-cc-primary">
       {/* Header */}
       <div
-        className={`flex items-start justify-between gap-3 border-b border-zinc-800 ${
+        className={`flex items-start justify-between gap-3 border-b border-cc-border-subtle ${
           isDepot && !isEditing && details ? 'px-5 py-3' : 'px-5 py-4'
         }`}
       >
@@ -787,8 +794,8 @@ export function DetailPanel({
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-800 px-5 py-2">
           {followVehicleId === selectedElement.id ? (
             <>
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-orange-400">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-cc-accent">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cc-accent" />
                 {t('commandCenter.following')}
               </span>
               <button
@@ -803,7 +810,7 @@ export function DetailPanel({
             <button
               type="button"
               onClick={() => onReFollowVehicle?.(selectedElement.id)}
-              className="text-xs font-semibold text-orange-400 transition hover:text-orange-300"
+              className="text-xs font-semibold text-cc-accent transition hover:text-cc-accent-hover"
             >
               {t('commandCenter.recenterVehicle')}
             </button>
@@ -853,7 +860,9 @@ export function DetailPanel({
               error={detailsError}
               layout="panel"
               showMap={false}
-              onClientUpdate={onClientDetailsUpdate}
+              onClientUpdate={
+                canUpdateClientCredit?.(details) ? onClientDetailsUpdate : undefined
+              }
             />
           )
         ) : isDepot ? (
@@ -866,6 +875,8 @@ export function DetailPanel({
               error={detailsError}
               layout="panel"
               showMap={false}
+              initialTab={selectedElement?.tab || null}
+              highlightRequestId={selectedElement?.focusId || null}
             />
           )
         ) : isIndustry ? (
@@ -945,17 +956,17 @@ export function DetailPanel({
           </div>
         ) : (
           <div className="space-y-2">
-            {canManageLogistics && isVehicle && details && (
+            {canEditSelected && isVehicle && details && (
               <button
                 type="button"
                 onClick={() => onLinkWialon?.(details)}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-4 py-2.5 text-sm font-medium text-orange-200 transition hover:bg-orange-500/20"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-cc-accent/40 bg-cc-accent/10 px-4 py-2.5 text-sm font-medium text-cc-accent-hover transition hover:bg-cc-accent/20"
               >
                 <Radio className="h-4 w-4" />
                 {details.wialon_unit_id ? t('commandCenter.detail.manageWialon') : t('commandCenter.detail.linkWialon')}
               </button>
             )}
-            {canManageLogistics && details && (isSector || isRegion || isClient || isDepot || isIndustry || isVehicle) && (
+            {canEditSelected && details && (isSector || isRegion || isClient || isDepot || isIndustry || isVehicle) && (
               <button
                 type="button"
                 onClick={onEnterEdit}
@@ -972,7 +983,7 @@ export function DetailPanel({
             {mod?.hasDetailPage && (
               <button
                 type="button"
-                onClick={() => onNavigate(mod.detailPath(selectedElement.id))}
+                onClick={() => onNavigate(mod.mapDeepLink(selectedElement.id))}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-100 px-4 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-white"
               >
                 <ExternalLink className="h-4 w-4" />

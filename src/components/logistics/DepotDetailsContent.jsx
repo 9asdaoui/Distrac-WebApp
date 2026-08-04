@@ -46,7 +46,7 @@ function DepotProfileHero({ depot, compact = false }) {
       className={
         compact
           ? 'relative overflow-hidden border-b border-zinc-800 bg-zinc-950'
-          : 'relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900'
+          : 'relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-cc-surface'
       }
     >
       <div
@@ -124,7 +124,7 @@ function DepotTabNav({ activeTab, onChange, depot, compact = false }) {
       className={`rounded-xl border p-1.5 ${
         compact
           ? 'border-zinc-800/90 bg-zinc-900/70'
-          : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/60'
+          : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-cc-surface/60'
       }`}
       aria-label="Depot sections"
     >
@@ -143,8 +143,8 @@ function DepotTabNav({ activeTab, onChange, depot, compact = false }) {
               className={`group relative flex min-h-[3.25rem] flex-col items-start justify-center rounded-lg px-3 py-2.5 text-left transition-all ${
                 isActive
                   ? compact
-                    ? 'bg-zinc-800 text-zinc-50 shadow-md ring-1 ring-blue-500/50'
-                    : 'bg-white text-zinc-900 shadow-sm ring-1 ring-blue-500/40 dark:bg-zinc-800 dark:text-zinc-50'
+                    ? 'bg-zinc-800 text-zinc-50 shadow-md ring-1 ring-distrac-primary/50'
+                    : 'bg-white text-zinc-900 shadow-sm ring-1 ring-distrac-primary/40 dark:bg-zinc-800 dark:text-zinc-50'
                   : compact
                     ? 'text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200'
                     : 'text-zinc-500 hover:bg-white/80 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200'
@@ -154,7 +154,7 @@ function DepotTabNav({ activeTab, onChange, depot, compact = false }) {
                 <span
                   className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
                     isActive
-                      ? 'bg-blue-500/20 text-blue-300'
+                      ? 'bg-distrac-primary/20 text-distrac-primary'
                       : 'bg-zinc-800/50 text-zinc-500 group-hover:text-zinc-300 dark:bg-zinc-800 dark:text-zinc-400'
                   }`}
                 >
@@ -164,7 +164,7 @@ function DepotTabNav({ activeTab, onChange, depot, compact = false }) {
                   <span
                     className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
                       isActive
-                        ? 'bg-blue-500/20 text-blue-200'
+                        ? 'bg-distrac-primary/20 text-orange-200'
                         : 'bg-zinc-800 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
                     }`}
                   >
@@ -176,7 +176,7 @@ function DepotTabNav({ activeTab, onChange, depot, compact = false }) {
                 {label}
               </span>
               {isActive && (
-                <span className="absolute bottom-1 left-3 right-3 h-0.5 rounded-full bg-blue-500/80" />
+                <span className="absolute bottom-1 left-3 right-3 h-0.5 rounded-full bg-distrac-primary/80" />
               )}
             </button>
           )
@@ -188,7 +188,7 @@ function DepotTabNav({ activeTab, onChange, depot, compact = false }) {
 
 function KpiStat({ icon: Icon, label, value, hint, compact = false }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-zinc-800 dark:bg-cc-surface">
       <div className="flex items-start gap-2.5">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
           <Icon className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />
@@ -325,7 +325,7 @@ function VendorLoadsTabKpis({ requests, compact = false }) {
   )
 }
 
-function VendorLoadRequestsPanel({ depotId, compact = false }) {
+function VendorLoadRequestsPanel({ depotId, compact = false, highlightRequestId = null }) {
   const [requests, setRequests] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -333,7 +333,31 @@ function VendorLoadRequestsPanel({ depotId, compact = false }) {
     setIsLoading(true)
     try {
       const res = await apiInstance.get('/depot/vendor-load-requests', { params: { status: 'PENDING_DEPOT' } })
-      setRequests(res.data?.data?.requests || [])
+      let rows = res.data?.data?.requests || []
+
+      // Timeline deep-link: ensure focused request is visible even if not PENDING_DEPOT
+      if (highlightRequestId && !rows.some((r) => String(r.id) === String(highlightRequestId))) {
+        try {
+          const focused = await apiInstance.get(`/depot/vendor-load-requests`, {
+            params: { status: 'APPROVED' },
+          })
+          const approved = focused.data?.data?.requests || []
+          const match = approved.find((r) => String(r.id) === String(highlightRequestId))
+          if (match) rows = [match, ...rows]
+          else {
+            const loadedRes = await apiInstance.get(`/depot/vendor-load-requests`, {
+              params: { status: 'LOADED' },
+            })
+            const loaded = loadedRes.data?.data?.requests || []
+            const loadedMatch = loaded.find((r) => String(r.id) === String(highlightRequestId))
+            if (loadedMatch) rows = [loadedMatch, ...rows]
+          }
+        } catch {
+          // keep pending-only list
+        }
+      }
+
+      setRequests(rows)
     } catch {
       setRequests([])
     } finally {
@@ -343,7 +367,7 @@ function VendorLoadRequestsPanel({ depotId, compact = false }) {
 
   useEffect(() => {
     load()
-  }, [depotId])
+  }, [depotId, highlightRequestId])
 
   const filteredRequests = depotId
     ? requests.filter((row) => String(row.depot_id) === String(depotId))
@@ -391,8 +415,16 @@ function VendorLoadRequestsPanel({ depotId, compact = false }) {
               </tr>
             </thead>
             <tbody>
-              {filteredRequests.map((request) => (
-                <tr key={request.id} className="border-t border-gray-200 dark:border-zinc-800">
+              {filteredRequests.map((request) => {
+                const highlighted =
+                  highlightRequestId && String(request.id) === String(highlightRequestId)
+                return (
+                <tr
+                  key={request.id}
+                  className={`border-t border-gray-200 dark:border-zinc-800 ${
+                    highlighted ? 'bg-distrac-primary/10 ring-1 ring-inset ring-distrac-primary/40' : ''
+                  }`}
+                >
                   <td className={cellPad}>{request.vendor?.full_name || '—'}</td>
                   <td className={cellPad}>{request.mission_date || '—'}</td>
                   <td className={cellPad}>{Number(request.total_value || 0).toLocaleString()} MAD</td>
@@ -404,7 +436,7 @@ function VendorLoadRequestsPanel({ depotId, compact = false }) {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
@@ -475,7 +507,7 @@ function DepotDetailsSkeleton({ compact = false }) {
 function CapacityCard({ icon: Icon, label, used, total, usedPercentage, formatValue, compact = false }) {
   const pct = Math.min(Math.max(usedPercentage || 0, 0), 100)
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-cc-surface">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
           <Icon className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
@@ -503,10 +535,10 @@ function CapacityCard({ icon: Icon, label, used, total, usedPercentage, formatVa
 
 function ToneStatusBadge({ children, tone = 'default' }) {
   const toneClass = {
-    default: 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300',
+    default: 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-300',
     success: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
     warning: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
-  }[tone] || 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'
+  }[tone] || 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-300'
 
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${toneClass}`}>
@@ -526,7 +558,7 @@ function StockTable({ stock, compact = false }) {
 
   if (!stock?.length) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-zinc-900/50">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-cc-surface/50">
         <PackageOpen className="mb-3 h-8 w-8 text-zinc-400 dark:text-zinc-500" />
         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No stock in this depot</p>
         <p className="mt-1 text-center text-xs text-zinc-500 dark:text-zinc-400">
@@ -537,7 +569,7 @@ function StockTable({ stock, compact = false }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -590,7 +622,7 @@ function LivreursTable({ livreurs, compact = false }) {
 
   if (!livreurs?.length) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-zinc-900/50">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-cc-surface/50">
         <Users className="mb-3 h-8 w-8 text-zinc-400 dark:text-zinc-500" />
         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No livreurs assigned</p>
       </div>
@@ -598,7 +630,7 @@ function LivreursTable({ livreurs, compact = false }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -642,7 +674,7 @@ function MissionsTable({ missions, compact = false }) {
 
   if (!missions?.length) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-zinc-900/50">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-cc-surface/50">
         <Route className="mb-3 h-8 w-8 text-zinc-400 dark:text-zinc-500" />
         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No missions for this depot</p>
       </div>
@@ -650,7 +682,7 @@ function MissionsTable({ missions, compact = false }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -701,9 +733,15 @@ export function DepotDetailsContent({
   showMap = true,
   backTo = DEPOT_MODULE.listPath,
   backLabel = 'Back to Depots',
+  initialTab = null,
+  highlightRequestId = null,
 }) {
-  const [activeTab, setActiveTab] = useState('stock')
+  const [activeTab, setActiveTab] = useState(initialTab || 'stock')
   const compact = layout === 'panel'
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab)
+  }, [initialTab, depot?.id])
 
   if (isLoading) {
     return <DepotDetailsSkeleton compact={compact} />
@@ -773,7 +811,11 @@ export function DepotDetailsContent({
               </>
             )}
             {activeTab === 'vendor_loads' && (
-              <VendorLoadRequestsPanel depotId={depot.id} compact={compact} />
+              <VendorLoadRequestsPanel
+                depotId={depot.id}
+                compact={compact}
+                highlightRequestId={highlightRequestId}
+              />
             )}
           </div>
         </div>

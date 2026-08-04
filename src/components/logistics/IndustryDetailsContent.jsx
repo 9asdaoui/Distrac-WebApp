@@ -38,13 +38,13 @@ const ORDER_STATUS_META = {
   FULFILLED:
     'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
   CANCELLED:
-    'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400',
+    'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-400',
 }
 
 function OrderStatusBadge({ status }) {
   const cls =
     ORDER_STATUS_META[status] ||
-    'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'
+    'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-300'
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${cls}`}>
       {status || '—'}
@@ -87,7 +87,7 @@ function IndustryDetailsSkeleton({ compact = false }) {
 
 function KpiCard({ icon: Icon, label, value, sublabel }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900/60">
+    <div className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-cc-surface/60">
       <div className="flex items-center gap-2">
         <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
         <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
@@ -104,7 +104,7 @@ function FulfillmentOrdersTable({ orders, compact = false }) {
 
   if (!orders?.length) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-zinc-900/50">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-cc-surface/50">
         <PackageOpen className="mb-3 h-8 w-8 text-zinc-400 dark:text-zinc-500" />
         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No fulfillment orders</p>
         <p className="mt-1 text-center text-xs text-zinc-500 dark:text-zinc-400">
@@ -115,7 +115,7 @@ function FulfillmentOrdersTable({ orders, compact = false }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -156,7 +156,7 @@ function StaffTable({ staff, compact = false }) {
 
   if (!staff?.length) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-zinc-900/50">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-cc-surface/50">
         <Users className="mb-3 h-8 w-8 text-zinc-400 dark:text-zinc-500" />
         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No staff assigned</p>
         <p className="mt-1 text-center text-xs text-zinc-500 dark:text-zinc-400">
@@ -167,7 +167,7 @@ function StaffTable({ staff, compact = false }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -202,7 +202,7 @@ function StaffTable({ staff, compact = false }) {
 }
 
 /**
- * Shared industry detail body — used on IndustryDetailsPage and Global Map side panel.
+ * Shared industry detail body — used on the Command Center detail rail.
  * @param {'page' | 'panel'} layout — full page vs compact right rail
  * @param {boolean} showMap — location map section (off for Global Map panel)
  */

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import apiInstance from '../../../api/axiosInstance'
-import { MAP_FILTER_ALL } from '../../../components/map/MapLayerFilterBar'
+import { isLayerVisible } from '../../../components/map/mapLayerVisibility'
 
 const MISSION_OVERLAY_POLL_MS = 60_000
 
@@ -17,14 +17,33 @@ function mergeMissionRoutes(prev, incoming) {
   return [...byId.values()]
 }
 
-export function useMissionOverlay({ enabled, mapBbox = null }) {
+/**
+ * @param {{
+ *   enabled: boolean,
+ *   mapBbox?: object|null,
+ *   date?: string|null,
+ *   depotId?: string|null,
+ *   status?: string|null,
+ * }} opts
+ */
+export function useMissionOverlay({
+  enabled,
+  mapBbox = null,
+  date = null,
+  depotId = null,
+  status = null,
+}) {
   const [missionRoutes, setMissionRoutes] = useState([])
   const lastSyncAtRef = useRef(null)
   const pollRef = useRef(null)
+  const filterKey = `${date || ''}|${depotId || ''}|${status || ''}`
 
   const fetchOverlay = useCallback(
     async ({ signal, incremental = false } = {}) => {
       const params = {}
+      if (date) params.date = date
+      if (depotId) params.depotId = depotId
+      if (status) params.status = status
       if (mapBbox) {
         params.minLat = mapBbox.minLat
         params.maxLat = mapBbox.maxLat
@@ -47,8 +66,12 @@ export function useMissionOverlay({ enabled, mapBbox = null }) {
         setMissionRoutes(routes)
       }
     },
-    [mapBbox],
+    [mapBbox, date, depotId, status],
   )
+
+  useEffect(() => {
+    lastSyncAtRef.current = null
+  }, [filterKey])
 
   useEffect(() => {
     if (pollRef.current) {
@@ -58,22 +81,14 @@ export function useMissionOverlay({ enabled, mapBbox = null }) {
 
     if (!enabled) {
       setMissionRoutes([])
-      lastSyncAtRef.current = null
       return undefined
     }
 
     const controller = new AbortController()
-    lastSyncAtRef.current = null
-
-    fetchOverlay({ signal: controller.signal, incremental: false }).catch((err) => {
-      if (err.name === 'CanceledError' || controller.signal.aborted) return
-      console.warn('[useMissionOverlay] fetch failed:', err?.message || err)
-    })
+    fetchOverlay({ signal: controller.signal, incremental: false }).catch(() => {})
 
     pollRef.current = setInterval(() => {
-      fetchOverlay({ incremental: true }).catch((err) => {
-        console.warn('[useMissionOverlay] poll failed:', err?.message || err)
-      })
+      fetchOverlay({ incremental: true }).catch(() => {})
     }, MISSION_OVERLAY_POLL_MS)
 
     return () => {
@@ -83,7 +98,7 @@ export function useMissionOverlay({ enabled, mapBbox = null }) {
         pollRef.current = null
       }
     }
-  }, [enabled, fetchOverlay])
+  }, [enabled, fetchOverlay, filterKey])
 
   const reloadMissionOverlay = useCallback(() => {
     lastSyncAtRef.current = null
@@ -93,6 +108,6 @@ export function useMissionOverlay({ enabled, mapBbox = null }) {
   return { missionRoutes, reloadMissionOverlay }
 }
 
-export function isMissionOverlayEnabled(mapLayerFilter) {
-  return mapLayerFilter === MAP_FILTER_ALL || mapLayerFilter === 'vehicles'
+export function isMissionOverlayEnabled(mapLayerVisibility) {
+  return isLayerVisible(mapLayerVisibility, 'vehicles')
 }

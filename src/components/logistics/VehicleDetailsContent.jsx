@@ -67,7 +67,7 @@ function VehicleDetailsSkeleton({ compact = false }) {
 function InfoCard({ title, icon: Icon, children, compact = false, dark = false }) {
   const shellClass = dark
     ? 'rounded-xl border border-zinc-800 bg-zinc-900'
-    : 'rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900'
+    : 'rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface'
   const headerClass = dark
     ? `border-b border-zinc-800 ${compact ? 'px-4 py-3' : 'px-5 py-4'}`
     : `border-b border-gray-200 dark:border-zinc-800 ${compact ? 'px-4 py-3' : 'px-5 py-4'}`

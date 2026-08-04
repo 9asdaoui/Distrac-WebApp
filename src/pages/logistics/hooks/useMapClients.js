@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { MAP_FILTER_ALL } from '../../../components/map/MapLayerFilterBar'
+import { isLayerVisible } from '../../../components/map/mapLayerVisibility'
 import { fetchClientsInBounds } from './mapUtils'
 
 const BBOX_DEBOUNCE_MS = 400
@@ -20,7 +20,7 @@ function paddedBounds(mapInstance) {
 
 export function useMapClients({
   mapInstance,
-  mapLayerFilter,
+  mapLayerVisibility,
   isLoading,
   setClients,
   enabled = true,
@@ -56,7 +56,7 @@ export function useMapClients({
     if (!enabled) return undefined
 
     const needsClients =
-      !isLoading && (mapLayerFilter === MAP_FILTER_ALL || mapLayerFilter === 'clients')
+      !isLoading && isLayerVisible(mapLayerVisibility, 'clients')
     if (!needsClients || !mapInstance) return undefined
 
     loadClientsForViewport()
@@ -71,7 +71,7 @@ export function useMapClients({
       if (debounceRef.current) clearTimeout(debounceRef.current)
       if (abortRef.current) abortRef.current.abort()
     }
-  }, [enabled, mapInstance, mapLayerFilter, isLoading, loadClientsForViewport, scheduleLoad])
+  }, [enabled, mapInstance, mapLayerVisibility, isLoading, loadClientsForViewport, scheduleLoad])
 
   return { reloadClientsInView: loadClientsForViewport }
 }
