@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Plus, Trash2, ChevronUp, ChevronDown, Loader2 } from 'lucide-react'
-import { SmoothSlideOver } from '../../components/SmoothSlideOver'
+import { Plus, Trash2, ChevronUp, ChevronDown, Loader2, ArrowLeft, X } from 'lucide-react'
+import { SlideOverPanel } from '../../components/SlideOverPanel'
 import apiInstance from '../../api/axiosInstance'
+import {
+  CustomStopEditorFields,
+  buildCustomStopPayload,
+  emptyCustomStopFields,
+  validateCustomStopDraft,
+} from '../../components/missions/CustomStopEditorFields'
 
 function addDaysIso(days) {
   const d = new Date()
@@ -21,9 +27,7 @@ function emptyStop() {
     key: `${Date.now()}-${Math.random()}`,
     stopType: 'DELIVERY',
     entityId: '',
-    customDescription: '',
-    customTarget: 'depot',
-    customClientId: '',
+    ...emptyCustomStopFields(),
   }
 }
 
@@ -43,14 +47,33 @@ function stopLabel(stop, options) {
   return stop.customDescription || 'Custom stop'
 }
 
-export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
+/**
+ * Create custom mission.
+ * - variant="overlay" (default): portal slide-over for standalone /missions page
+ * - variant="inline": fills the Command Center missions rail (no full-app empty gap)
+ */
+export function CreateMissionSlideOver({
+  isOpen,
+  onClose,
+  depots,
+  onCreated,
+  variant = 'overlay',
+}) {
   const [depotId, setDepotId] = useState('')
   const [missionDate, setMissionDate] = useState(addDaysIso(1))
   const [livreurId, setLivreurId] = useState('')
   const [missionType, setMissionType] = useState('DELIVERY_ROUTE')
   const [status, setStatus] = useState('PROPOSED')
   const [stops, setStops] = useState([emptyStop()])
-  const [options, setOptions] = useState({ livreurs: [], orders: [], collections: [], pickups: [], clients: [] })
+  const [options, setOptions] = useState({
+    livreurs: [],
+    orders: [],
+    collections: [],
+    pickups: [],
+    clients: [],
+    templates: [],
+    industries: [],
+  })
   const [isLoadingOptions, setIsLoadingOptions] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -68,12 +91,24 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
       setIsLoadingOptions(true)
       setError('')
       try {
-        const res = await apiInstance.get('/missions/builder-options', {
-          params: { depotId, date: missionDate },
-        })
+        const [builderRes, templatesRes, industriesRes] = await Promise.all([
+          apiInstance.get('/missions/builder-options', {
+            params: { depotId, date: missionDate },
+          }),
+          apiInstance.get('/missions/custom-stop-templates'),
+          apiInstance.get('/industries').catch(() => ({ data: { data: [] } })),
+        ])
         if (!cancelled) {
-          const data = res.data?.data || {}
-          setOptions(data)
+          const data = builderRes.data?.data || {}
+          const industriesPayload = industriesRes.data?.data || {}
+          const industries = Array.isArray(industriesPayload)
+            ? industriesPayload
+            : industriesPayload.industries || []
+          setOptions({
+            ...data,
+            templates: templatesRes.data?.data?.templates || [],
+            industries,
+          })
           if (!livreurId && data.livreurs?.length > 0) {
             setLivreurId(data.livreurs[0].id)
           }
@@ -119,15 +154,7 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
 
   const resolveStopPayload = (stop) => {
     if (stop.stopType === 'CUSTOM') {
-      const entityId = stop.customTarget === 'client' ? stop.customClientId : depotId
-      return {
-        stopType: 'CUSTOM',
-        entityId: String(entityId),
-        customDescription: stop.customDescription.trim(),
-        metadata: {
-          entity_type: stop.customTarget === 'client' ? 'CLIENT' : 'DEPOT',
-        },
-      }
+      return buildCustomStopPayload(stop, depotId)
     }
     return {
       stopType: stop.stopType,
@@ -149,12 +176,9 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
 
     for (const stop of stops) {
       if (stop.stopType === 'CUSTOM') {
-        if (!stop.customDescription.trim()) {
-          setError('Each custom stop needs a description.')
-          return
-        }
-        if (stop.customTarget === 'client' && !stop.customClientId) {
-          setError('Select a client for the custom stop.')
+        const customError = validateCustomStopDraft(stop)
+        if (customError) {
+          setError(customError)
           return
         }
       } else if (!stop.entityId) {
@@ -194,33 +218,33 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
     }
   }
 
-  return (
-    <SmoothSlideOver
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Create custom mission"
-      description="Build a mission manually: assign a livreur, add delivery, collection, pickup, or custom stops."
-      footer={
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSubmitting || isLoadingOptions}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-          >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Create mission
-          </button>
-        </div>
-      }
-    >
+  const title = 'Create custom mission'
+  const description =
+    'Build a mission manually: assign a livreur, add delivery, collection, pickup, or custom stops.'
+
+  const footer = (
+    <div className="flex gap-3">
+      <button
+        type="button"
+        onClick={onClose}
+        className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={isSubmitting || isLoadingOptions}
+        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+      >
+        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        Create mission
+      </button>
+    </div>
+  )
+
+  const formBody = (
+    <div className="space-y-6">
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
           {error}
@@ -233,7 +257,7 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
           <select
             value={depotId}
             onChange={(e) => setDepotId(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-cc-surface"
           >
             {depots.map((d) => (
               <option key={d.id} value={d.id}>{d.depot_name}</option>
@@ -246,7 +270,7 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
             type="date"
             value={missionDate}
             onChange={(e) => setMissionDate(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-cc-surface"
           />
         </div>
         <div>
@@ -255,7 +279,7 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
             value={livreurId}
             onChange={(e) => setLivreurId(e.target.value)}
             disabled={isLoadingOptions}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-cc-surface"
           >
             <option value="">Select livreur…</option>
             {(options.livreurs || []).map((l) => (
@@ -268,7 +292,7 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
           <select
             value={missionType}
             onChange={(e) => setMissionType(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-cc-surface"
           >
             <option value="DELIVERY_ROUTE">Delivery route (mixed stops)</option>
             <option value="INDUSTRY_PICKUP">Industry pickup only</option>
@@ -279,7 +303,7 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-cc-surface"
           >
             <option value="PROPOSED">PROPOSED (review in proposals tab)</option>
             <option value="APPROVED">APPROVED (livreur sees it immediately)</option>
@@ -306,7 +330,7 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
           {stops.map((stop, index) => (
             <div
               key={stop.key}
-              className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-800 dark:bg-zinc-900"
+              className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-800 dark:bg-cc-surface"
             >
               <div className="mb-3 flex items-center justify-between gap-2">
                 <span className="text-xs font-bold text-zinc-500">#{index + 1}</span>
@@ -399,35 +423,13 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
               )}
 
               {stop.stopType === 'CUSTOM' && (
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={stop.customDescription}
-                    onChange={(e) => updateStop(index, { customDescription: e.target.value })}
-                    placeholder="Task description (required)"
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-                  />
-                  <select
-                    value={stop.customTarget}
-                    onChange={(e) => updateStop(index, { customTarget: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-                  >
-                    <option value="depot">At depot</option>
-                    <option value="client">At client</option>
-                  </select>
-                  {stop.customTarget === 'client' && (
-                    <select
-                      value={stop.customClientId}
-                      onChange={(e) => updateStop(index, { customClientId: e.target.value })}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-                    >
-                      <option value="">Select client…</option>
-                      {(options.clients || []).map((c) => (
-                        <option key={c.id} value={c.id}>{c.clientName}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+                <CustomStopEditorFields
+                  stop={stop}
+                  onChange={(patch) => updateStop(index, patch)}
+                  templates={options.templates || []}
+                  clients={options.clients || []}
+                  industries={options.industries || []}
+                />
               )}
 
               <p className="mt-2 truncate text-xs text-zinc-500">{stopLabel(stop, options)}</p>
@@ -435,6 +437,54 @@ export function CreateMissionSlideOver({ isOpen, onClose, depots, onCreated }) {
           ))}
         </div>
       )}
-    </SmoothSlideOver>
+    </div>
+  )
+
+  if (variant === 'inline') {
+    if (!isOpen) return null
+    return (
+      <div className="flex h-full min-h-0 flex-col bg-cc-bg dark:bg-cc-bg">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-zinc-800">
+          <div className="min-w-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="mb-2 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 transition hover:text-zinc-800 dark:text-cc-tertiary dark:hover:text-cc-primary"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to missions
+            </button>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{description}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+          {formBody}
+        </div>
+        <div className="shrink-0 border-t border-gray-200 px-4 py-3 dark:border-zinc-800">
+          {footer}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <SlideOverPanel
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      description={description}
+      footer={footer}
+    >
+      {formBody}
+    </SlideOverPanel>
   )
 }

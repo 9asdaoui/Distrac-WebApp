@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCcNavigation } from '../../hooks/useCcNavigation'
 import { RefreshCw, ChevronRight, CheckCircle2, Loader2 } from 'lucide-react'
 import apiInstance from '../../api/axiosInstance'
 
@@ -25,7 +25,7 @@ function ApprovedMissionsSkeleton() {
 }
 
 export function ApprovedMissionsTab({ depots, refreshToken = 0 }) {
-  const navigate = useNavigate()
+  const { openPanel } = useCcNavigation()
   const [depotId, setDepotId] = useState('')
   const [fromDate, setFromDate] = useState(addDaysIso(-30))
   const [toDate, setToDate] = useState(addDaysIso(14))
@@ -74,7 +74,7 @@ export function ApprovedMissionsTab({ depots, refreshToken = 0 }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-cc-surface">
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Approved missions ready for livreur execution. Click a row to open the full mission detail page.
         </p>
@@ -85,7 +85,7 @@ export function ApprovedMissionsTab({ depots, refreshToken = 0 }) {
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
             />
           </div>
           <div>
@@ -94,7 +94,7 @@ export function ApprovedMissionsTab({ depots, refreshToken = 0 }) {
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
             />
           </div>
           <div className="sm:col-span-2">
@@ -103,7 +103,7 @@ export function ApprovedMissionsTab({ depots, refreshToken = 0 }) {
               <select
                 value={depotId}
                 onChange={(e) => setDepotId(e.target.value)}
-                className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               >
                 {depots.map((d) => (
                   <option key={d.id} value={d.id}>
@@ -134,7 +134,7 @@ export function ApprovedMissionsTab({ depots, refreshToken = 0 }) {
       {isLoading ? (
         <ApprovedMissionsSkeleton />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -152,7 +152,7 @@ export function ApprovedMissionsTab({ depots, refreshToken = 0 }) {
                 {missions.map((mission) => (
                   <tr
                     key={mission.id}
-                    onClick={() => navigate(`/missions/${mission.id}`)}
+                    onClick={() => openPanel('missions', mission.id)}
                     className="cursor-pointer border-b border-gray-200 transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/40"
                   >
                     <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{mission.date}</td>
