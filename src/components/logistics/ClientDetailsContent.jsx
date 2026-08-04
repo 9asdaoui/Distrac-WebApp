@@ -46,13 +46,13 @@ const ORDER_STATUS_META = {
   DELIVERED:
     'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
   CANCELLED:
-    'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400',
+    'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-400',
 }
 
 function OrderStatusBadge({ status }) {
   const cls =
     ORDER_STATUS_META[status] ||
-    'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'
+    'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-300'
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${cls}`}>
       {status || '—'}
@@ -73,7 +73,7 @@ function ClientDetailsSkeleton({ compact = false }) {
 function OpeningHoursCard({ openingHours, compact = false }) {
   if (!openingHours || Object.keys(openingHours).length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
         <div className={`border-b border-gray-200 dark:border-zinc-800 ${compact ? 'px-4 py-3' : 'px-5 py-4'}`}>
           <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
             <Clock className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
@@ -90,7 +90,7 @@ function OpeningHoursCard({ openingHours, compact = false }) {
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className={`border-b border-gray-200 dark:border-zinc-800 ${compact ? 'px-4 py-3' : 'px-5 py-4'}`}>
         <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
           <Clock className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
@@ -132,7 +132,7 @@ function OrdersTable({ orders, compact = false }) {
 
   if (!orders?.length) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-zinc-900/50">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-12 dark:border-zinc-700 dark:bg-cc-surface/50">
         <Calendar className="mb-3 h-8 w-8 text-zinc-400 dark:text-zinc-500" />
         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No orders yet</p>
         <p className="mt-1 text-center text-xs text-zinc-500 dark:text-zinc-400">
@@ -143,7 +143,7 @@ function OrdersTable({ orders, compact = false }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -184,7 +184,7 @@ function ClientQrCard({ client, compact = false }) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className={`border-b border-gray-200 dark:border-zinc-800 ${compact ? 'px-4 py-3' : 'px-5 py-4'}`}>
         <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
           <QrCode className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
@@ -203,7 +203,7 @@ function ClientQrCard({ client, compact = false }) {
 
 function ContactCard({ client, compact = false }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className={`border-b border-gray-200 dark:border-zinc-800 ${compact ? 'px-4 py-3' : 'px-5 py-4'}`}>
         <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Contact</h3>
       </div>
@@ -242,7 +242,7 @@ function ContactCard({ client, compact = false }) {
 
 function CreditCardSection({ client, onUpdateCredit, compact = false }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className={`border-b border-gray-200 dark:border-zinc-800 ${compact ? 'px-4 py-3' : 'px-5 py-4'}`}>
         <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
           <CreditCard className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
@@ -573,7 +573,7 @@ export function ClientDetailsContent({
                       value={creditForm.maxCreditLimit}
                       onChange={(e) => setCreditForm({ ...creditForm, maxCreditLimit: e.target.value })}
                       placeholder="0"
-                      className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
                     />
                   </div>
                   <div>
@@ -586,7 +586,7 @@ export function ClientDetailsContent({
                       value={creditForm.maxCreditDays}
                       onChange={(e) => setCreditForm({ ...creditForm, maxCreditDays: e.target.value })}
                       placeholder="0"
-                      className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
                     />
                   </div>
                   {creditError && <p className="text-sm text-red-500">{creditError}</p>}

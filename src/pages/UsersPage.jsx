@@ -1,11 +1,18 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
+import { useCcNavigation } from '../hooks/useCcNavigation'
 import { Loader2, Plus, UserPlus, Users, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { DashboardLayout } from '../components/DashboardLayout'
 import { AnimatedPage } from '../components/AnimatedPage'
+import { DepotCcPageShell } from '../components/dashboard/depotOps/DepotCcPageShell'
+import { usePanelEmbed } from '../components/map/CcPanelHost'
+import { useCcMissionFilters } from '../components/map/CcMissionFiltersContext'
+import { filterByCreatedAt } from '../utils/filterByCreatedAt'
 import { DataTable } from '../components/DataTable'
+import { useAuth } from '../context/AuthContext'
+import { PERMISSIONS } from '../config/permissions'
 import apiInstance from '../api/axiosInstance'
 
 const emptyFormState = {
@@ -19,6 +26,7 @@ const emptyFormState = {
     SECTOR: [],
     DEPOT: [],
     INDUSTRY: [],
+    CLIENT_STORE_CATEGORY: [],
   },
 }
 
@@ -168,21 +176,30 @@ function UsersTableSkeleton({ t }) {
 }
 
 export function UsersPage() {
-  const navigate = useNavigate()
+  const { openPanel } = useCcNavigation()
+  const embedded = usePanelEmbed()
+  const ccFilters = useCcMissionFilters()
+  const { hasPermission } = useAuth()
+  const canManageUsers = hasPermission(PERMISSIONS.MANAGE_USERS)
+  const [searchParams] = useSearchParams()
+  const panelKey = searchParams.get('panel') === 'team' ? 'team' : 'users'
   const { t } = useTranslation()
   const [users, setUsers] = useState([])
   const [roles, setRoles] = useState([])
   const [sectors, setSectors] = useState([])
   const [depots, setDepots] = useState([])
   const [industries, setIndustries] = useState([])
+  const [storeCategories, setStoreCategories] = useState([])
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [roleFilter, setRoleFilter] = useState('')
   const [form, setForm] = useState(emptyFormState)
   const [toast, setToast] = useState({ message: '', type: 'success' })
 
   const activeEntityOptions = useMemo(() => {
+
     if (form.activeEntityType === 'SECTOR') {
       return sectors.map((sector) => ({
         id: sector.id,
@@ -207,11 +224,21 @@ export function UsersPage() {
   const activeSelectionSet = useMemo(() => new Set(activeSelections), [activeSelections])
   const controllerRef = useRef(null)
 
+  const visibleUsers = useMemo(() => {
+    if (embedded && ccFilters?.dateFrom && ccFilters?.dateTo) {
+      return filterByCreatedAt(users, ccFilters.dateFrom, ccFilters.dateTo)
+    }
+    return users
+  }, [users, embedded, ccFilters?.dateFrom, ccFilters?.dateTo])
+
   const assignmentLabels = {
     SECTOR: t('users.sectors'),
     DEPOT: t('users.depots'),
     INDUSTRY: t('users.industries'),
+    CLIENT_STORE_CATEGORY: 'Store categories',
   }
+
+  const isFieldSalesRole = ['VENDOR', 'SELLER'].includes(String(form.role || '').toUpperCase())
 
   const loadData = async () => {
     if (controllerRef.current) {
@@ -223,20 +250,31 @@ export function UsersPage() {
     setIsLoading(true)
 
     try {
-      const [usersRes, rolesRes, sectorsRes, depotsRes, industriesRes] = await Promise.all([
-        apiInstance.get('/users', { signal: controller.signal }),
-        apiInstance.get('/roles', { signal: controller.signal }),
-        apiInstance.get('/sectors', { signal: controller.signal }),
-        apiInstance.get('/depots', { signal: controller.signal }),
-        apiInstance.get('/industries', { signal: controller.signal }),
-      ])
+      const usersRes = await apiInstance.get('/users', {
+        signal: controller.signal,
+        params: roleFilter ? { role: roleFilter } : undefined,
+      })
+      if (controller.signal.aborted) return
+      setUsers(usersRes.data?.data?.users || [])
 
-      if (!controller.signal.aborted) {
-        setUsers(usersRes.data?.data?.users || [])
-        setRoles(rolesRes.data?.data?.roles || [])
-        setSectors(sectorsRes.data?.data?.sectors || [])
-        setDepots(depotsRes.data?.data?.depots || [])
-        setIndustries(industriesRes.data?.data?.industries || [])
+      if (canManageUsers) {
+        const [rolesRes, sectorsRes, depotsRes, industriesRes, categoriesRes] = await Promise.all([
+          apiInstance.get('/roles', { signal: controller.signal }),
+          apiInstance.get('/sectors', { signal: controller.signal }),
+          apiInstance.get('/depots', { signal: controller.signal }),
+          apiInstance.get('/industries', { signal: controller.signal }),
+          apiInstance
+            .get('/client-store-categories', { signal: controller.signal })
+            .catch(() => ({ data: { data: { categories: [] } } })),
+        ])
+
+        if (!controller.signal.aborted) {
+          setRoles(rolesRes.data?.data?.roles || [])
+          setSectors(sectorsRes.data?.data?.sectors || [])
+          setDepots(depotsRes.data?.data?.depots || [])
+          setIndustries(industriesRes.data?.data?.industries || [])
+          setStoreCategories(categoriesRes.data?.data?.categories || [])
+        }
       }
     } catch (error) {
       if (error.name !== 'CanceledError' && !controller.signal.aborted) {
@@ -257,7 +295,7 @@ export function UsersPage() {
         controllerRef.current.abort()
       }
     }
-  }, [t])
+  }, [t, canManageUsers, roleFilter])
 
   useEffect(() => {
     if (!toast.message) return undefined
@@ -275,8 +313,8 @@ export function UsersPage() {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  const toggleEntitySelection = (entityId) => {
-    const type = form.activeEntityType
+  const toggleEntitySelection = (entityId, entityType = null) => {
+    const type = entityType || form.activeEntityType
     setForm((prev) => {
       const current = prev.selectionsByType[type] || []
       const nextForType = current.includes(entityId)
@@ -351,7 +389,25 @@ export function UsersPage() {
       />
 
       <AnimatedPage>
+        <DepotCcPageShell
+          title={t('users.pageTitle')}
+          subtitle={t('users.pageSubtitle')}
+          icon={Users}
+          actions={
+            embedded && canManageUsers ? (
+              <button
+                type="button"
+                onClick={() => setIsCreateOpen(true)}
+                className="btn-primary"
+              >
+                <Plus className="h-4 w-4" />
+                {t('users.createUserBtn')}
+              </button>
+            ) : null
+          }
+        >
         <div className="space-y-6">
+          {!embedded ? (
           <div className="page-header">
             <div>
               <h1 className="page-title">{t('users.pageTitle')}</h1>
@@ -360,14 +416,35 @@ export function UsersPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsCreateOpen(true)}
-              className="btn-primary"
-            >
-              <Plus className="h-4 w-4" />
-              {t('users.createUserBtn')}
-            </button>
+            {canManageUsers ? (
+              <button
+                type="button"
+                onClick={() => setIsCreateOpen(true)}
+                className="btn-primary"
+              >
+                <Plus className="h-4 w-4" />
+                {t('users.createUserBtn')}
+              </button>
+            ) : null}
+          </div>
+          ) : null}
+
+          <div className="flex flex-wrap gap-3">
+            <div className="relative">
+              <label htmlFor="users-role-filter" className="sr-only">
+                {t('users.filterByRole')}
+              </label>
+              <select
+                id="users-role-filter"
+                value={roleFilter}
+                onChange={(event) => setRoleFilter(event.target.value)}
+                className="form-select"
+              >
+                <option value="">{t('users.filterAllRoles')}</option>
+                <option value="VENDOR">{t('users.filterVendor')}</option>
+                <option value="SELLER">{t('users.filterSeller')}</option>
+              </select>
+            </div>
           </div>
 
           {isLoading ? (
@@ -381,18 +458,20 @@ export function UsersPage() {
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                 {t('users.noUsersDesc')}
               </p>
-              <button
-                type="button"
-                onClick={() => setIsCreateOpen(true)}
-                className="btn-secondary mt-6"
-              >
-                <Plus className="h-4 w-4" />
-                {t('users.createFirstUser')}
-              </button>
+              {canManageUsers ? (
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(true)}
+                  className="btn-secondary mt-6"
+                >
+                  <Plus className="h-4 w-4" />
+                  {t('users.createFirstUser')}
+                </button>
+              ) : null}
             </div>
           ) : (
             <DataTable
-              data={users}
+              data={visibleUsers}
               columns={[
                 {
                   header: t('users.user'),
@@ -445,15 +524,16 @@ export function UsersPage() {
                 },
               ]}
               searchPlaceholder={t('users.searchPlaceholder', 'Search users...')}
-              onRowClick={(row) => navigate(`/users/${row.id}`)}
+              onRowClick={(row) => openPanel(panelKey, row.id)}
               emptyStateMessage={t('users.noResults', 'No users found matching your search.')}
             />
           )}
         </div>
+        </DepotCcPageShell>
       </AnimatedPage>
 
       <AnimatePresence>
-        {isCreateOpen && (
+        {isCreateOpen && canManageUsers && (
           <motion.div
             className="fixed inset-0 z-[60]"
             initial={{ opacity: 0 }}
@@ -611,7 +691,7 @@ export function UsersPage() {
                               key={option.id}
                               className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition ${
                                 checked
-                                  ? 'border-[#ff6b00]/30 bg-orange-50 dark:border-[#ff6b00]/30 dark:bg-[#ff6b00]/10'
+                                  ? 'border-cc-accent/30 bg-cc-accent/10 dark:border-cc-accent/30 dark:bg-cc-accent/10'
                                   : 'border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900'
                               }`}
                             >
@@ -619,7 +699,7 @@ export function UsersPage() {
                                 type="checkbox"
                                 checked={checked}
                                 onChange={() => toggleEntitySelection(option.id)}
-                                className="h-4 w-4 rounded border-zinc-300 text-[#ff6b00] focus:ring-[#ff6b00]"
+                                className="h-4 w-4 rounded border-zinc-300 text-cc-accent focus:ring-cc-accent"
                               />
                               <span className="text-sm text-zinc-800 dark:text-zinc-200">{option.label}</span>
                             </label>
@@ -642,6 +722,34 @@ export function UsersPage() {
                     </div>
                   </div>
                 </section>
+
+                {isFieldSalesRole && (
+                  <section className="space-y-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+                    <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Store categories</h3>
+                    <p className="text-xs text-zinc-500">Optional — categories this agent can use when creating clients.</p>
+                    <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+                      {storeCategories.filter((c) => c.is_active !== false).length === 0 ? (
+                        <p className="text-sm text-zinc-500">No store categories configured.</p>
+                      ) : (
+                        storeCategories
+                          .filter((c) => c.is_active !== false)
+                          .map((cat) => {
+                            const checked = (form.selectionsByType.CLIENT_STORE_CATEGORY || []).includes(cat.id)
+                            return (
+                              <label key={cat.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleEntitySelection(cat.id, 'CLIENT_STORE_CATEGORY')}
+                                />
+                                {cat.name}
+                              </label>
+                            )
+                          })
+                      )}
+                    </div>
+                  </section>
+                )}
 
                 <div className="flex items-center justify-end gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
                   <button

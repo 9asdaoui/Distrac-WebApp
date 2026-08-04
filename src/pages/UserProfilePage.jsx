@@ -14,6 +14,8 @@ import {
   Warehouse,
 } from 'lucide-react'
 import { AnimatedPage } from '../components/AnimatedPage'
+import { useAuth } from '../context/AuthContext'
+import { PERMISSIONS } from '../config/permissions'
 import apiInstance from '../api/axiosInstance'
 
 const ROLE_BADGE_CLASS =
@@ -70,7 +72,7 @@ function formatDate(value) {
 
 function PanelCard({ title, icon: Icon, children }) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <section className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className="flex items-center gap-2 border-b border-gray-200 px-5 py-3 dark:border-zinc-800">
         {Icon && <Icon className="h-4 w-4 text-zinc-500" />}
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
@@ -296,6 +298,8 @@ function DetailsSkeleton() {
 
 export function UserProfilePage() {
   const { id } = useParams()
+  const { hasPermission } = useAuth()
+  const canManageUsers = hasPermission(PERMISSIONS.MANAGE_USERS)
   const controllerRef = useRef(null)
   const [profile, setProfile] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -303,6 +307,10 @@ export function UserProfilePage() {
   const [vendorLoadLimit, setVendorLoadLimit] = useState('')
   const [isSavingLimit, setIsSavingLimit] = useState(false)
   const [limitMessage, setLimitMessage] = useState('')
+  const [allStoreCategories, setAllStoreCategories] = useState([])
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([])
+  const [isSavingCategories, setIsSavingCategories] = useState(false)
+  const [categoryMessage, setCategoryMessage] = useState('')
 
   useEffect(() => {
     if (!id) return undefined
@@ -344,6 +352,58 @@ export function UserProfilePage() {
     SECTOR: assignments.filter((row) => row.entity_type === 'SECTOR'),
     DEPOT: assignments.filter((row) => row.entity_type === 'DEPOT'),
     INDUSTRY: assignments.filter((row) => row.entity_type === 'INDUSTRY'),
+    CLIENT_STORE_CATEGORY: assignments.filter((row) => row.entity_type === 'CLIENT_STORE_CATEGORY'),
+  }
+
+  const isFieldSales = ['VENDOR', 'SELLER'].includes(String(user?.role_name || '').toUpperCase())
+
+  useEffect(() => {
+    if (!id || !isFieldSales) return undefined
+    const controller = new AbortController()
+    const loadCategories = async () => {
+      try {
+        const res = await apiInstance.get('/client-store-categories', {
+          signal: controller.signal,
+          params: { includeInactive: false },
+        })
+        if (!controller.signal.aborted) {
+          setAllStoreCategories(res.data?.data?.categories || [])
+        }
+      } catch {
+        if (!controller.signal.aborted) setAllStoreCategories([])
+      }
+    }
+    loadCategories()
+    return () => controller.abort()
+  }, [id, isFieldSales])
+
+  useEffect(() => {
+    const ids = assignments
+      .filter((row) => row.entity_type === 'CLIENT_STORE_CATEGORY')
+      .map((row) => row.entity_id)
+    setSelectedCategoryIds(ids)
+  }, [assignments])
+
+  const handleSaveStoreCategories = async () => {
+    if (!user?.id) return
+    setIsSavingCategories(true)
+    setCategoryMessage('')
+    try {
+      await apiInstance.put(`/client-store-categories/users/${user.id}/assignments`, {
+        categoryIds: selectedCategoryIds,
+      })
+      setCategoryMessage('Store category assignments saved.')
+    } catch (err) {
+      setCategoryMessage(err?.response?.data?.message || 'Failed to save store categories.')
+    } finally {
+      setIsSavingCategories(false)
+    }
+  }
+
+  const toggleStoreCategory = (categoryId) => {
+    setSelectedCategoryIds((prev) =>
+      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId],
+    )
   }
 
   const handleSaveVendorLimit = async () => {
@@ -431,6 +491,47 @@ export function UserProfilePage() {
               </div>
             </header>
 
+            {isFieldSales && (
+              <PanelCard title="Client store categories" icon={Users}>
+                <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+                  Categories this agent can select when creating a new client on mobile.
+                </p>
+                <div className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+                  {allStoreCategories.length === 0 ? (
+                    <p className="text-sm text-zinc-500">No active store categories. Create them under Clients → Store categories.</p>
+                  ) : (
+                    allStoreCategories.map((cat) => (
+                      <label
+                        key={cat.id}
+                        className={`flex items-center gap-2 text-sm text-zinc-800 dark:text-zinc-200 ${
+                          canManageUsers ? 'cursor-pointer' : 'cursor-default opacity-90'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCategoryIds.includes(cat.id)}
+                          onChange={() => canManageUsers && toggleStoreCategory(cat.id)}
+                          disabled={!canManageUsers}
+                        />
+                        {cat.name}
+                      </label>
+                    ))
+                  )}
+                </div>
+                {canManageUsers ? (
+                  <button
+                    type="button"
+                    onClick={handleSaveStoreCategories}
+                    disabled={isSavingCategories}
+                    className="mt-3 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
+                  >
+                    {isSavingCategories ? 'Saving…' : 'Save categories'}
+                  </button>
+                ) : null}
+                {categoryMessage && <p className="mt-2 text-xs text-zinc-500">{categoryMessage}</p>}
+              </PanelCard>
+            )}
+
             {String(user.role_name || '').toUpperCase() === 'VENDOR' && (
               <PanelCard title="Vendor load money limit" icon={Package}>
                 <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
@@ -444,18 +545,21 @@ export function UserProfilePage() {
                       min="0"
                       step="1"
                       value={vendorLoadLimit}
-                      onChange={(e) => setVendorLoadLimit(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                      onChange={(e) => canManageUsers && setVendorLoadLimit(e.target.value)}
+                      disabled={!canManageUsers}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm disabled:opacity-60 dark:border-zinc-700 dark:bg-cc-surface"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleSaveVendorLimit}
-                    disabled={isSavingLimit}
-                    className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
-                  >
-                    {isSavingLimit ? 'Saving…' : 'Save limit'}
-                  </button>
+                  {canManageUsers ? (
+                    <button
+                      type="button"
+                      onClick={handleSaveVendorLimit}
+                      disabled={isSavingLimit}
+                      className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
+                    >
+                      {isSavingLimit ? 'Saving…' : 'Save limit'}
+                    </button>
+                  ) : null}
                 </div>
                 {limitMessage && <p className="mt-2 text-xs text-zinc-500">{limitMessage}</p>}
               </PanelCard>
@@ -466,7 +570,7 @@ export function UserProfilePage() {
                 {roleInsights.stats.map((stat) => (
                   <div
                     key={stat.key}
-                    className="rounded-xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900"
+                    className="rounded-xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-cc-surface"
                   >
                     <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{stat.label}</p>
                     <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{stat.value}</p>
