@@ -3,11 +3,19 @@ import { DollarSign, TrendingDown, Users, Truck } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { DashboardLayout } from '../../components/DashboardLayout'
 import { AnimatedPage } from '../../components/AnimatedPage'
+import {
+  getAuthRoleName,
+  isDepotSupervisorRole,
+} from '../../components/map/ccPanelRegistry'
+import { useAuth } from '../../context/AuthContext'
+import { PERMISSIONS } from '../../config/permissions'
+import { RevenueDepotPanel } from './RevenueDepotPanel'
+import { DepotCashHandoffSection } from './DepotCashHandoffSection'
 import apiInstance from '../../api/axiosInstance'
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-cc-surface">
       <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${color}`}>
         <Icon className="h-6 w-6" />
       </div>
@@ -22,7 +30,7 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
 
 function TableSkeleton({ cols }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -50,7 +58,12 @@ function TableSkeleton({ cols }) {
   )
 }
 
-export function DebtPage() {
+function SupervisorDebtView() {
+  const { user, hasPermission } = useAuth()
+  const role = getAuthRoleName(user)
+  const showCashHandoff =
+    role === 'GENERAL_MANAGEMENT' || hasPermission(PERMISSIONS.DEPOSIT_CASH)
+
   const [supervisors, setSupervisors] = useState([])
   const [livreurs, setLivreurs] = useState([])
   const [isLoadingSup, setIsLoadingSup] = useState(true)
@@ -101,18 +114,21 @@ export function DebtPage() {
     <DashboardLayout>
       <AnimatedPage>
         <div className="space-y-8">
-          {/* Header */}
-          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-900/20">
                 <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Financial Debt Summary</h1>
-                <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">Management overview of responsibility ledger and carried cash.</p>
+                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Revenue</h1>
+                <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">Responsibility ledger and carried cash overview.</p>
               </div>
             </div>
           </div>
+
+          {showCashHandoff ? (
+            <DepotCashHandoffSection variant="page" />
+          ) : null}
 
           {/* KPI cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -152,7 +168,7 @@ export function DebtPage() {
             {isLoadingSup ? (
               <TableSkeleton cols={['Supervisor', 'Email', 'Active Entries', 'Total Responsibility']} />
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
                     <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -202,7 +218,7 @@ export function DebtPage() {
             {isLoadingLiv ? (
               <TableSkeleton cols={['Livreur', 'Email', 'Collected Entries', 'Cash Carried']} />
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
                     <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -249,4 +265,16 @@ export function DebtPage() {
       </AnimatedPage>
     </DashboardLayout>
   )
+}
+
+export function DebtPage() {
+  const { user } = useAuth()
+  if (isDepotSupervisorRole(user)) {
+    return (
+      <DashboardLayout>
+        <RevenueDepotPanel />
+      </DashboardLayout>
+    )
+  }
+  return <SupervisorDebtView />
 }
