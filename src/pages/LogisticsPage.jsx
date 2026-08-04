@@ -62,7 +62,7 @@ function LoadingSkeleton() {
 
 function EmptyState({ title, description, onAdd }) {
   return (
-    <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center dark:border-zinc-700 dark:bg-cc-surface">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-zinc-800">
         <MapPin className="h-7 w-7 text-zinc-500" />
       </div>
@@ -71,7 +71,7 @@ function EmptyState({ title, description, onAdd }) {
       <button
         type="button"
         onClick={onAdd}
-        className="mt-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+        className="mt-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-gray-50 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-200 dark:hover:bg-zinc-800"
       >
         <Plus className="h-4 w-4" />
         Add {title.toLowerCase()}
@@ -263,7 +263,7 @@ export function LogisticsPage() {
           )
         }
         return (
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -305,7 +305,7 @@ export function LogisticsPage() {
           )
         }
         return (
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -358,7 +358,7 @@ export function LogisticsPage() {
           )
         }
         return (
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -402,7 +402,7 @@ export function LogisticsPage() {
                 value={createFormData.industryName || ''}
                 onChange={(e) => setCreateFormData({ ...createFormData, industryName: e.target.value })}
                 placeholder="e.g. Electronics"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
             <div>
@@ -415,7 +415,7 @@ export function LogisticsPage() {
                 onChange={(e) => setCreateFormData({ ...createFormData, description: e.target.value })}
                 placeholder="Brief description of the industry"
                 rows="3"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
             <label className="flex items-center gap-3">
@@ -452,7 +452,7 @@ export function LogisticsPage() {
                 value={createFormData.depotName || ''}
                 onChange={(e) => setCreateFormData({ ...createFormData, depotName: e.target.value })}
                 placeholder="e.g. Main Warehouse"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
             <div>
@@ -465,7 +465,7 @@ export function LogisticsPage() {
                 value={createFormData.address || ''}
                 onChange={(e) => setCreateFormData({ ...createFormData, address: e.target.value })}
                 placeholder="Physical location"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -480,7 +480,7 @@ export function LogisticsPage() {
                   value={createFormData.gpsLatitude || ''}
                   onChange={(e) => setCreateFormData({ ...createFormData, gpsLatitude: e.target.value })}
                   placeholder="e.g. 36.5"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
                 />
               </div>
               <div>
@@ -494,7 +494,7 @@ export function LogisticsPage() {
                   value={createFormData.gpsLongitude || ''}
                   onChange={(e) => setCreateFormData({ ...createFormData, gpsLongitude: e.target.value })}
                   placeholder="e.g. 2.7"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
                 />
               </div>
             </div>
@@ -509,7 +509,7 @@ export function LogisticsPage() {
                 value={createFormData.totalPriceCapacity || ''}
                 onChange={(e) => setCreateFormData({ ...createFormData, totalPriceCapacity: e.target.value })}
                 placeholder="Maximum price value in storage"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
             <div className="flex gap-3 border-t border-gray-200 pt-4 dark:border-zinc-800">
@@ -537,7 +537,7 @@ export function LogisticsPage() {
                 value={createFormData.sectorName || ''}
                 onChange={(e) => setCreateFormData({ ...createFormData, sectorName: e.target.value })}
                 placeholder="e.g. North Zone"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
             <div>
@@ -548,7 +548,7 @@ export function LogisticsPage() {
                 id="depotId"
                 value={createFormData.depotId || ''}
                 onChange={(e) => setCreateFormData({ ...createFormData, depotId: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               >
                 <option value="">Select a depot</option>
                 {depots.map((depot) => (
@@ -581,7 +581,7 @@ export function LogisticsPage() {
 
       <AnimatedPage>
         <div className="space-y-6">
-          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Logistics Management</h1>
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -602,7 +602,7 @@ export function LogisticsPage() {
             </button>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface">
             <div className="mb-6 flex gap-2 border-b border-gray-200 dark:border-zinc-800">
               {Object.values(TABS).map((tab) => (
                 <button

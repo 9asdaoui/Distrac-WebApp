@@ -80,7 +80,7 @@ export function LocationMapCard({ lat, lng, name, emptyMessage = 'No GPS coordin
   const showMap = hasGpsCoordinates(lat, lng)
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <MapCardHeader />
       {showMap ? <LocationMap lat={lat} lng={lng} name={name} /> : <MapEmptyBody message={emptyMessage} />}
     </div>

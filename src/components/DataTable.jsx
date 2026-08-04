@@ -124,9 +124,9 @@ export function DataTable({
                           <span className="text-zinc-400 dark:text-zinc-500">
                             {isSorted ? (
                               sortConfig.direction === 'asc' ? (
-                                <ArrowDownAZ className="h-3.5 w-3.5 text-[#ff6b00]" />
+                                <ArrowDownAZ className="h-3.5 w-3.5 text-cc-accent" />
                               ) : (
-                                <ArrowUpZA className="h-3.5 w-3.5 text-[#ff6b00]" />
+                                <ArrowUpZA className="h-3.5 w-3.5 text-cc-accent" />
                               )
                             ) : (
                               <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
@@ -170,7 +170,7 @@ export function DataTable({
 
         {/* Footer / Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-zinc-200 bg-white px-6 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center justify-between border-t border-zinc-200 bg-white px-6 py-3 dark:border-zinc-800 dark:bg-cc-surface">
             <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
               Page {currentPage} of {totalPages}
             </span>

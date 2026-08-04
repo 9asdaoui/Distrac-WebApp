@@ -182,7 +182,7 @@ export function ProfilePage() {
                       onClick={() => setActiveSection(section.id)}
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
                         active
-                          ? 'bg-orange-50 text-[#ff6b00] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#ff6b00]'
+                          ? 'bg-cc-accent/10 text-cc-accent dark:bg-cc-accent/15 dark:text-cc-accent'
                           : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/70 dark:hover:text-zinc-100'
                       }`}
                     >

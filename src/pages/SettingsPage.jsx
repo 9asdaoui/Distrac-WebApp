@@ -141,7 +141,7 @@ export function SettingsPage() {
                       onClick={() => setActiveSection(section.id)}
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
                         active
-                          ? 'bg-orange-50 text-[#ff6b00] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#ff6b00]'
+                          ? 'bg-cc-accent/10 text-cc-accent dark:bg-cc-accent/15 dark:text-cc-accent'
                           : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/70 dark:hover:text-zinc-100'
                       }`}
                     >
@@ -243,7 +243,7 @@ export function SettingsPage() {
                             }
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
                               form.global_auto_approve_replenishment
-                                ? 'bg-[#ff6b00]'
+                                ? 'bg-distrac-primary'
                                 : 'bg-zinc-300 dark:bg-zinc-700'
                             } ${readOnly || isSaving ? 'opacity-60' : ''}`}
                           >

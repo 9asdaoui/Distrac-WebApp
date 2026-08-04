@@ -99,7 +99,7 @@ export function MissionRouteMap({ stops, depotOrigin, compact = false }) {
 
   const wrapperClass = compact
     ? `relative z-0 ${mapHeight} overflow-hidden rounded-xl bg-zinc-950`
-    : `overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900`
+    : `overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface`
 
   const inner = (
     <div className={`relative z-0 ${mapHeight} bg-zinc-950`}>

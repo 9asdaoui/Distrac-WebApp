@@ -35,7 +35,7 @@ export function OrdersPage() {
     <DashboardLayout>
       <AnimatedPage>
         <div className="space-y-6">
-          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Orders</h1>
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Track order lifecycle and operational status.</p>
@@ -45,7 +45,7 @@ export function OrdersPage() {
               Add Order
             </button>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-50 dark:bg-zinc-800/50">

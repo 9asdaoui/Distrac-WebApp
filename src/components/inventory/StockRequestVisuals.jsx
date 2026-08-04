@@ -72,7 +72,7 @@ export function MetaTile({ icon: Icon, label, value, accent = 'zinc' }) {
   }[accent] || accents.zinc
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-cc-surface">
       <div className={`mb-3 inline-flex rounded-lg p-2 ${accents}`}>
         <Icon className="h-4 w-4" />
       </div>

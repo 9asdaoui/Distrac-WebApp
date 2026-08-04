@@ -6,7 +6,7 @@ export function Unauthorized() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-zinc-100 dark:bg-cc-bg flex items-center justify-center p-4">
       <div className="max-w-md text-center">
         <div className="mb-8">
           <LockIcon className="w-20 h-20 text-red-600 mx-auto" />
@@ -25,7 +25,7 @@ export function Unauthorized() {
         </div>
 
         <button
-          onClick={() => navigate('/global-map')}
+          onClick={() => navigate('/')}
           className="inline-block rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           Return to Dashboard

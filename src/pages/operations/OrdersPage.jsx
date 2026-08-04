@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCcNavigation } from '../../hooks/useCcNavigation'
 import { ShoppingCart, Search, ChevronDown, Plus, X, CheckCircle2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -34,7 +34,7 @@ function Toast({ message, type = 'success', onClose }) {
 }
 
 const STATUS_META = {
-  PENDING:   { label: 'Pending',   cls: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
+  PENDING:   { label: 'Pending (legacy)',   cls: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
   ESCALATED: { label: 'Escalated', cls: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' },
   CONFIRMED: { label: 'Confirmed', cls: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
   READY:     { label: 'Ready',     cls: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300' },
@@ -55,7 +55,7 @@ function StatusBadge({ status }) {
 
 function OrdersSkeleton() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -91,7 +91,7 @@ function OrdersSkeleton() {
 const ALL_STATUSES = ['PENDING', 'ESCALATED', 'CONFIRMED', 'READY', 'IN_TRANSIT', 'DELIVERED', 'REFUSED', 'CANCELLED']
 
 export function OrdersPage() {
-  const navigate = useNavigate()
+  const { openPanel } = useCcNavigation()
   const { t } = useTranslation()
   const { hasPermission } = useAuth()
   const canCreateOrder = PERMISSION_GROUPS.createOrder.some((perm) => hasPermission(perm))
@@ -167,7 +167,7 @@ export function OrdersPage() {
       load({ search, status: statusFilter, sector: sectorFilter })
       const orderRef = order?.order_number || order?.order_id || order?.id
       if (orderRef) {
-        navigate(`/orders/${encodeURIComponent(orderRef)}`)
+        openPanel('orders', orderRef)
       }
     } catch (err) {
       setFormError(err?.response?.data?.message || err?.message || 'Failed to create order.')
@@ -187,7 +187,7 @@ export function OrdersPage() {
       <AnimatedPage>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
                 <ShoppingCart className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
@@ -249,7 +249,7 @@ export function OrdersPage() {
 
           {/* Table */}
           {isLoading ? (
-            <div className="flex h-32 items-center justify-center rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex h-32 items-center justify-center rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
               <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-zinc-900 dark:border-zinc-100" />
             </div>
           ) : (
@@ -304,7 +304,7 @@ export function OrdersPage() {
                 },
               ]}
               searchPlaceholder={t('orders.searchPlaceholder')}
-              onRowClick={(row) => navigate('/orders/' + encodeURIComponent(row.order_number || row.order_id || row.id))}
+              onRowClick={(row) => openPanel('orders', row.order_number || row.order_id || row.id)}
               emptyStateMessage={t('orders.noOrdersDesc')}
             />
           )}

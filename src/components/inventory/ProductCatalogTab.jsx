@@ -63,7 +63,7 @@ function ProductSearchBar({ value, onChange, onClear, resultCount }) {
   return (
     <div>
       <label className="sr-only" htmlFor="product-catalog-search">Search products</label>
-      <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-3 py-2 shadow-sm transition focus-within:border-[#ff6b00]/50 focus-within:ring-2 focus-within:ring-[#ff6b00]/15 dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-3 py-2 shadow-sm transition focus-within:border-[#ff6b00]/50 focus-within:ring-2 focus-within:ring-[#ff6b00]/15 dark:border-zinc-700 dark:bg-cc-surface">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
           <Search className="h-4 w-4" strokeWidth={2.25} />
         </span>
@@ -407,7 +407,7 @@ export const ProductCatalogTab = forwardRef(function ProductCatalogTab({ canMana
                 </p>
               )}
 
-              <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
                     <thead className="bg-zinc-50 dark:bg-zinc-800/50">

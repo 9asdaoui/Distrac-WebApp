@@ -31,9 +31,10 @@ export function useScopedDepots() {
           const assigned = assignRes.data?.data?.grouped?.depots || []
           const allowedIds = new Set(assigned.map((row) => row.entity_id))
           const scoped = allDepots.filter((depot) => allowedIds.has(depot.id))
-          if (!cancelled) setDepots(scoped.length > 0 ? scoped : allDepots)
+          // Non-global roles: empty assignments → empty list (not all system depots)
+          if (!cancelled) setDepots(scoped)
         } catch {
-          if (!cancelled) setDepots(allDepots)
+          if (!cancelled) setDepots([])
         }
       } catch (err) {
         if (!cancelled) {

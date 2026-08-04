@@ -47,7 +47,7 @@ export function Login() {
 
     try {
       await login(email, password)
-      navigate('/global-map')
+      navigate('/')
     } catch (err) {
       setError(err.response?.data?.message || err.message || t('login.loginFailed'))
     } finally {
@@ -57,7 +57,7 @@ export function Login() {
 
   return (
     <div className="min-h-screen bg-zinc-100 p-0 md:p-4 dark:bg-zinc-950">
-      <div className="grid min-h-screen grid-cols-1 bg-white md:min-h-[calc(100vh-2rem)] md:grid-cols-2 md:rounded-3xl dark:bg-zinc-900">
+      <div className="grid min-h-screen grid-cols-1 bg-white md:min-h-[calc(100vh-2rem)] md:grid-cols-2 md:rounded-3xl dark:bg-cc-surface">
 
         {/* Left: form panel */}
         <div
@@ -67,7 +67,7 @@ export function Login() {
             backgroundSize: '24px 24px',
           }}
         >
-          <div className="pointer-events-none absolute inset-0 bg-white/85 dark:bg-zinc-900/90" />
+          <div className="pointer-events-none absolute inset-0 bg-white/85 dark:bg-cc-surface/90" />
 
           <div className="relative z-10 w-full max-w-sm">
 

@@ -55,7 +55,7 @@ function LoadingSkeleton() {
 
 function EmptyState({ title, description, onAdd }) {
   return (
-    <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center dark:border-zinc-700 dark:bg-cc-surface">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-zinc-800">
         <ShoppingCart className="h-7 w-7 text-zinc-500" />
       </div>
@@ -64,7 +64,7 @@ function EmptyState({ title, description, onAdd }) {
       <button
         type="button"
         onClick={onAdd}
-        className="mt-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+        className="mt-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-gray-50 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-200 dark:hover:bg-zinc-800"
       >
         <Plus className="h-4 w-4" />
         Add {title.toLowerCase()}
@@ -252,7 +252,7 @@ export function CatalogPage() {
           )
         }
         return (
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -288,7 +288,7 @@ export function CatalogPage() {
           )
         }
         return (
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -324,7 +324,7 @@ export function CatalogPage() {
           )
         }
         return (
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-cc-surface">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -382,7 +382,7 @@ export function CatalogPage() {
                 value={createFormData.brandName || ''}
                 onChange={(e) => setCreateFormData({ ...createFormData, brandName: e.target.value })}
                 placeholder="e.g. Samsung"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
             <div>
@@ -395,7 +395,7 @@ export function CatalogPage() {
                 onChange={(e) => setCreateFormData({ ...createFormData, description: e.target.value })}
                 placeholder="Brand description"
                 rows="3"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
             <div className="flex gap-3 border-t border-gray-200 pt-4 dark:border-zinc-800">
@@ -423,7 +423,7 @@ export function CatalogPage() {
                 value={createFormData.categoryName || ''}
                 onChange={(e) => setCreateFormData({ ...createFormData, categoryName: e.target.value })}
                 placeholder="e.g. Electronics"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
             <div>
@@ -436,7 +436,7 @@ export function CatalogPage() {
                 onChange={(e) => setCreateFormData({ ...createFormData, description: e.target.value })}
                 placeholder="Category description"
                 rows="3"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
             <div className="flex gap-3 border-t border-gray-200 pt-4 dark:border-zinc-800">
@@ -464,7 +464,7 @@ export function CatalogPage() {
                 value={createFormData.productName || ''}
                 onChange={(e) => setCreateFormData({ ...createFormData, productName: e.target.value })}
                 placeholder="e.g. Galaxy S24"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
 
@@ -477,7 +477,7 @@ export function CatalogPage() {
                   id="brandId"
                   value={createFormData.brandId || ''}
                   onChange={(e) => setCreateFormData({ ...createFormData, brandId: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
                 >
                   <option value="">Select brand</option>
                   {brands.map((brand) => (
@@ -495,7 +495,7 @@ export function CatalogPage() {
                   id="categoryId"
                   value={createFormData.categoryId || ''}
                   onChange={(e) => setCreateFormData({ ...createFormData, categoryId: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
                 >
                   <option value="">Select category</option>
                   {categories.map((category) => (
@@ -518,7 +518,7 @@ export function CatalogPage() {
                   value={createFormData.sku || ''}
                   onChange={(e) => setCreateFormData({ ...createFormData, sku: e.target.value })}
                   placeholder="SKU-12345"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
                 />
               </div>
               <div>
@@ -532,7 +532,7 @@ export function CatalogPage() {
                   value={createFormData.basePrice || ''}
                   onChange={(e) => setCreateFormData({ ...createFormData, basePrice: e.target.value })}
                   placeholder="0.00"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
                 />
               </div>
             </div>
@@ -548,7 +548,7 @@ export function CatalogPage() {
                 value={createFormData.volumePerUnit || ''}
                 onChange={(e) => setCreateFormData({ ...createFormData, volumePerUnit: e.target.value })}
                 placeholder="For depot capacity calculations"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
 
@@ -562,7 +562,7 @@ export function CatalogPage() {
                 onChange={(e) => setCreateFormData({ ...createFormData, description: e.target.value })}
                 placeholder="Product description"
                 rows="3"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100"
               />
             </div>
 
@@ -589,7 +589,7 @@ export function CatalogPage() {
 
       <AnimatedPage>
         <div className="space-y-6">
-          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Product Catalog</h1>
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -610,7 +610,7 @@ export function CatalogPage() {
             </button>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-cc-surface">
             <div className="mb-6 flex gap-2 border-b border-gray-200 dark:border-zinc-800">
               {Object.values(TABS).map((tab) => (
                 <button

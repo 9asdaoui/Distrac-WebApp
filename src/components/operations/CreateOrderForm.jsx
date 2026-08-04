@@ -3,10 +3,10 @@ import { Plus, Trash2 } from 'lucide-react'
 import apiInstance from '../../api/axiosInstance'
 
 const inputClass =
-  'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100'
+  'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100'
 
 const selectClass =
-  'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200'
+  'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-200'
 
 function defaultDeliveryDate() {
   const d = new Date()
@@ -431,7 +431,7 @@ export const CreateOrderForm = forwardRef(function CreateOrderForm(_props, ref) 
             {items.map((item, index) => (
               <div
                 key={`line-${index}`}
-                className="rounded-xl border border-gray-200 bg-zinc-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50"
+                className="rounded-xl border border-gray-200 bg-zinc-50/50 p-3 dark:border-zinc-800 dark:bg-cc-surface/50"
               >
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-xs font-medium text-zinc-500">Line {index + 1}</span>
@@ -516,7 +516,7 @@ export const CreateOrderForm = forwardRef(function CreateOrderForm(_props, ref) 
         )}
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-cc-surface">
         <div className="space-y-1 text-sm">
           <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
             <span>Subtotal</span>

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useCcNavigation } from '../../hooks/useCcNavigation'
 import {
   ArrowLeft,
   User,
@@ -13,15 +14,19 @@ import {
   Banknote,
   AlertCircle,
   ImageIcon,
+  CheckCircle2,
 } from 'lucide-react'
 import { AnimatedPage } from '../../components/AnimatedPage'
 import { SmoothSlideOver } from '../../components/SmoothSlideOver'
 import { LocationMapCard } from '../../components/LocationMap'
 import apiInstance from '../../api/axiosInstance'
+import { useAuth } from '../../context/AuthContext'
+import { PERMISSIONS } from '../../config/permissions'
 
 const STATUS_OPTIONS = ['PENDING', 'ESCALATED', 'CONFIRMED', 'READY', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED', 'REFUSED']
 const DELIVERY_STATUS_OPTIONS = ['ASSIGNED', 'IN_TRANSIT', 'DELIVERED', 'PENDING']
 const PAYMENT_OPTIONS = ['cash', 'credit']
+const LEGACY_CONFIRM_STATUSES = new Set(['PENDING', 'DRAFT'])
 
 const STATUS_META = {
   PENDING: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
@@ -36,7 +41,7 @@ const STATUS_META = {
 
 function StatusBadge({ status }) {
   const key = status ? String(status).toUpperCase() : ''
-  const cls = STATUS_META[key] || 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'
+  const cls = STATUS_META[key] || 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-300'
   return (
     <span className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${cls}`}>
       {key || status || '—'}
@@ -62,7 +67,7 @@ function PaymentBadge({ method }) {
 
 function SidebarCard({ title, icon: Icon, children, action }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-cc-surface">
       <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
         <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
           {Icon && <Icon className="h-3.5 w-3.5" />}
@@ -92,7 +97,7 @@ function toDateTimeLocalValue(value) {
 
 function buildFormFromOrder(order) {
   return {
-    status: order?.status ? String(order.status).toUpperCase() : 'PENDING',
+    status: order?.status ? String(order.status).toUpperCase() : 'CONFIRMED',
     paymentMethod: order?.payment_method || 'cash',
     depotId: order?.depot_id || order?.depot?.id || '',
     date: toDateInputValue(order?.delivery_date || order?.order_date),
@@ -113,13 +118,19 @@ function formatMoney(amount, currency = 'MAD') {
 export function OrderDetailsPage() {
   const { id: orderKey } = useParams()
   const navigate = useNavigate()
+  const { openPanel } = useCcNavigation()
+  const { hasPermission } = useAuth()
+  const canConfirmOrder =
+    hasPermission(PERMISSIONS.CONFIRM_ORDERS) || hasPermission(PERMISSIONS.MANAGE_ORDERS)
   const [order, setOrder] = useState(null)
   const [form, setForm] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isConfirming, setIsConfirming] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [error, setError] = useState('')
   const [saveError, setSaveError] = useState('')
+  const [actionMessage, setActionMessage] = useState('')
   const [depots, setDepots] = useState([])
   const [isLoadingDepots, setIsLoadingDepots] = useState(false)
   const controllerRef = useRef(null)
@@ -209,6 +220,28 @@ export function OrderDetailsPage() {
     }
   }
 
+  const handleLegacyConfirm = async () => {
+    if (!orderKey) return
+    setIsConfirming(true)
+    setActionMessage('')
+    setError('')
+    try {
+      const res = await apiInstance.post(`/orders/${encodeURIComponent(orderKey)}/confirm`)
+      const updated = res.data?.data?.order || null
+      if (updated) {
+        setOrder(updated)
+        setForm(buildFormFromOrder(updated))
+      } else {
+        await load()
+      }
+      setActionMessage('Order confirmed and stock reserved. Ready for dispatch.')
+    } catch (err) {
+      setActionMessage(err?.response?.data?.message || 'Failed to confirm order.')
+    } finally {
+      setIsConfirming(false)
+    }
+  }
+
   const closeEditPanel = () => {
     setForm(buildFormFromOrder(order))
     setIsEditing(false)
@@ -222,13 +255,16 @@ export function OrderDetailsPage() {
   const currency = order?.currency || 'MAD'
   const depotId = order?.depot_id || order?.depot?.id || null
   const depotName = order?.depot?.depot_name || client.depot_name || '—'
+  const orderStatusKey = order?.status ? String(order.status).toUpperCase() : ''
+  const showLegacyConfirm =
+    canConfirmOrder && LEGACY_CONFIRM_STATUSES.has(orderStatusKey)
 
   const subtotal = financials.subtotal ?? items.reduce((s, i) => s + Number(i.line_total || 0), 0)
   const couponDiscount = financials.coupon_discount ?? 0
   const grandTotal = financials.grand_total ?? Math.max(subtotal - couponDiscount, Number(order?.total_amount || 0))
 
   const inputClass =
-    'w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100'
+    'w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-cc-surface dark:text-zinc-100'
 
   return (
     <AnimatedPage>
@@ -271,19 +307,51 @@ export function OrderDetailsPage() {
                   {items.length === 1 ? '' : 's'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setForm(buildFormFromOrder(order))
-                  setSaveError('')
-                  setIsEditing(true)
-                }}
-                className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
-              >
-                <Pencil className="h-4 w-4" />
-                Edit order
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {showLegacyConfirm ? (
+                  <button
+                    type="button"
+                    onClick={handleLegacyConfirm}
+                    disabled={isConfirming}
+                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-60"
+                    title="Legacy action for historical pending/draft orders only"
+                  >
+                    {isConfirming ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                    {isConfirming ? 'Confirming…' : 'Confirm order (legacy)'}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm(buildFormFromOrder(order))
+                    setSaveError('')
+                    setIsEditing(true)
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-cc-surface dark:text-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edit order
+                </button>
+              </div>
             </header>
+
+            {showLegacyConfirm ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                This order is still <strong>{orderStatusKey.toLowerCase()}</strong>. New orders are
+                confirmed on create — use <strong>Confirm order (legacy)</strong> only for leftover
+                pending/draft rows before dispatch.
+              </div>
+            ) : null}
+
+            {actionMessage ? (
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                {actionMessage}
+              </div>
+            ) : null}
 
             <SmoothSlideOver
               isOpen={isEditing && !!form}
@@ -331,10 +399,14 @@ export function OrderDetailsPage() {
                     >
                       {STATUS_OPTIONS.map((s) => (
                         <option key={s} value={s}>
-                          {s}
+                          {s === 'PENDING' ? 'PENDING (legacy)' : s}
                         </option>
                       ))}
                     </select>
+                    <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                      New orders are confirmed on create and do not need a separate confirm step
+                      before dispatch.
+                    </p>
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -436,7 +508,7 @@ export function OrderDetailsPage() {
                   name={client.name || client.place_name || 'Client location'}
                 />
 
-                <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-cc-surface">
                   <div className="border-b border-zinc-100 px-5 py-4 dark:border-zinc-800">
                     <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                       <Package className="h-4 w-4 text-zinc-500" />
@@ -498,7 +570,7 @@ export function OrderDetailsPage() {
                     </div>
                   )}
 
-                  <div className="border-t border-zinc-100 bg-zinc-50/50 px-5 py-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+                  <div className="border-t border-zinc-100 bg-zinc-50/50 px-5 py-4 dark:border-zinc-800 dark:bg-cc-surface/50">
                     <dl className="ml-auto max-w-xs space-y-2 text-sm">
                       <div className="flex justify-between gap-4">
                         <dt className="text-zinc-500">Subtotal</dt>
@@ -559,7 +631,7 @@ export function OrderDetailsPage() {
                     order.mission?.id ? (
                       <button
                         type="button"
-                        onClick={() => navigate(`/missions/${order.mission.id}`)}
+                        onClick={() => openPanel('missions', order.mission.id)}
                         className="text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
                       >
                         Reassign
